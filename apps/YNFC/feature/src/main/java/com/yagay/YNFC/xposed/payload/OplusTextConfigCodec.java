@@ -51,6 +51,32 @@ public final class OplusTextConfigCodec implements RfPayloadCodec {
     }
 
     /**
+     * Replacement-only path. Unlike the legacy codec, it never grows a
+     * parameter list by inserting another LA_NFCID1. It only accepts a fully
+     * parsed NCI frame with exactly one existing 0x33 target.
+     */
+    public RewriteResult replaceExisting(byte[] input, byte[] uid) {
+        if (input == null || input.length == 0) return RewriteResult.skip(id(), "EMPTY_INPUT");
+        if (!RawNciCodec.isSupportedUid(uid))
+            return RewriteResult.skip(id(), "UID_LENGTH_NOT_4_7_10_BYTES");
+        String text = new String(input, StandardCharsets.UTF_8);
+        Matcher matcher = OPLUS_BLOCK.matcher(text);
+        if (!matcher.find()) return RewriteResult.skip(id(), "OPLUS_CONF_EXTN_NOT_FOUND");
+
+        byte[] block = parseHexTokens(matcher.group(2));
+        RewriteResult nested = raw.replaceExisting(block, uid);
+        if (!nested.changed) return RewriteResult.skip(id(), "STRICT_REPLACE:" + nested.reason);
+        String replacement = matcher.group(1) + "\n"
+                + formatHexBlock(nested.data) + "\n" + matcher.group(3);
+        String rewritten = text.substring(0, matcher.start()) + replacement
+                + text.substring(matcher.end());
+        return RewriteResult.changed(id(), nested.reason,
+                rewritten.getBytes(StandardCharsets.UTF_8),
+                nested.oldPayloadLength, nested.newPayloadLength,
+                nested.oldParamCount, nested.newParamCount);
+    }
+
+    /**
      * OPLUS wrappers on some vendor builds contain a valid CORE_SET_CONFIG frame that the strict
      * generic parser cannot fully prove because of proprietary parameter encoding. Before adding a
      * second LA_NFCID1, look for exactly one bounded existing 0x33 parameter with a stock/supported
