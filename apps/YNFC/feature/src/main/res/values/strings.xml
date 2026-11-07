@@ -120,4 +120,13 @@
     <string name="ynfc_hook_manual_reload_desc">Only use this after installing a test build with new in-process Hook code. Reloads the NFC service once, not the phone. No automatic restart.</string>
     <string name="ynfc_type_a_disable_failed">ColorOS rejected native NFC-A disable. Stock RF is not confirmed; check the diagnostic log.</string>
     <string name="ynfc_rf_uid_writer_not_observed">UID replacement not applied: NFC routing refreshed but the current process did not call a usable NCI UID writer. The RF backend only replaces an existing LA_NFCID1; it never appends another parameter. This firmware may require a separate, verified native HAL interception point.</string>
+    <string name="ynfc_file_intercept_mode">File-driven NFC-A interception (experimental)</string>
+    <string name="ynfc_file_intercept_desc">Replace UID/ATQA/SAK only when ColorOS naturally calls HceAccessCard. This mode does not request or force an OEM NFC-A write; external reader verification is required.</string>
+    <string name="ynfc_profile_import_title">NFC-A profile from file</string>
+    <string name="ynfc_profile_import_desc">Import an NFC_A JSON file up to 4 KB. Parameters are validated and stored as a card; no direct system file replacement.</string>
+    <string name="ynfc_profile_import_button">Import JSON profile</string>
+    <string name="ynfc_profile_imported">NFC-A profile imported. Interception mode selected; tap Simulate on the saved card to arm it.</string>
+    <string name="ynfc_profile_import_failed">Profile import failed: %1$s</string>
+    <string name="ynfc_intercept_call_accepted">ColorOS HCE method used the imported parameters and returned success. The actual RF UID is still unverified; check with an external NFC reader.</string>
+    <string name="ynfc_intercept_call_waiting">No natural ColorOS Type-A configuration call occurred after interception was armed. The UID was not replaced.</string>
 </resources>
