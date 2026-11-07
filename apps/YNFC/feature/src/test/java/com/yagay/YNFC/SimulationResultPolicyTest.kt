@@ -37,10 +37,19 @@ class SimulationResultPolicyTest {
             commandStatus = "NO_OVERRIDE",
             operationState = "IDLE",
             verificationConfidence = "NO_MODIFICATION",
+            rfStatus = "NO_OVERRIDE",
+            rfSource = "no-uid-write",
+            rfVerification = "NO_UID_WRITE",
+            rfGeneration = 25,
+            rfPid = 1234,
             rfAccepted = false,
             simulationEnabled = false
         )
         assertTrue(SimulationResultPolicy.isStopNoOverride(state, 25))
+        // Regression: controller lifecycle markers must never restart NFC
+        // after the in-process Hook has already acknowledged no UID write.
+        assertTrue(SimulationResultPolicy.isStopNoOverride(
+            state.copy(operationState = "REVERIFY_PENDING"), 25))
         assertFalse(SimulationResultPolicy.isStopSuccess(state, 25))
         // Replaced process means NFC has already restarted; don't restart again.
         assertTrue(SimulationResultPolicy.isStopNoOverride(state.copy(currentPid = 1235), 25))
@@ -48,6 +57,10 @@ class SimulationResultPolicyTest {
         assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(simulationEnabled = true), 25))
         assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(rfAccepted = true), 25))
         assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(commandStatus = "FAILED"), 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(rfGeneration = 24), 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(rfPid = 4321), 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(rfSource = null), 25))
+        assertFalse(SimulationResultPolicy.isStopNoOverride(state.copy(rfVerification = null), 25))
     }
 
     @Test fun stopRequiresVerifiedStockProof() {
