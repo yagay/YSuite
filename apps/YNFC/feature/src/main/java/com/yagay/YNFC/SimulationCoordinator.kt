@@ -21,10 +21,32 @@ internal class SimulationCoordinator(
      */
     fun simulate(card: CardModel, backend: String, onDone: (RuntimeStatus, String) -> Unit) {
         executor.execute {
+            var ready = runtimeRepository.read(includeRootPid = true)
+            // Files are generated even when the NFC service is running an old
+            // Hook. No command is published until the subsequent readiness
+            // checks pass, and preparation never modifies the controller.
+            // File mode is fully automatic: validate, atomically write, and
+            // read back the private profile on this serial IO worker BEFORE
+            // publishing any APPLY command. A file error cannot arm the Hook.
+            val selectedCard = if (backend in setOf("INTERCEPT", "NATIVE")) {
+                val prepared = runCatching {
+                    val generator = createProfile
+                        ?: throw IllegalStateException("Automatic profile generator unavailable")
+                    generator(card, backend)
+                }
+                if (prepared.isFailure) {
+                    AppLogger.e("PROFILE: automatic NFC-A / SN220 profile preparation failed",
+                        prepared.exceptionOrNull()!!)
+                    val detail = prepared.exceptionOrNull()?.message.orEmpty().take(180)
+                    onDone(ready, YLocale.text(R.string.ynfc_profile_auto_failed) +
+                        if (detail.isNotBlank()) " · " + detail else "")
+                    return@execute
+                }
+                prepared.getOrThrow()
+            } else card
             // Never publish APPLY to a stale/incompatible in-process Hook.
             // Wait briefly for an already-restarting NFC service, but never
             // restart it automatically as a side effect of an APK upgrade.
-            var ready = runtimeRepository.read(includeRootPid = true)
             if (!hookReady(ready)) ready = waitForHookOnly(2_000)
             if (!hookReady(ready)) {
                 AppLogger.i("SIMULATION: APPLY not published; NFC Hook mismatch or missing. " +
@@ -45,25 +67,6 @@ internal class SimulationCoordinator(
                 onDone(ready, YLocale.text(R.string.ynfc_intercept_hook_reload_required))
                 return@execute
             }
-            // File mode is fully automatic: validate, atomically write, and
-            // read back the private profile on this serial IO worker BEFORE
-            // publishing any APPLY command. A file error cannot arm the Hook.
-            val selectedCard = if (backend in setOf("INTERCEPT", "NATIVE")) {
-                val prepared = runCatching {
-                    val generator = createProfile
-                        ?: throw IllegalStateException("Automatic profile generator unavailable")
-                    generator(card, backend)
-                }
-                if (prepared.isFailure) {
-                    AppLogger.e("PROFILE: automatic NFC-A / SN220 profile preparation failed",
-                        prepared.exceptionOrNull()!!)
-                    val detail = prepared.exceptionOrNull()?.message.orEmpty().take(180)
-                    onDone(ready, YLocale.text(R.string.ynfc_profile_auto_failed) +
-                        if (detail.isNotBlank()) " · " + detail else "")
-                    return@execute
-                }
-                prepared.getOrThrow()
-            } else card
             val generation = configClient.publishCommand(enabled = true, card = selectedCard, backend = backend)
             if (generation <= 0L) {
                 onDone(runtimeRepository.read(includeRootPid = true),
