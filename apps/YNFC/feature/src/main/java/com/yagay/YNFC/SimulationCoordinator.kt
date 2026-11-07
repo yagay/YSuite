@@ -51,8 +51,10 @@ internal class SimulationCoordinator(
             // NATIVE_HAL_ABI_UNVERIFIED, leaving a misleading active UI.
             if (backend == "NATIVE") {
                 AppLogger.i("NATIVE: SN220 preview prepared; APPLY intentionally not published")
-                onDone(runtimeRepository.read(includeRootPid = true),
-                    YLocale.text(R.string.ynfc_native_preview_only))
+                // The pre-capture runtime state is sufficient: a preview never
+                // publishes a command or changes NFC state. Avoid an extra
+                // synchronous Root PID check that delays button feedback.
+                onDone(ready, YLocale.text(R.string.ynfc_native_preview_only))
                 return@execute
             }
             // Never publish APPLY to a stale/incompatible in-process Hook.
