@@ -97,6 +97,20 @@ class DiagnosticsCollector(
         })
         appendLine("--- PROVIDER SNAPSHOT ---")
         snapshot.toSortedMap().forEach { (key, value) -> appendLine("$key=$value") }
+        appendLine("--- COLOROS OEM BINDER / BACKEND DIAGNOSIS ---")
+        val currentPid = snapshot["runtime_pid"]?.toIntOrNull() ?: 0
+        val oplusProbePid = snapshot["coloros_type_a_probe_pid"]?.toIntOrNull() ?: 0
+        appendLine("selected_backend=${snapshot["simulation_backend"] ?: "NOT_REPORTED"}")
+        appendLine("oplus_probe_pid=$oplusProbePid current_pid=$currentPid")
+        appendLine("oplus_probe_fresh=${currentPid > 0 && currentPid == oplusProbePid}")
+        appendLine("oplus_probe_stage=${snapshot["coloros_type_a_probe_stage"] ?: "NOT_REPORTED"}")
+        appendLine("oplus_probe_descriptor=${snapshot["coloros_type_a_probe_descriptor"] ?: "NOT_REPORTED"}")
+        appendLine("oplus_probe_detail=${snapshot["coloros_type_a_probe_detail"] ?: "NOT_REPORTED"}")
+        val previousRfReplayPid = snapshot["rf_replay_pid"]?.toIntOrNull() ?: 0
+        appendLine("old_rf_replay_pid=$previousRfReplayPid")
+        appendLine("old_rf_replay_reusable=${currentPid > 0 && currentPid == previousRfReplayPid}")
+        appendLine("NOTE: shell 'service list' registration does not prove Binder availability in com.android.nfc.")
+        appendLine("NOTE: the Vendor Type-A mode is opt-in and is not auto-selected after an RF-only failure.")
         appendLine("--- UID-ONLY RF ENTRYPOINT COMPARISON ---")
         appendLine("legacy_changeRfParamsByConfig=${snapshot["rf_uid_legacy_entry"] ?: "NOT_REPORTED"}")
         appendLine("modern_setNciConfig=${snapshot["rf_uid_modern_entry"] ?: "NOT_REPORTED"}")
