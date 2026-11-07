@@ -100,6 +100,7 @@
     <string name="ynfc_selected_uid">Selected UID</string>
     <string name="ynfc_stop_restore_default">Stop and restore stock NFC</string>
     <string name="ynfc_switch_uid">Switch UID</string>
+    <string name="ynfc_hook_problem_implementation">NFC is still using older YNFC Hook code. Stop emulation, then reload the NFC service Hook once. You do not need to reboot the phone.</string>
     <string name="ynfc_stop">Stop</string>
     <string name="ynfc_simulate">Emulate</string>
     <string name="ynfc_delete">Delete</string>

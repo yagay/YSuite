@@ -222,3 +222,22 @@ The diagnostic snapshot includes `own_nci_lifecycle_stage`, `reason`,
 Java dispatched an NCI command; it does not certify NFCC acceptance or
 the on-air UID. Testing on real SN220T after NFC OFF/ON and device reboot
 is required; this change has not been hardware-validated yet.
+
+## Hook implementation freshness after APK replacement
+
+The 2026-11-07 OFF/ON report retained NFC PID 18697 from the earlier
+diagnostic (before the one-shot lifecycle patch was compiled). The new
+code was therefore NOT loaded in that process despite `HOOK_READY`:
+`HOOK_BUILD=46` is a stable interface protocol, not the Hook's
+implementation revision. The earlier `INTERCEPT_IMPL_REVISION=3`
+remained unchanged and concealed that mismatch.
+
+`INTERCEPT_IMPL_REVISION=4` marks the controller-reset restore patch.
+The UI, coordinator, diagnostics and hook-evidence publisher now all
+require the installed Hook revision AND owning PID to match. A stale
+`com.android.nfc` reports `HOOK_IMPLEMENTATION_STALE` and shows the
+explicit service-only reload action (after STOP). The stable
+`HOOK_BUILD=46` has NOT changed. No automatic NFC service restart,
+device reboot, extra RF Discovery hook, or UID write was introduced.
+For future hot code changes the implementation freshness marker
+must be advanced, independently of the stable protocol number.

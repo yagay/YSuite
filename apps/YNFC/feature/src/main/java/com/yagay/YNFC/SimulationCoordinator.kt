@@ -187,7 +187,9 @@ internal class SimulationCoordinator(
 
     private fun hookReady(state: RuntimeStatus): Boolean =
         state.hookInstalled && state.scopeOk && state.currentPid > 0 &&
-            state.hookPid == state.currentPid && state.hookBuild == expectedHookBuild
+            state.hookPid == state.currentPid && state.hookBuild == expectedHookBuild &&
+            state.hookImplementationPid == state.currentPid &&
+            state.hookImplementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION
 
     private fun waitForCommandCompletion(
         generation: Long,

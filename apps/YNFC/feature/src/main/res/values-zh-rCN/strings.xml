@@ -100,6 +100,7 @@
     <string name="ynfc_selected_uid">当前选中 UID</string>
     <string name="ynfc_stop_restore_default">停止模拟并恢复原厂 NFC</string>
     <string name="ynfc_switch_uid">切换 UID</string>
+    <string name="ynfc_hook_problem_implementation">NFC 进程仍在使用旧版 YNFC Hook 代码。请先停止模拟，再重新加载一次 NFC 服务 Hook，无需重启手机。</string>
     <string name="ynfc_stop">停止</string>
     <string name="ynfc_simulate">模拟</string>
     <string name="ynfc_delete">删除</string>

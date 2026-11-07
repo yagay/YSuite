@@ -29,7 +29,11 @@ import com.yagay.yui.YDivider
 
 @Composable
 fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readModeEnabled: Boolean) {
-    val hookReady = status.currentPid > 0 && status.scopeOk && status.hookInstalled && status.hookBuild == BuildConfig.HOOK_BUILD
+    val hookReady = status.currentPid > 0 && status.scopeOk &&
+        status.hookInstalled && status.hookPid == status.currentPid &&
+        status.hookBuild == BuildConfig.HOOK_BUILD &&
+        status.hookImplementationPid == status.currentPid &&
+        status.hookImplementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION
     val commandInFlight = status.commandStatus in setOf("PENDING", "RUNNING", "TRIGGERED", "RESTART_REQUIRED") &&
         status.commandGeneration != status.handledGeneration
     val semanticBusy = status.operationState in setOf("APPLYING", "STOPPING", "RESETTING_CONTROLLER")
@@ -169,7 +173,7 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
     ) {
         YStatusLine(
             label = stringResource(R.string.ynfc_nfc_hook),
-            value = "pid=${status.currentPid} · runtimePid=${status.runtimePid} · hookBuild=${status.hookBuild}/${BuildConfig.HOOK_BUILD} · hookPid=${status.hookPid}",
+            value = "pid=${status.currentPid} · runtimePid=${status.runtimePid} · hookBuild=${status.hookBuild}/${BuildConfig.HOOK_BUILD} · impl=${status.hookImplementationRevision}/${BuildConfig.INTERCEPT_IMPL_REVISION} · hookPid=${status.hookPid}",
             tone = if (hookReady) YStatusTone.Good else YStatusTone.Error,
         )
         if (!hookReady) {
@@ -182,6 +186,9 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
                 !status.scopeOk -> R.string.ynfc_hook_problem_scope
                 !status.hookInstalled -> R.string.ynfc_hook_problem_install
                 status.hookBuild != BuildConfig.HOOK_BUILD -> R.string.ynfc_hook_problem_build
+                status.hookImplementationPid != status.currentPid ||
+                    status.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ->
+                    R.string.ynfc_hook_problem_implementation
                 else -> R.string.ynfc_hook_problem_unknown
             }
             Text(

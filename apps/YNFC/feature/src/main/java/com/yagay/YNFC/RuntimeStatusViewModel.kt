@@ -29,7 +29,9 @@ class RuntimeStatusViewModel(application: Application) : AndroidViewModel(applic
     private fun publishEvidence(status: RuntimeStatus) {
         val verified = status.currentPid > 0 && status.scopeOk &&
             status.hookInstalled && status.hookPid == status.currentPid &&
-            status.hookBuild == BuildConfig.HOOK_BUILD
+            status.hookBuild == BuildConfig.HOOK_BUILD &&
+            status.hookImplementationPid == status.currentPid &&
+            status.hookImplementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION
         FeatureHookEvidence.publish(
             featureId = "ynfc",
             process = "com.android.nfc",

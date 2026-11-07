@@ -5,6 +5,7 @@ internal object RuntimeText {
     fun statusSummary(status: RuntimeStatus, expectedHookBuild: Int, readModeEnabled: Boolean): String = buildString {
         appendLine("=== CURRENT STATUS ===")
         appendLine("BUILD: app=${status.appBuild} hook=${status.hookBuild} expectedHook=$expectedHookBuild")
+        appendLine("HOOK_IMPLEMENTATION: loaded=${status.hookImplementationRevision} expected=${BuildConfig.INTERCEPT_IMPL_REVISION} loadedPid=${status.hookImplementationPid} currentPid=${status.currentPid}")
         appendLine("PID: current=${status.currentPid} runtime=${status.runtimePid} scope=${status.scopePid} hook=${status.hookPid} command=${status.commandPid} rf=${status.rfPid}")
         appendLine("SCOPE: ${if (status.scopeOk) "SUCCESS" else "NOT DETECTED/STALE"}")
         appendLine("HOOK: ${if (status.hookInstalled) "SUCCESS" else "NOT INSTALLED/STALE"}")
@@ -44,6 +45,9 @@ internal object RuntimeText {
             "HOOK_NOT_INSTALLED: module reached the NFC process but did not install its hooks; inspect focused YSuite/YNFC logs."
         status.hookBuild != expectedHookBuild ->
             "HOOK_BUILD_MISMATCH: loaded NFC Hook code does not match the APK. Use the explicit 'Reload NFC service' action when you need the new Hook; no phone reboot is required."
+        status.hookImplementationPid != status.currentPid ||
+            status.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ->
+            "HOOK_IMPLEMENTATION_STALE: running NFC PID still holds an earlier YNFC Hook implementation. STOP emulation, then use the explicit NFC service Hook reload. No phone reboot is required."
         else -> "HOOK_READY"
     }
 
