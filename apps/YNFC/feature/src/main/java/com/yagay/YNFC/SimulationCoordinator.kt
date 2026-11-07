@@ -32,6 +32,19 @@ internal class SimulationCoordinator(
                 onDone(ready, YLocale.text(R.string.ynfc_sim_hook_not_ready))
                 return@execute
             }
+            // A stable LSPosed protocol number is not proof that the running
+            // NFC process loaded the newest implementation. A stale process
+            // must be reloaded explicitly by the user, never by APPLY.
+            if (backend == "INTERCEPT" && (
+                    ready.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ||
+                    ready.hookImplementationPid != ready.currentPid
+                )) {
+                AppLogger.i("INTERCEPT: Hook implementation stale; running=" +
+                    "${ready.hookImplementationRevision} expected=${BuildConfig.INTERCEPT_IMPL_REVISION} " +
+                    "revisionPid=${ready.hookImplementationPid} currentPid=${ready.currentPid}")
+                onDone(ready, YLocale.text(R.string.ynfc_intercept_hook_reload_required))
+                return@execute
+            }
             // File mode is fully automatic: validate, atomically write, and
             // read back the private profile on this serial IO worker BEFORE
             // publishing any APPLY command. A file error cannot arm the Hook.
