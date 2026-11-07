@@ -249,11 +249,11 @@ class DiagnosticsCollector(
             done
             echo '[SN220 config candidates: presence and SHA-256 only]'
             for conf in /data/vendor/nfc/libnfc-mtp-SN220.conf /vendor/etc/libnfc-mtp-SN220.conf; do
-              if [ -f "$conf" ]; then
+              if [ -f "${'$'}conf" ]; then
                 echo "CONFIG_FOUND $conf"
-                sha256sum "$conf" 2>/dev/null || true
+                sha256sum "${'$'}conf" 2>/dev/null || true
                 for key in NXP_CORE_CONF NXP_SET_CONFIG_ALWAYS; do
-                  if grep -Eq "^[[:space:]]*$key[[:space:]]*=" "$conf" 2>/dev/null; then
+                  if grep -Eq "^[[:space:]]*$key[[:space:]]*=" "${'$'}conf" 2>/dev/null; then
                     echo "CONFIG_KEY_PRESENT $conf $key"
                   fi
                 done
