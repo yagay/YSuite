@@ -28,7 +28,7 @@ internal object HalConfigReadProbe {
         val hashMatches = hashes.any { it.substringAfter("=").substringBefore(" ") == expectedHalHash }
         val classification = when {
             !hadRoot -> "ROOT_PROBE_UNAVAILABLE"
-            processes.isEmpty() -> "NXP_HAL_PROCESS_NOT_OBSERVED"
+            processes.none { it.startsWith("HAL_PROCESS=android.hardware.nfc2-service.nxp ") } -> "NXP_HAL_PROCESS_NOT_OBSERVED"
             configFds.isNotEmpty() -> "SN220_CONFIG_OPEN_FD_OBSERVED"
             else -> "SN220_CONFIG_OPEN_NOT_OBSERVED"
         }
@@ -55,7 +55,7 @@ internal object HalConfigReadProbe {
             appendLine("NOTE: Absence of an open descriptor is not proof the file was never read; it may have been closed during earlier initialization.")
             appendLine("NOTE: Log keyword counts and mapped libraries provide hints only, not direct function call observations.")
             appendLine("--- STRUCTURED OBSERVATIONS ---")
-            (processes + libraries + configFds + configFiles + hashes + logHints).forEach(::appendLine)
+            (processes + libraries + configFds + configFiles + hashes + logHints).forEach { appendLine(it) }
             appendLine("--- ROOT PROBE OUTPUT (BOUNDED) ---")
             appendLine(raw.take(16_000))
         }
@@ -104,5 +104,5 @@ internal object HalConfigReadProbe {
           echo "LOG_MATCH___D__key=__D__count"
         done
         echo PROBE_FINISHED
-    """.trimIndent().replace("__D__", "$")
+    """.trimIndent().replace("__D__", 36.toChar().toString())
 }
