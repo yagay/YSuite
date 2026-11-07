@@ -200,6 +200,39 @@ internal class SimulationCoordinator(
         }
     }
 
+    /**
+     * A deliberately user-triggered NFC-service-only reload for an armed
+     * file interceptor. The selected profile stays in ConfigProvider and is
+     * reloaded when the new com.android.nfc process starts. Never reboot
+     * Android, never do this automatically after an APK installation.
+     */
+    fun reloadNfcForFileIntercept(onDone: (RuntimeStatus, String) -> Unit) {
+        executor.execute {
+            var state = runtimeRepository.read(includeRootPid = true)
+            val config = runtimeRepository.readProviderMap()
+            if (config[ConfigProvider.KEY_BACKEND] != "INTERCEPT" ||
+                config[ConfigProvider.KEY_SIMULATION_ENABLED] != "true") {
+                onDone(state, YLocale.text(R.string.ynfc_intercept_reload_not_armed))
+                return@execute
+            }
+            if (!hookReady(state)) {
+                onDone(state, YLocale.text(R.string.ynfc_sim_hook_not_ready))
+                return@execute
+            }
+            val before = state.currentPid
+            val result = nfcSystemService.restartNfcProcessKeepingEnabled(
+                "user_requested_intercept_profile_reload"
+            )
+            AppLogger.i("INTERCEPT: user requested NFC-service-only reload oldPid=$before\n$result")
+            state = waitForHookOnly(12_000)
+            onDone(state, if (hookReady(state) && state.currentPid != before) {
+                YLocale.text(R.string.ynfc_intercept_reload_complete)
+            } else {
+                YLocale.text(R.string.ynfc_hook_reload_failed)
+            })
+        }
+    }
+
     private fun hookReady(state: RuntimeStatus): Boolean =
         state.hookInstalled && state.scopeOk && state.currentPid > 0 &&
             state.hookPid == state.currentPid && state.hookBuild == expectedHookBuild
