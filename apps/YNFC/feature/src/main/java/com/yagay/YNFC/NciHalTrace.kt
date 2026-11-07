@@ -98,7 +98,10 @@ internal object NciHalTrace {
         val coreTx = window.filter {
             it.tx && it.kind == 0x20 && it.gid == 0 && it.oid == 2
         }
-        val uidLengths = coreTx.mapNotNull { uidParameterLength(it.data) }
+        val uidTxFrames = coreTx.filter { uidParameterLength(it.data) != null }
+        val uidLengths = uidTxFrames.mapNotNull { uidParameterLength(it.data) }
+        val uidFirstTxDelta = uidTxFrames.map { it.epochMillis - commandEpochMillis }
+            .filter { it >= 0L }.minOrNull()
 
         // Correlate CORE_SET_CONFIG responses with preceding TX commands in
         // log order. Never report a response from an unrelated command as the
@@ -153,6 +156,7 @@ internal object NciHalTrace {
             appendLine("CORE_SET_CONFIG_TX=" + coreTx.size)
             appendLine("LA_NFCID1_TAG_33_IN_CONFIG_TX=" + uidLengths.size)
             appendLine("LA_NFCID1_LENGTHS_ONLY=" + uidLengths.joinToString(",").ifBlank { "NONE" })
+            appendLine("LA_NFCID1_FIRST_TX_DELTA_MS=" + (uidFirstTxDelta?.toString() ?: "NONE"))
             appendLine("CORE_SET_CONFIG_RSP_MATCHED=" + responseStatuses.size)
             appendLine("CORE_SET_CONFIG_RSP_ACCEPTED=" + configAccepted)
             appendLine("CORE_SET_CONFIG_RSP_REJECTED=" + configRejected)
@@ -167,6 +171,9 @@ internal object NciHalTrace {
                 }.ifBlank { "NO_MATCHING_RESPONSE_IN_LOG" })
             appendLine("CORE_SET_CONFIG_RSP_INVALID_PARAM_IDS=" +
                 rejectedParamLists.joinToString(";").ifBlank { "NONE" })
+            appendLine("CORE_SET_CONFIG_RSP_CODE_MEANING=" +
+                if (responseStatuses.size == 1 && responseStatuses[0] == 0x09)
+                    "NCI_STATUS_INVALID_PARAM" else "SEE_NCI_SPEC")
             appendLine("CORE_SET_CONFIG_RSP_NOTE=Native NCI acceptance is not proof of the NFC-A UID seen by a reader")
             appendLine("EVIDENCE=" + when {
                 commandEpochMillis <= 0L -> "NO_COMMAND_TIMESTAMP"
@@ -175,6 +182,8 @@ internal object NciHalTrace {
                 window.isEmpty() && beforeWindow == frames.size && frames.isNotEmpty() ->
                     "ONLY_PRE_WINDOW_HAL_FRAMES_NO_CURRENT_WINDOW_EVIDENCE"
                 window.isEmpty() -> "NO_HAL_FRAMES_IN_COMMAND_WINDOW_OR_BUFFER_TRUNCATED"
+                uidLengths.isNotEmpty() && responseStatuses.contains(0x09) ->
+                    "UID_PARAM_REJECTED_NCI_INVALID_PARAM"
                 uidLengths.isNotEmpty() -> "UID_PARAM_SENT_NOT_RF_VERIFIED"
                 coreTx.isNotEmpty() -> "CORE_CONFIG_SENT_NO_PARSEABLE_UID_PARAM"
                 else -> "RF_ROUTING_OR_OTHER_ONLY_NO_CORE_CONFIG_VISIBLE"
@@ -202,7 +211,7 @@ internal object NciHalTrace {
             val cut = line.indexOf('=')
             if (cut <= 0) null else line.substring(0, cut) to line.substring(cut + 1)
         }.toMap()
-        val delta = properties["FIRST_DELTA_MS"]?.toLongOrNull() ?: return false
+        val delta = properties["LA_NFCID1_FIRST_TX_DELTA_MS"]?.toLongOrNull() ?: return false
         return delta in 0L..1_000L &&
             properties["CORE_SET_CONFIG_TX"] == "1" &&
             properties["LA_NFCID1_TAG_33_IN_CONFIG_TX"] == "1" &&

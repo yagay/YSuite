@@ -90,6 +90,18 @@ class NciHalTraceTest {
         assertFalse(report.contains("04A1B2C3"))
     }
 
+    @Test fun unrelatedOlderPacketsDoNotHideCurrentUidRejection() {
+        val log = listOf(
+            line(100, "NxpNciX", "21060100"),
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(952, "NxpNciR", "400203090133")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(log, commandMs)
+        assertTrue(report.contains("LA_NFCID1_FIRST_TX_DELTA_MS=113"))
+        assertTrue(NciHalTrace.isOwnUidParameterRejected(report))
+        assertTrue(report.contains("UID_PARAM_REJECTED_NCI_INVALID_PARAM"))
+    }
+
     @Test fun unrelatedOrMalformedNciRejectionCannotFinalizeUid() {
         val uidTx = line(950, "NxpNciX", "20020701330404A1B2C3")
         val unrelatedParam = line(952, "NxpNciR", "400203090131")
