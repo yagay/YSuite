@@ -118,4 +118,5 @@
     <string name="ynfc_hook_reload_failed">未能确认新版 NFC Hook。请检查 LSPosed 作用域及诊断日志；不会自动再次重启。</string>
     <string name="ynfc_hook_manual_reload_title">手动刷新 NFC Hook</string>
     <string name="ynfc_hook_manual_reload_desc">只有安装了更新进程内 Hook 代码的测试版才需要使用。仅重载 NFC 服务一次，不重启手机，也不会自动执行。</string>
+    <string name="ynfc_type_a_disable_failed">ColorOS 原生 NFC-A 关闭被拒绝，尚未确认恢复原厂 RF；请检查诊断日志。</string>
 </resources>
