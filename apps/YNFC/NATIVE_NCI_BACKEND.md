@@ -26,7 +26,8 @@ on the device.
 | `libnfc_nci_jni.so` | `8b535f81e6f9b99e8773e9fae1cc1b9e5a9c1d5492b3da22ee130d2d4e98d2ac` | Android 37; `JNI_OnLoad`, `NFA_SetConfig`, `nci_snd_core_set_config`, `NfcAdaptation::HalWrite`, `NfcVendorExtn::processCmd` |
 | `libnfc-nci.so` | `368818d9d3a8583ea7c24604dc7517594d254976cd1f3c297e8b64e46969469a` | Android 37; **separate copy** of NFA and NCI config symbols |
 | `libnfc_vendor_extn.so` | `2b8dffc47296fbcc95c9a409bfcfcb897a720414ae383e6c8ac8ed4d8fb8e6d9` | Android 37; `CNfcConfig::readNxpRFConfig`, `RfConfigManager::sendNciCmd`, `RfConfigManager::updateRfSetConfig` |
-| `android.hardware.nfc2-service.nxp` | `7939ece2dcb8111560b3e5dbd278f18b3a83a2b60a325b4e07d92a6b305bcde2` | Android 36 launcher, **NEEDED: `nfc_nci_nxp_snxxx_v2.so`**, undefined `phNxpNciHal_write` |
+| `android.hardware.nfc2-service.nxp` | `7939ece2dcb8111560b3e5dbd278f18b3a83a2b60a325b4e07d92a6b305bcde2` | Android 36 launcher, linked against the separate SNxxx HAL implementation |
+| `nfc_nci_nxp_snxxx_v2.so` | `415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22` | **Now received**; ARM64 Android 36, Build ID `af894d508967190bd6a2a1d8ef139d37`; exports `CNfcConfig::readConfig`, `readNxpRFConfig`, `getValue`, `NfcWriter::write`, `phNxpNciHal_write` |
 | `vendor.oplus.hardware.nfc_aidl-service` | `1d5d2bf7c39a570c0a6962f2f52d56e0e56ecbf007c823a2f1aaec12c8767f4a` | OPLUS AIDL launcher; NEEDED: `vendor.oplus.hardware.nfc_aidl-V3-ndk.so` |
 | `vendor.oplus.hardware.nfcExtns-service` | `3f0b041b3dafce8f53ed91cf6143bd7916c969061ed88d9ead5d345e0a5bbb21` | NFC extension launcher; NEEDED: `libpnscr2_aidl.so` |
 
@@ -48,12 +49,31 @@ These are useful **observation boundaries**, not a validated UID-rewrite API.
 The JNI binary also exports `updateNfcID0Param`, but NFCID0 is not proof
 of the NFC-A `LA_NFCID1` parameter; do not conflate the identifiers.
 
-**Critical missing library:** `nfc_nci_nxp_snxxx_v2.so` is the HAL
-implementation required by `android.hardware.nfc2-service.nxp`.
-The uploaded service executable is a thin wrapper and does not contain the
-referenced `phNxpNciHal_write` implementation. Extract the exact loaded
-library from the same firmware and compare its SHA-256 and build ID before
-any native adapter can be designed.
+**HAL implementation now provided:** `nfc_nci_nxp_snxxx_v2.so`
+contains the actual `phNxpNciHal_write` and `NfcWriter::write`
+functions absent from the service launcher. This fixes the missing-file
+gap, **not** the unverified controller-UID-write gap.
+
+Static strings and symbols confirm that this NXP HAL supports the
+`CNfcConfig::readConfig()` / `readNxpRFConfig()` chain and explicitly
+references `/data/vendor/nfc/libnfc-mtp-SN220.conf`, `NXP_CORE_CONF`,
+`NXP_CORE_CONF_EXTN`, `NXP_RF_CONF_BLK_` and `NXP_SET_CONFIG_ALWAYS`.
+The `readNxpRFConfig()` AArch64 implementation forwards into
+`readConfig()`. It does not establish which specific file was selected
+during the observed device initialization.
+
+The 13 user-supplied `libnfc-mtp-SN220.conf_*` versions have the same
+`NXP_CORE_CONF` byte sequence, including `LA_NFCID1` `33 00`
+(zero-length configuration). The `NXP_SET_CONFIG_ALWAYS` flag is
+`0x01` for only the 24624/24776 files and `0x00` for the other 11.
+Consequently, replacing a file alone does not prove a new NCI config
+will be issued: the HAL also tracks configuration state.
+
+The proposed **first passive observation boundary** is the
+`CNfcConfig::getValue()` retrieval of `NXP_CORE_CONF` inside the
+separate vendor HAL process, correlated with `phNxpNciHal_write()`,
+NCI TX/RX and controller initialization. Observe first; don't
+change the values or substitute configuration files yet.
 
 Recommended passive investigation order:
 1. Confirm the actual `libnfc_nci_jni.so` mapping in `com.android.nfc`,
@@ -61,7 +81,8 @@ Recommended passive investigation order:
 2. Observe `NFA_SetConfig`, `nci_snd_core_set_config` and
    `NfcAdaptation::HalWrite` **without modification** and correlate with
    NCI TX, the command generation, and NFC process PID.
-3. Obtain `nfc_nci_nxp_snxxx_v2.so` and inspect its HAL-level write path.
+3. Compare the newly supplied `nfc_nci_nxp_snxxx_v2.so` SHA-256
+   against the actual loaded HAL and verify the config file chosen on device.
 4. Only consider validated, firmware-specific NFCID1 handling and a safe
    restore path; do not blindly inject `LA_NFCID1` into unrelated RF payloads.
 5. Verify the actual presented UID using an external reader on an authorized
@@ -97,10 +118,10 @@ It **never silently falls back** to those implementations.
 
 ## Before a native UID writer can be enabled
 
-1. Match the uploaded ELF files against the SHA-256 from this device's latest
-   diagnostic export. Obtain the additional **required** implementation
-   `nfc_nci_nxp_snxxx_v2.so` from the same installed firmware. The launcher
-   `android.hardware.nfc2-service.nxp` is not sufficient.
+1. Match the uploaded ELF files, including the newly provided
+   `nfc_nci_nxp_snxxx_v2.so`, against the loaded device libraries.
+   YNFC now reports the SNxxx SHA-256 and whether it matches the
+   uploaded binary; a match is not proof of a controllable UID.
 2. Compare SHA-256 with the diagnostic inventory; inspect exported symbols,
    JNI calling conventions, and on-device NCI transaction lifecycle.
 3. Verify whether the controller accepts a unique, correctly formed NFCID1
