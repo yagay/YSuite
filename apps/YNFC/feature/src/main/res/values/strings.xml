@@ -119,4 +119,5 @@
     <string name="ynfc_hook_manual_reload_title">Manual NFC Hook refresh</string>
     <string name="ynfc_hook_manual_reload_desc">Only use this after installing a test build with new in-process Hook code. Reloads the NFC service once, not the phone. No automatic restart.</string>
     <string name="ynfc_type_a_disable_failed">ColorOS rejected native NFC-A disable. Stock RF is not confirmed; check the diagnostic log.</string>
+    <string name="ynfc_rf_uid_writer_not_observed">RF-only UID configuration failed: routing refreshed, but this NFC process never called a native UID writer. This does not mean the UID was emulated. You may explicitly test the separate Vendor Type-A backend; ColorOS permission restrictions can still prevent it.</string>
 </resources>
