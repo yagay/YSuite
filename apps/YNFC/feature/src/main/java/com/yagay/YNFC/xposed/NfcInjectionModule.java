@@ -1784,7 +1784,9 @@ public class NfcInjectionModule extends XposedModule {
                 + " selectedBackend=VENDOR capability=" + capability.stage
                 + " methodPresent=" + capability.success + " detail=" + capability.detail);
         if (!capability.success) {
-            failVendorTypeACommand(cfg, "TYPE_A_UNAVAILABLE",
+            String stage = "TYPE_A_PERMISSION_DENIED".equals(capability.stage)
+                    ? "TYPE_A_PERMISSION_DENIED" : "TYPE_A_UNAVAILABLE";
+            failVendorTypeACommand(cfg, stage,
                     "Vendor Type-A unavailable: " + capability.stage + ": " + capability.detail);
             return;
         }
