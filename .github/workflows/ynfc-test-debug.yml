@@ -1,0 +1,88 @@
+name: YSuite Test Branch YNFC ColorOS Debug
+
+on:
+  push:
+    branches: [test]
+    paths:
+      - "apps/YNFC/**"
+      - ".github/workflows/ynfc-test-debug.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout YSuite
+        uses: actions/checkout@v4
+
+      - name: Verify generated feature catalog
+        run: python3 tools/generate_feature_catalog.py --check
+
+      - name: Read shared build versions
+        id: versions
+        run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.versions.outputs.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ steps.versions.outputs.gradle }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "cmdline-tools;23.0"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/23.0/bin/sdkmanager"
+          "$SDKMANAGER" --channel=3 \
+            "platforms;android-${{ steps.versions.outputs.android_platform }}" \
+            "build-tools;${{ steps.versions.outputs.build_tools }}" \
+            "platform-tools"
+
+      - name: Test YNFC and assemble YSuite arm64 Debug only
+        run: |
+          gradle --no-daemon --stacktrace \
+            :ynfc-feature:testDebugUnitTest \
+            :suite:assembleDebug \
+            -PySuiteAbiFilters=arm64-v8a
+
+      - name: Verify unified LSPosed host and arm64 APK
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apks = list(Path("suite/YSuite/build/outputs/apk/debug").glob("*.apk"))
+          if len(apks) != 1:
+              raise SystemExit(f"Expected exactly one YSuite Debug APK, found {len(apks)}")
+          with zipfile.ZipFile(apks[0]) as z:
+              init = z.read("META-INF/xposed/java_init.list").decode().strip()
+              if init != "com.yagay.YSuite.xposed.SuiteXposedModule":
+                  raise SystemExit(f"Unexpected LSPosed entry: {init}")
+              abis = {p.split("/")[1] for p in z.namelist() if p.startswith("lib/") and len(p.split("/")) > 2}
+              if abis - {"arm64-v8a"}:
+                  raise SystemExit(f"Non-arm64 native libraries included: {sorted(abis)}")
+          print(f"Verified YSuite Debug: {apks[0]} ({apks[0].stat().st_size} bytes)")
+          PY
+
+      - name: Upload YSuite arm64 Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: YSuite-test-YNFC-ColorOS-debug-arm64
+          path: suite/YSuite/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
