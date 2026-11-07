@@ -137,7 +137,7 @@
     <string name="ynfc_switch_to_intercept">Select file interception</string>
     <string name="ynfc_native_nci_mode">Independent NFC NCI/HAL (firmware investigation)</string>
     <string name="ynfc_native_nci_desc">Uses an automatic private NFC-A profile and the device NXP HAL diagnostic path. Native UID writing is disabled until this firmware ABI and controller support are verified. No ColorOS Wallet needed.</string>
-    <string name="ynfc_native_profile_desc">Tap Simulate to copy the active SN220 configuration into Download/YSuite/YNFC/original-SN220.conf, create modified-SN220.conf plus selected-nfc-a.json, and verify their hashes. Native NCI interception is not installed; no UID packet is transmitted.</string>
+    <string name="ynfc_native_profile_desc">Tap Simulate to create a versioned SN220 snapshot in Download/YSuite/YNFC/snapshots/. The JSON, original and modified configurations, and SHA-256 manifest belong to one run. Only NFCID1 is changed; ATQA/SAK are audited but not written. The native HAL writer is not installed.</string>
     <string name="ynfc_native_abi_unverified">Native NCI/HAL is not ready: exact firmware libraries and the UID writer ABI must be verified before any controller configuration. No UID was simulated or sent. Export a diagnostic report.</string>
     <string name="ynfc_switch_to_native">Choose native NCI investigation</string>
     <string name="ynfc_hal_probe_button">Inspect HAL config loading (read-only)</string>
