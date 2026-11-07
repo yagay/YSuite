@@ -21,7 +21,7 @@ internal object NfcPublicDownloads {
         require(validFileName.matches(name) && name != "." && name != "..") {
             "Invalid export file name"
         }
-        require(bytes.size <= MAX_BYTES) { "Refusing to export file larger than 1 MiB" }
+        require(bytes.size <= MAX_BYTES) { "Refusing to export file larger than 8 MiB" }
         val resolver = context.contentResolver
         val existing = findOwned(context, name)
         var uri: Uri? = existing
