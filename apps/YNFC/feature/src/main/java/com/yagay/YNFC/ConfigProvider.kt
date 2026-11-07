@@ -260,6 +260,7 @@ open class ConfigProvider : ContentProvider() {
                 val backend = when (extras?.getString(EXTRA_BACKEND)) {
                     "VENDOR" -> "VENDOR"
                     "INTERCEPT" -> "INTERCEPT"
+                    "NATIVE" -> "NATIVE"
                     else -> "RF"
                 }
                 val previousBackend = prefs().getString(KEY_BACKEND, "RF") ?: "RF"
