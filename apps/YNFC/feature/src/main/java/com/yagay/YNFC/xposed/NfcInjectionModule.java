@@ -2013,19 +2013,7 @@ public class NfcInjectionModule extends XposedModule {
 
         // No OEM emulateNfcATag: try our own single LA_NFCID1 controller write.
         // Older NFC APKs continue using the existing main RF Hook/refresh.
-        if (cfg.active) {
-            if (tryOwnNciUidWrite(cfg)) return;
-            // On the modern NXP stack, a direct-only experiment must never
-            // silently switch to a legacy refresh/share-mode fallback: that
-            // fallback can stop/restart RF Discovery without user consent.
-            if (hasModernOwnNciUidWriter()) {
-                failRfTriggerCommand(cfg, new NfcProcessVendorController.Result(false,
-                        "OWN_NCI_DIRECT_NOT_READY",
-                        "Native UID interface exists but direct write was unavailable; "
-                                + "no RF Discovery refresh was requested", null));
-                return;
-            }
-        }
+        if (cfg.active && tryOwnNciUidWrite(cfg)) return;
 
         // RF UID-only is fully independent of the ColorOS Vendor backend.
         // Do not probe or call OEM Type-A/ShareMode just to start RF mode.
@@ -2041,31 +2029,9 @@ public class NfcInjectionModule extends XposedModule {
 
 
     /**
-     * Detect only the exact verified new-style JNI method. Legacy systems may
-     * still use the original RF_CONFIG_WRITE hook path. This discovery-free
-     * experiment never triggers their fallback on a modern-capable device.
-     */
-    private boolean hasModernOwnNciUidWriter() {
-        try {
-            ClassLoader cl = nfcClassLoader;
-            if (cl == null) return false;
-            Class<?> cls = Class.forName("com.android.nfc.dhimpl.NativeNfcManager", false, cl);
-            Method setter = cls.getMethod("setNciConfig",
-                    int.class, byte[].class, int.class, boolean.class);
-            return setter.getReturnType() == void.class
-                    && Modifier.isNative(setter.getModifiers());
-        } catch (Throwable absent) {
-            return false;
-        }
-    }
-
-    /**
-     * Experimental direct-only NFC-A UID write.
-     * One explicit APPLY -> one native setNciConfig(0x33) request.
-     * Do NOT stop/restart Discovery, call applyRouting, or trigger RF refresh.
-     * The NFCC can return INVALID_PARAM (0x09) while discovery is active;
-     * no retry or hidden fallback is allowed. JNI returns void, so only
-     * NCI response correlation and an external reader can verify the effect.
+     * NFC Service 17.0.0.260114: NativeNfcManager#setNciConfig(int,byte[],int,boolean).
+     * Send only LA_NFCID1=0x33 ourselves, without calling the OEM emulator.
+     * Because JNI returns void, dispatch is NEVER counted as verified RF success.
      */
     private boolean tryOwnNciUidWrite(SimConfig cfg) {
         if (!cfg.initialized || !cfg.active || cfg.useVendorTypeA()
@@ -2074,6 +2040,9 @@ public class NfcInjectionModule extends XposedModule {
         byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
         if (uid == null) return false;
         boolean invoked = false;
+        boolean discoveryPauseAttempted = false;
+        Method restoreRouting = null;
+        Object routingOwner = null;
         try {
             Class<?> cls = Class.forName("com.android.nfc.NfcService", false, nfcClassLoader);
             Method instanceMethod = cls.getDeclaredMethod("getInstance");
@@ -2090,19 +2059,28 @@ public class NfcInjectionModule extends XposedModule {
                     !"com.android.nfc.dhimpl.NativeNfcManager".equals(
                         setter.getDeclaringClass().getName())) return false;
 
-            // Experiment: leave the existing OEM discovery and routing state
-            // unchanged. The old (unpaused) 0x33 attempt was rejected with
-            // NCI 0x09 on this firmware; we explicitly re-test that outcome
-            // without any discovery stop/start call by YNFC.
-            // Record possible controller mutation before calling void JNI.
+            // On NFC Service 17, both methods are present in the uploaded APK.
+            // NCI Listen-A parameters should be changed while RF Discovery is
+            // stopped. The old direct 0x33 write was sent during an unknown RF
+            // state and the NFCC rejected it with 0x09 (invalid parameter).
+            // This is still our original RF/LSPosed path; do not invoke the
+            // OEM Type-A emulator, vendor Binder, or any new backend.
+            Method stopDiscovery = host.getClass().getMethod("disableDiscovery");
+            restoreRouting = cls.getDeclaredMethod("applyRouting", boolean.class);
+            restoreRouting.setAccessible(true);
+            routingOwner = service;
+            // Record the possible controller mutation before calling void JNI.
             nativeUidMutationAttempted = true;
             controllerReinitRequired = true;
             restoreMode = "CONTROLLER_REINIT";
             persistRestoreState();
             invoked = true;
-            Log.i(TAG, "OWN_NCI_DIRECT_NO_DISCOVERY generation=" + cfg.generation
-                    + " uidBytes=" + uid.length
-                    + " pause=false resume=false refresh=false");
+            // Set the recovery flag before invoking even the first native
+            // transition: a thrown exception may leave discovery suspended.
+            discoveryPauseAttempted = true;
+            Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_REQUEST generation=" + cfg.generation);
+            stopDiscovery.invoke(host);
+            Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_RETURN generation=" + cfg.generation);
             setter.invoke(host, 0x33, uid.clone(), uid.length, true);
             ContentValues v = baseHookState();
             v.put("state_generation", cfg.generation);
@@ -2110,7 +2088,7 @@ public class NfcInjectionModule extends XposedModule {
             v.put("command_handled_generation", cfg.generation);
             v.put("command_action", "APPLY");
             v.put("command_status", "UNVERIFIED");
-            v.put("command_detail", "Own LA_NFCID1 0x33 write invoked without Discovery pause/refresh; NCI response pending");
+            v.put("command_detail", "Own LA_NFCID1 0x33 write invoked after discovery-pause request; NCI response pending");
             v.put("command_pid", Process.myPid());
             v.put("operation_state", "WAITING_FOR_RF");
             v.put("effective_state", "UNKNOWN");
@@ -2125,7 +2103,7 @@ public class NfcInjectionModule extends XposedModule {
             v.put("rf_native_result_type", "void-no-ack");
             v.put("rf_verification", "EXTERNAL_RF_NOT_VERIFIED");
             v.put("full_diag_stage", "OWN_NCI_UID_REQUESTED");
-            v.put("full_diag_summary", "Direct NCI 0x33 sent once; no YNFC Discovery pause, resume or RF refresh; await NCI response");
+            v.put("full_diag_summary", "RF discovery pause requested, direct NCI 0x33 sent, routing resume queued; await NCI response");
             writeValuesWithRetry(v, 20, 100L);
             completedGeneration = cfg.generation;
             completedPid = Process.myPid();
@@ -2145,6 +2123,31 @@ public class NfcInjectionModule extends XposedModule {
                 return true;
             }
             return false;
+        } finally {
+            if (discoveryPauseAttempted && restoreRouting != null && routingOwner != null) {
+                final Method method = restoreRouting;
+                final Object owner = routingOwner;
+                final long generation = cfg.generation;
+                final int pid = Process.myPid();
+                // The OEM NFC service owns discovery/routing on its main looper.
+                // Posting the restore avoids invoking applyRouting from a
+                // command executor and preserves HCE and polling policies.
+                boolean scheduled = pollingMainHandler.post(() -> {
+                    try {
+                        method.invoke(owner, true);
+                        Log.i(TAG, "OWN_NCI_DISCOVERY_RESUME_REQUEST generation="
+                                + generation + " pid=" + pid + " mainThread=true");
+                    } catch (Throwable failure) {
+                        Log.e(TAG, "OWN_NCI_DISCOVERY_RESUME_FAILED generation="
+                                + generation + " pid=" + pid + " (STOP can restore service)",
+                                failure);
+                    }
+                });
+                if (!scheduled) {
+                    Log.e(TAG, "OWN_NCI_DISCOVERY_RESUME_NOT_SCHEDULED generation="
+                            + generation + " pid=" + pid);
+                }
+            }
         }
     }
 

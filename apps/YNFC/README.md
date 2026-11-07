@@ -153,3 +153,27 @@ the legacy RF_CONFIG_WRITE path is left unchanged.
 STOP remains a separate explicit safety action: after a possible UID
 controller mutation, stock restoration may still reload the NFC service once.
 Changing the manual STOP recovery is outside this experiment.
+
+## No-discovery-pause experiment outcome (2026-11-07)
+
+The experimental direct-only `setNciConfig(0x33)` APPLY without
+`disableDiscovery()` or `applyRouting(true)` built successfully, but the
+device owner confirmed **card emulation did not work**. This is a device-level
+negative test; no new NCI response log was provided, so do not claim the
+experiment specifically returned `0x09`. An earlier unpaused attempt had
+returned `0x09 INVALID_PARAM`.
+
+The experiment is now reverted **only for the NFC-A write path**, restoring
+commit `f444bdd6`'s known working one-shot RF pause/write/resume:
+- On each explicit APPLY: one `disableDiscovery()` call, one
+  `setNciConfig(0x33)` call, and one posted `applyRouting(true)`.
+- No recurring `enableDiscovery()` reassertion and no automatic retries of
+  routing when the OEM cannot verify the Java mask.
+- Normal OEM field-detection discovery cycles are not blocked.
+- An NFC OFF/ON or reboot clears controller RF config; restoring that only on
+  controller READY (at most once per epoch) is a **separate future change**,
+  not introduced here.
+- STOP preserves the stock NFC controller recovery path.
+
+This rollback changes NFC commands, not UID or card data. Test only with
+the owner's own test card; avoid wallet payment while emulation is active.
