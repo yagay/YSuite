@@ -104,7 +104,7 @@
     <string name="ynfc_hook_problem_build">已加载的 NFC Hook 与 APK 版本不同。YNFC 会尝试仅重载 NFC 服务，通常不需要重启整台手机。</string>
     <string name="ynfc_hook_problem_unknown">NFC Hook 尚未就绪，请检查目标进程和诊断日志。</string>
     <string name="ynfc_vendor_type_a_mode">实验性 ColorOS Vendor Type-A</string>
-    <string name="ynfc_vendor_type_a_desc">关闭＝仅 UID 的 Root/LSPosed RF/NCI 模式（推荐）；开启＝实验性 ColorOS Vendor Type-A，需要厂商签名/特权 NFC 权限。实际 UID 必须使用外部读卡设备验证。</string>
+    <string name="ynfc_vendor_type_a_desc">关闭＝Root/LSPosed RF/NCI 严格 UID 置换（只替换已有的 LA_NFCID1，不追加新参数）；开启＝实验性 ColorOS Vendor Type-A，需要厂商签名/特权 NFC 权限。实际 UID 必须使用外部读卡设备验证。</string>
     <string name="ynfc_vendor_type_a_stop_first">请先停止当前模拟，再切换执行后端。</string>
     <string name="ynfc_vendor_api_accepted">厂商已接受 Type-A 配置请求，但尚未通过外部读卡器验证实际模拟效果。</string>
     <string name="ynfc_vendor_permission_denied">ColorOS 拒绝了 Vendor Type-A：NFC 系统进程缺少 com.oplus.permission.safe.NFC（签名或特权权限），普通运行时授权无法解决。请先停止模拟恢复 NFC，详情见诊断日志。</string>
@@ -119,5 +119,5 @@
     <string name="ynfc_hook_manual_reload_title">手动刷新 NFC Hook</string>
     <string name="ynfc_hook_manual_reload_desc">只有安装了更新进程内 Hook 代码的测试版才需要使用。仅重载 NFC 服务一次，不重启手机，也不会自动执行。</string>
     <string name="ynfc_type_a_disable_failed">ColorOS 原生 NFC-A 关闭被拒绝，尚未确认恢复原厂 RF；请检查诊断日志。</string>
-    <string name="ynfc_rf_uid_writer_not_observed">RF 模式写入 UID 失败：系统刷新了路由，但当前 NFC 进程没有调用原生 UID 配置接口，并非模拟成功。可以自行选择 Vendor Type-A 后端进行对比测试，但 ColorOS 权限仍可能阻止模拟。</string>
+    <string name="ynfc_rf_uid_writer_not_observed">UID 置换未生效：虽然刷新了 NFC 路由，但当前进程没有调用可用的 NCI UID 写入方法。RF 模式只替换已有 LA_NFCID1，不会追加新的参数。此固件可能需要先定位并验证原生 HAL 层的实际写入位置。</string>
 </resources>
