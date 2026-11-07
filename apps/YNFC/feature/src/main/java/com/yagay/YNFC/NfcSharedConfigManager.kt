@@ -143,15 +143,22 @@ internal object NfcSharedConfigManager {
             if [ "${'$'}size" -lt 1 ] || [ "${'$'}size" -gt $MAX_INPUT_BYTES ]; then
               echo 'YNFC_SN220_SIZE_INVALID'; exit 7
             fi
+            before=${'$'}(sha256sum "${'$'}src" 2>/dev/null | awk '{print ${'$'}1}')
+            echo "YNFC_CONF_SHA256_BEFORE=${'$'}before"
             printf '$BASE64_START\n'
             base64 "${'$'}src" | tr -d '\r\n'
             printf '\n$BASE64_END\n'
+            after=${'$'}(sha256sum "${'$'}src" 2>/dev/null | awk '{print ${'$'}1}')
+            echo "YNFC_CONF_SHA256_AFTER=${'$'}after"
         """.trimIndent()
         val output = rootShell.run(script, 15, 790_000, showToast = false)
         val pattern = Regex(
             """(?s)""" + BASE64_START +
                 """\s+([A-Za-z0-9+/=\r\n]+?)\s+""" + BASE64_END
         )
+        if (!output.contains("[exit=0]") || output.contains("[timeout=")) {
+            throw IOException("Root SN220 capture did not finish cleanly")
+        }
         val match = pattern.find(output)
             ?: throw IOException("Cannot read active SN220 config through Root: " +
                 output.takeLast(180).trim())
@@ -159,6 +166,17 @@ internal object NfcSharedConfigManager {
         val bytes = Base64.decode(encoded, Base64.DEFAULT)
         if (bytes.isEmpty() || bytes.size > MAX_INPUT_BYTES) {
             throw IOException("Invalid SN220 configuration length")
+        }
+        val digestBefore = Regex("""(?m)^YNFC_CONF_SHA256_BEFORE=([a-fA-F0-9]{64})$""")
+            .find(output)?.groupValues?.get(1)
+        val digestAfter = Regex("""(?m)^YNFC_CONF_SHA256_AFTER=([a-fA-F0-9]{64})$""")
+            .find(output)?.groupValues?.get(1)
+        val actualDigest = Sn220ConfigPreview.sha256(bytes)
+        if (digestBefore == null || digestAfter == null ||
+            !digestBefore.equals(digestAfter, ignoreCase = true) ||
+            !actualDigest.equals(digestBefore, ignoreCase = true)
+        ) {
+            throw IOException("SN220 source changed during capture or failed SHA-256 verification")
         }
         return bytes
     }
