@@ -33,6 +33,9 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
         status.commandGeneration != status.handledGeneration
     val semanticBusy = status.operationState in setOf("APPLYING", "STOPPING", "RESETTING_CONTROLLER")
     val commandFailed = status.commandStatus in setOf("FAILED", "TRIGGER_FAILED", "OBSERVER_FAILED") || status.operationState == "FAILED"
+    val oemAckOnly = status.commandStatus == "OEM_ACK_UNVERIFIED" &&
+        status.verificationConfidence == "OEM_ACK_ONLY" &&
+        status.commandPid == status.currentPid && status.rfPid == status.currentPid
     val commandTone = if (commandFailed) StatusTone.ERROR else StatusTone.IDLE
     val unknown = stringResource(R.string.ynfc_unknown)
     val commandDisplay = when {
@@ -50,6 +53,7 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             status.handledGeneration,
             status.commandPid,
         )
+        oemAckOnly -> stringResource(R.string.ynfc_coloros_oem_command, status.commandGeneration)
         status.commandStatus == "SUCCESS" && status.commandGeneration == status.handledGeneration -> stringResource(
             R.string.ynfc_cmd_success,
             status.commandAction.ifBlank { unknown },
@@ -79,6 +83,10 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             applyVerified -> {
                 simulationTone = StatusTone.OK
                 simulationDetail = stringResource(R.string.ynfc_sim_active, status.selectedUid ?: "-")
+            }
+            oemAckOnly -> {
+                simulationTone = StatusTone.WARNING
+                simulationDetail = stringResource(R.string.ynfc_coloros_oem_status, status.selectedUid ?: "-")
             }
             commandFailed -> {
                 simulationTone = StatusTone.ERROR
