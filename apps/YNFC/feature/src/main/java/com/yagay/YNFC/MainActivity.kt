@@ -179,7 +179,13 @@ class MainActivity : YComposeActivity() {
                 runCatching {
                     nciTraceCaptureExecutor.execute {
                         runCatching {
-                            diagnosticsCollector.captureNativeNciAfterApply(state.commandGeneration)
+                            val generation = state.commandGeneration
+                            diagnosticsCollector.captureNativeNciAfterApply(generation)
+                            // Immediate capture shows the config write, but a
+                            // ~60ms snapshot cannot reveal later RF routing.
+                            // Continue passively on this worker, never on UI.
+                            Thread.sleep(1_800L)
+                            diagnosticsCollector.captureNativeNciDelayedAfterApply(generation)
                         }.onFailure {
                             AppLogger.e("NCI_TRACE_SNAPSHOT failed", it)
                         }

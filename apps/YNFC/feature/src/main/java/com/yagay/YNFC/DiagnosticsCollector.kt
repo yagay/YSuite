@@ -48,6 +48,31 @@ class DiagnosticsCollector(
             "summaryOnly=true")
     }
 
+    /**
+     * Follow-up NCI observation after the early 60ms window. This is a
+     * logcat-only operation; it cannot start card emulation, route NFC, or
+     * change any controller configuration. Keep the early capture separately
+     * to survive the small log ring buffer.
+     */
+    fun captureNativeNciDelayedAfterApply(generation: Long) {
+        if (generation <= 0L || !runtimeRepository.isCurrentCommandGeneration(generation)) return
+        val capturedAt = System.currentTimeMillis()
+        val raw = runRoot(
+            "logcat -b all -d -v epoch -t 3200 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 420",
+            10, 165_000
+        )
+        val summary = NciHalTrace.summarize(raw, generation)
+        // A newer APPLY/STOP owns the controller. Do not preserve late
+        // evidence under a generation already superseded by another command.
+        if (!runtimeRepository.isCurrentCommandGeneration(generation)) return
+        nciTracePreferences.edit()
+            .putLong("late_generation", generation)
+            .putLong("late_captured_at_ms", capturedAt)
+            .putString("late_summary", summary)
+            .apply()
+        AppLogger.i("NCI_TRACE_DELAYED commandGeneration=$generation capturedAt=$capturedAt summaryOnly=true")
+    }
+
     private val halProbePrefs = appContext.getSharedPreferences(
         "ynfc_hal_probe_readonly_v1", Context.MODE_PRIVATE
     )
@@ -373,6 +398,18 @@ class DiagnosticsCollector(
             }
         } else {
             appendLine("EARLY_SNAPSHOT_STATUS=NOT_CAPTURED")
+        }
+        val delayedGeneration = nciTracePreferences.getLong("late_generation", 0L)
+        if (delayedGeneration > 0L && delayedGeneration == state.commandGeneration) {
+            appendLine("--- DELAYED NCI SNAPSHOT (AFTER INITIAL APPLY) ---")
+            appendLine("DELAYED_SNAPSHOT_COMMAND_GENERATION=$delayedGeneration")
+            appendLine("DELAYED_SNAPSHOT_CAPTURED_AT_MS=" +
+                nciTracePreferences.getLong("late_captured_at_ms", 0L))
+            appendLine(nciTracePreferences.getString("late_summary", "NO_DELAYED_SUMMARY"))
+        } else {
+            appendLine("DELAYED_SNAPSHOT_STATUS=" +
+                if (delayedGeneration > 0L) "OTHER_GENERATION_NOT_CURRENT_UID_PROOF"
+                else "NOT_CAPTURED")
         }
         appendLine(runCatching {
             val halPackets = runRoot(
