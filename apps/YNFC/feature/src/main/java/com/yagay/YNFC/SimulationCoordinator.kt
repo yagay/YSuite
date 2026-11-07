@@ -63,6 +63,9 @@ internal class SimulationCoordinator(
                 state.commandStatus == "FAILED" &&
                     state.verificationConfidence == "TYPE_A_PERMISSION_DENIED" ->
                     YLocale.text(R.string.ynfc_vendor_permission_denied)
+                state.commandStatus == "FAILED" &&
+                    state.commandDetail?.contains("RF_NATIVE_WRITE_NOT_OBSERVED") == true ->
+                    YLocale.text(R.string.ynfc_rf_uid_writer_not_observed)
                 state.commandStatus == "FAILED" || state.commandStatus == "TRIGGER_FAILED" ->
                     YLocale.text(
                         R.string.ynfc_sim_apply_failure,
