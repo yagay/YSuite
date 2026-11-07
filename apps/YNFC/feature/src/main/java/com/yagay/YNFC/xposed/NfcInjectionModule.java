@@ -831,8 +831,8 @@ public class NfcInjectionModule extends XposedModule {
                 if ("hce".equals(key) && intercepted.initialized && intercepted.active
                         && intercepted.useInterceptTypeA()
                         && intercepted.generation > 0L
-                        && intercepted.handledGeneration != intercepted.generation
-                        && !"FAILED".equals(intercepted.commandStatus)) {
+                        && !"FAILED".equals(intercepted.commandStatus)
+                        && !"RESTART_REQUIRED".equals(intercepted.commandStatus)) {
                     Object[] originalArgs = chain.getArgs().toArray();
                     if (originalArgs.length == 4 && Boolean.TRUE.equals(originalArgs[0])
                             && originalArgs[1] instanceof byte[]
@@ -962,11 +962,29 @@ public class NfcInjectionModule extends XposedModule {
                     latest.handledGeneration == cfg.generation ||
                     !latest.active || !latest.useInterceptTypeA() ||
                     isGenerationCompleted(cfg.generation, Process.myPid())) return;
-            failVendorTypeACommand(latest, "INTERCEPT_NO_OEM_CALL",
-                    "No ColorOS HceAccessCard Type-A configuration call occurred "
-                            + "after the file interception was armed; nothing was replaced");
-            completedGeneration = cfg.generation;
-            completedPid = Process.myPid();
+            // No method invocation is not a controller failure; the persistent
+            // interceptor must remain armed for a later natural OEM call.
+            ContentValues waiting = baseHookState();
+            waiting.put("state_generation", cfg.generation);
+            waiting.put("command_consumed_generation", cfg.generation);
+            waiting.put("command_status", "INTERCEPT_ARMED_NO_CALL");
+            waiting.put("command_action", "APPLY");
+            waiting.put("command_detail", "No ColorOS HCE Type-A call observed yet; "
+                    + "interceptor remains armed until STOP");
+            waiting.put("command_pid", Process.myPid());
+            waiting.put("operation_state", "WAITING");
+            waiting.put("effective_state", "UNKNOWN");
+            waiting.put("verification_confidence", "NO_OEM_CALL");
+            waiting.put("rf_accepted", false);
+            waiting.put("rf_status", "INTERCEPT_ARMED_NO_CALL");
+            waiting.put("rf_uid", "");
+            waiting.put("rf_source", "file-intercept-hce");
+            waiting.put("rf_pid", Process.myPid());
+            waiting.put("rf_generation", cfg.generation);
+            waiting.put("rf_verification", "NOT_OBSERVED");
+            waiting.put("full_diag_stage", "INTERCEPT_ARMED_NO_CALL");
+            waiting.put("full_diag_summary", "Interception armed, waiting for natural OEM call");
+            writeValuesWithRetry(waiting, 8, 75L);
         });
     }
 
