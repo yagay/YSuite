@@ -361,6 +361,9 @@ fun CardItem(
     onToggleDetails: () -> Unit,
     onSimulate: () -> Unit,
     onStop: () -> Unit,
+    simulateLabel: String? = null,
+    simulateBusy: Boolean = false,
+    operationHint: String? = null,
     onDelete: () -> Unit,
 ) {
     YSection(
@@ -376,7 +379,11 @@ fun CardItem(
             if (isActive) {
                 YSecondaryButton(stringResource(R.string.ynfc_stop), onStop)
             } else {
-                YPrimaryButton(stringResource(R.string.ynfc_simulate), onSimulate)
+                YPrimaryButton(
+                    text = simulateLabel ?: stringResource(R.string.ynfc_simulate),
+                    onClick = onSimulate,
+                    enabled = !simulateBusy,
+                )
             }
             Spacer(Modifier.width((LocalYAppearance.current.effectiveGapDp / 3f).dp))
             YSecondaryButton(
@@ -388,6 +395,13 @@ fun CardItem(
         if (expanded) {
             YDivider()
             CardDetails(card)
+        }
+        operationHint?.takeIf { it.isNotBlank() }?.let { hint ->
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
