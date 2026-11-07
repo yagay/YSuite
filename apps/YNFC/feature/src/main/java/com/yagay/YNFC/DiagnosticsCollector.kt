@@ -48,6 +48,9 @@ class DiagnosticsCollector(
             "summaryOnly=true")
     }
 
+    /** On-demand passive survey; never hooks or restarts the HAL. */
+    fun buildHalConfigReadProbe(): String = HalConfigReadProbe.capture(rootShell)
+
     fun fetchLogs(source: LogSource): String {
         val pid = currentNfcPid()
         val output = when (source) {
