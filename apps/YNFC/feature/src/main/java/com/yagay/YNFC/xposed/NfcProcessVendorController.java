@@ -65,10 +65,18 @@ final class NfcProcessVendorController {
                 }
                 appendTrace(trace, "oplus-stub-not-callable");
             }
-            IBinder main = serviceManagerBinder();
+            IBinder main = lookupService(NFC_SERVICE_NAME, trace);
             if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
-                return new Result(false, "TYPE_A_NFC_UNAVAILABLE",
-                        "NFC service absent or descriptor mismatch", null);
+                // A registered service (visible in 'service list') can still be invisible
+                // to this process through ServiceManager/SELinux/hidden-API restrictions.
+                // Preserve both probes and method visibility instead of blaming NFC state.
+                String descriptor = safeDescriptor(main);
+                appendTrace(trace, "nfc-descriptor=" + descriptor);
+                Class<?> oplusApi = loadVendorClass(OPLUS_STUB);
+                appendTrace(trace, "oplus-AIDL-stub=" + (oplusApi == null ? "missing" : "loadable"));
+                return new Result(false, "TYPE_A_BINDER_LOOKUP_FAILED",
+                        "Registered ColorOS NFC services cannot be resolved as callable Binder "
+                        + "interfaces from this process; " + trace, descriptor);
             }
             IBinder vendor = findVerifiedVendorBinder(main, trace);
             if (vendor == null) {
@@ -142,9 +150,11 @@ final class NfcProcessVendorController {
                 }
                 appendTrace(trace, "oplus-type-a-method-unavailable");
             }
-            IBinder main = serviceManagerBinder();
+            IBinder main = lookupService(NFC_SERVICE_NAME, trace);
             if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
-                return new Result(false, "TYPE_A_NO_NFC", "NFC service unavailable", null);
+                appendTrace(trace, "nfc-descriptor=" + safeDescriptor(main));
+                return new Result(false, "TYPE_A_BINDER_LOOKUP_FAILED",
+                        "ColorOS Type-A interface could not be resolved; " + trace, safeDescriptor(main));
             }
             IBinder vendor = findVerifiedVendorBinder(main, trace);
             Object local = vendor == null ? null : vendor.queryLocalInterface(VENDOR_DESCRIPTOR);
@@ -185,25 +195,54 @@ final class NfcProcessVendorController {
      * Shared vendor discovery for Type-A probe and execution. Never trust an
      * OEM transaction unless the returned interface descriptor is exact.
      */
-    /** Non-blocking OEM service discovery; never guesses a transaction number. */
+    /**
+     * A read-only ColorOS service lookup. Both Android ServiceManager APIs are
+     * consulted because some firmware exposes checkService but not getService
+     * to a particular process, and vice versa. Failure is reported explicitly.
+     * A service-list entry alone is NOT Binder availability or UID write proof.
+     */
     private static IBinder findVerifiedOplusBinder(StringBuilder trace) {
-        try {
-            Class<?> sm = Class.forName("android.os.ServiceManager");
-            Method check = sm.getDeclaredMethod("checkService", String.class);
-            check.setAccessible(true);
-            Object found = check.invoke(null, OPLUS_SERVICE_NAME);
-            if (!(found instanceof IBinder)) {
-                appendTrace(trace, "oplus_nfc_service=not-visible");
-                return null;
-            }
-            IBinder binder = (IBinder) found;
-            String descriptor = safeDescriptor(binder);
-            appendTrace(trace, "oplus_nfc_service-descriptor=" + descriptor);
-            return alive(binder) && OPLUS_DESCRIPTOR.equals(descriptor) ? binder : null;
-        } catch (Throwable error) {
-            appendTrace(trace, "oplus_nfc_service-probe-error=" + error.getClass().getSimpleName());
+        IBinder binder = lookupService(OPLUS_SERVICE_NAME, trace);
+        if (!alive(binder)) {
+            appendTrace(trace, "oplus_nfc_service=no-accessible-binder");
             return null;
         }
+        String descriptor = safeDescriptor(binder);
+        appendTrace(trace, "oplus_nfc_service-descriptor=" + descriptor);
+        if (!OPLUS_DESCRIPTOR.equals(descriptor)) {
+            appendTrace(trace, "oplus_nfc_service=descriptor-mismatch");
+            return null;
+        }
+        return binder;
+    }
+
+    private static IBinder lookupService(String name, StringBuilder trace) {
+        try {
+            Class<?> sm = Class.forName("android.os.ServiceManager");
+            for (String api : new String[] {"checkService", "getService"}) {
+                try {
+                    Method method = sm.getDeclaredMethod(api, String.class);
+                    method.setAccessible(true);
+                    Object result = method.invoke(null, name);
+                    if (result instanceof IBinder) {
+                        IBinder binder = (IBinder) result;
+                        appendTrace(trace, name + "/" + api + "=" + safeDescriptor(binder));
+                        if (alive(binder)) return binder;
+                        appendTrace(trace, name + "/" + api + "=binder-not-alive");
+                    } else {
+                        appendTrace(trace, name + "/" + api + "=null");
+                    }
+                } catch (Throwable error) {
+                    Throwable cause = error.getCause() == null ? error : error.getCause();
+                    appendTrace(trace, name + "/" + api + "=" +
+                            cause.getClass().getSimpleName() + ":" +
+                            String.valueOf(cause.getMessage()));
+                }
+            }
+        } catch (Throwable error) {
+            appendTrace(trace, name + "/service-manager=" + error.getClass().getSimpleName());
+        }
+        return null;
     }
 
     private static IBinder findVerifiedVendorBinder(IBinder main, StringBuilder trace) throws Exception {
@@ -431,12 +470,7 @@ final class NfcProcessVendorController {
     }
 
     private static IBinder serviceManagerBinder() {
-        try {
-            Class<?> sm = Class.forName("android.os.ServiceManager");
-            Method method = sm.getDeclaredMethod("getService", String.class);
-            method.setAccessible(true);
-            return (IBinder) method.invoke(null, NFC_SERVICE_NAME);
-        } catch (Throwable ignored) { return null; }
+        return lookupService(NFC_SERVICE_NAME, null);
     }
 
     private static Object asInterface(String stubClass, IBinder binder) {
