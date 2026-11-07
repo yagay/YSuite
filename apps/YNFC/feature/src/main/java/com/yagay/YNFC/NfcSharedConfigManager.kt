@@ -87,7 +87,7 @@ internal object NfcSharedConfigManager {
         val script = """
             src='$SOURCE'
             if [ ! -f "${'$'}src" ]; then echo 'YNFC_SN220_SOURCE_MISSING'; exit 5; fi
-            size=${' -c %s "${'$'}src" 2>/dev/null)
+            size=${'$'}(stat -c %s "${'$'}src" 2>/dev/null)
             case "${'$'}size" in ''|*[!0-9]*) echo 'YNFC_SN220_SIZE_UNKNOWN'; exit 6;; esac
             if [ "${'$'}size" -lt 1 ] || [ "${'$'}size" -gt $MAX_INPUT_BYTES ]; then
               echo 'YNFC_SN220_SIZE_INVALID'; exit 7
