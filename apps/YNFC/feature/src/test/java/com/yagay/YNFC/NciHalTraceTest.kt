@@ -225,6 +225,22 @@ class NciHalTraceTest {
         assertFalse(report.contains(packet))
     }
 
+    @Test fun laterUidReassertionIsCountedWithoutLeakingUid() {
+        val raw = listOf(
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(952, "NxpNciR", "4002020000"),
+            earlierLine(1800000011L, 100, "NxpNciX", "20020701330404A1B2C3"),
+            earlierLine(1800000011L, 101, "NxpNciR", "4002020000"),
+            earlierLine(1800000011L, 105, "NxpNciX", "21030100"),
+            earlierLine(1800000011L, 108, "NxpNciR", "41030100")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(raw, commandMs)
+        assertTrue(report.contains("POST_APPLY_NCI_33_TX=1"))
+        assertTrue(report.contains("POST_APPLY_NCI_33_RSP_ACCEPTED=1 REJECTED_INVALID_PARAM=0"))
+        assertTrue(report.contains("POST_APPLY_RF_DEACTIVATE_TX=0 RF_DISCOVER_TX=1"))
+        assertFalse(report.contains("04A1B2C3"))
+    }
+
     @Test fun emptyLogIsNotTreatedAsHardwareFailureProof() {
         val report = NciHalTrace.summarize("", commandMs)
         assertTrue(report.contains("SNAPSHOT_VALID_FRAMES=0"))

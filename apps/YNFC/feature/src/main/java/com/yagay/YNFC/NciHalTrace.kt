@@ -135,6 +135,33 @@ internal object NciHalTrace {
                 rejectedParamLists.add(invalidIds)
             }
         }
+        // Scan later retained packets too: a late export may no longer
+        // contain the original APPLY, but can show whether a natural discovery
+        // reassert actually sent 0x33. Do not expose any UID payload.
+        val afterApply = if (commandEpochMillis > 0L) frames.filter {
+            it.epochMillis > commandEpochMillis + AFTER_MS
+        } else emptyList()
+        val laterPending = ArrayDeque<Boolean>()
+        var laterUidTx = 0
+        var laterUidAccepted = 0
+        var laterUidRejected = 0
+        var laterUidOther = 0
+        for (frame in afterApply) {
+            if (frame.tx && frame.kind == 0x20 && frame.gid == 0 && frame.oid == 2) {
+                val isUid = uidParameterLength(frame.data) != null
+                laterPending.addLast(isUid)
+                if (isUid) laterUidTx++
+            } else if (!frame.tx && frame.kind == 0x40 && frame.gid == 0 && frame.oid == 2 &&
+                laterPending.isNotEmpty()) {
+                if (laterPending.removeFirst()) {
+                    when (frame.data.getOrNull(3)?.toInt()?.and(0xff)) {
+                        0 -> laterUidAccepted++
+                        0x09 -> laterUidRejected++
+                        else -> laterUidOther++
+                    }
+                }
+            }
+        }
         val configAccepted = responseStatuses.count { it == 0 }
         val configRejected = responseStatuses.count { it > 0 }
         val configUnknown = responseStatuses.count { it < 0 }
@@ -160,6 +187,14 @@ internal object NciHalTrace {
                 " RF_SET_LISTEN_MODE_ROUTING_TX=" + routing +
                 " RF_DISCOVER_TX=" + discover)
             rfHistory.forEach { appendLine(it) }
+            appendLine("POST_APPLY_NCI_33_TX=" + laterUidTx)
+            appendLine("POST_APPLY_NCI_33_RSP_ACCEPTED=" + laterUidAccepted +
+                " REJECTED_INVALID_PARAM=" + laterUidRejected + " OTHER=" + laterUidOther)
+            appendLine("POST_APPLY_RF_DEACTIVATE_TX=" + afterApply.count {
+                it.tx && it.kind == 0x20 && it.gid == 1 && it.oid == 6
+            } + " RF_DISCOVER_TX=" + afterApply.count {
+                it.tx && it.kind == 0x20 && it.gid == 1 && it.oid == 3
+            })
             appendLine("CORE_SET_CONFIG_TX=" + coreTx.size)
             appendLine("LA_NFCID1_TAG_33_IN_CONFIG_TX=" + uidLengths.size)
             appendLine("LA_NFCID1_LENGTHS_ONLY=" + uidLengths.joinToString(",").ifBlank { "NONE" })
