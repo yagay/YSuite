@@ -6,6 +6,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import java.io.IOException
+import java.security.MessageDigest
 
 /**
  * Public export only. HAL services do not read this folder and no UID state
@@ -50,6 +51,28 @@ internal object NfcPublicDownloads {
             }
             resolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
                 ?: throw IOException("Cannot open Downloads output: " + name)
+            // A successful stream close does not prove MediaStore preserved
+            // the content. Verify exact bytes before publishing the manifest.
+            val expected = MessageDigest.getInstance("SHA-256").digest(bytes)
+            val actualDigest = MessageDigest.getInstance("SHA-256")
+            var actualCount = 0L
+            val input = resolver.openInputStream(uri)
+                ?: throw IOException("Cannot reopen Downloads output for verification: " + name)
+            input.use { stream ->
+                val buffer = ByteArray(8192)
+                while (true) {
+                    val count = stream.read(buffer)
+                    if (count < 0) break
+                    if (count == 0) continue
+                    actualDigest.update(buffer, 0, count)
+                    actualCount += count
+                    if (actualCount > MAX_BYTES) throw IOException("Downloads file grew unexpectedly")
+                }
+            }
+            if (actualCount != bytes.size.toLong() ||
+                !expected.contentEquals(actualDigest.digest())) {
+                throw IOException("Downloads file failed SHA-256 readback verification: " + name)
+            }
             if (inserted) {
                 val published = resolver.update(uri, ContentValues().apply {
                     put(MediaStore.MediaColumns.IS_PENDING, 0)
