@@ -16,6 +16,7 @@ import com.yagay.YNFC.system.NfcSystemService
 import com.yagay.YNFC.system.RootShell
 import com.yagay.YNFC.ui.NfcAppScreen
 import com.yagay.yui.YComposeActivity
+import java.util.concurrent.Executors
 
 class MainActivity : YComposeActivity() {
     companion object { private const val EXPECTED_HOOK_BUILD = BuildConfig.HOOK_BUILD }
@@ -28,6 +29,7 @@ class MainActivity : YComposeActivity() {
     private lateinit var diagnosticsCollector: DiagnosticsCollector
     private lateinit var diagnosticExporter: DiagnosticExporter
     private lateinit var simulationCoordinator: SimulationCoordinator
+    private val nciTraceCaptureExecutor = Executors.newSingleThreadExecutor()
     private var scannedCardState by mutableStateOf<CardModel?>(null)
     private var savedCardsState by mutableStateOf<List<CardModel>>(emptyList())
     private var readModeEnabled by mutableStateOf(false)
@@ -65,6 +67,7 @@ class MainActivity : YComposeActivity() {
     override fun onDestroy() {
         disableReadDispatch()
         simulationCoordinator.close()
+        nciTraceCaptureExecutor.shutdownNow()
         diagnosticExporter.close()
         super.onDestroy()
     }
@@ -171,7 +174,26 @@ class MainActivity : YComposeActivity() {
 
     private fun simulateCard(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
         stopReadMode("simulation_start")
-        simulationCoordinator.simulate(card, if (vendorTypeAEnabled) "VENDOR" else "RF", onDone)
+        val backend = if (vendorTypeAEnabled) "VENDOR" else "RF"
+        simulationCoordinator.simulate(card, backend) { state, message ->
+            if (backend == "RF" && state.commandGeneration > 0L &&
+                state.commandAction == "APPLY") {
+                // Native NCI packets can disappear from small Android logcat
+                // buffers before the user exports diagnostics. Capture a
+                // read-only, payload-free summary on a separate worker so UI
+                // feedback is not delayed by a Root shell command.
+                runCatching {
+                    nciTraceCaptureExecutor.execute {
+                        runCatching {
+                            diagnosticsCollector.captureNativeNciAfterApply(state.commandGeneration)
+                        }.onFailure {
+                            AppLogger.e("NCI_TRACE_SNAPSHOT failed", it)
+                        }
+                    }
+                }.onFailure { AppLogger.e("NCI_TRACE_SNAPSHOT unavailable", it) }
+            }
+            onDone(state, message)
+        }
     }
 
     private fun stopSimulation(onDone: (RuntimeStatus, String) -> Unit) {
