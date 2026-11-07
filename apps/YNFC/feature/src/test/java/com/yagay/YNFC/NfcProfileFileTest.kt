@@ -74,8 +74,12 @@ class NfcProfileFileTest {
             parse("""{"type":"NFC_A","uid":"0102030405060708090A","atqa":"0004","sak":"08"}""").uid)
     }
 
-    @Test fun noNameUsesDefault() {
-        assertEquals("Imported NFC-A",
+    @Test fun missingNamesDefaultInGeneratedAndParsedProfiles() {
+        val generated = NfcProfileFile.encodeCard(CardModel("", "01020304", "08", "0004"))
+        assertEquals("NFC-A",
+            NfcProfileFile.readProfile(ByteArrayInputStream(generated)).name)
+
+        assertEquals("NFC-A",
             parse("""{"type":"NFC_A","uid":"01020304","atqa":"0004","sak":"08"}""").name)
     }
 }
