@@ -60,6 +60,11 @@ internal class SimulationCoordinator(
                     YLocale.text(R.string.ynfc_sim_apply_success, card.uid)
                 state.commandStatus == "VENDOR_API_ACCEPTED" ->
                     YLocale.text(R.string.ynfc_vendor_api_accepted)
+                state.commandStatus == "INTERCEPT_CALL_ACCEPTED" ->
+                    YLocale.text(R.string.ynfc_intercept_call_accepted)
+                state.commandStatus == "FAILED" &&
+                    state.verificationConfidence == "INTERCEPT_NO_OEM_CALL" ->
+                    YLocale.text(R.string.ynfc_intercept_call_waiting)
                 state.commandStatus == "FAILED" &&
                     state.verificationConfidence == "TYPE_A_PERMISSION_DENIED" ->
                     YLocale.text(R.string.ynfc_vendor_permission_denied)
@@ -218,7 +223,7 @@ internal class SimulationCoordinator(
             if (state.commandGeneration == generation && state.handledGeneration == generation &&
                 state.commandStatus in setOf("FAILED", "NO_OVERRIDE")) return state
             if (apply && state.commandGeneration == generation &&
-                state.commandStatus == "VENDOR_API_ACCEPTED") return state
+                state.commandStatus in setOf("VENDOR_API_ACCEPTED", "INTERCEPT_CALL_ACCEPTED")) return state
             Thread.sleep(100)
         }
         return state
