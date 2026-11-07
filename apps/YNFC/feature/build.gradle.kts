@@ -21,6 +21,9 @@ android {
         buildConfigField("int", "VERSION_CODE", runtimeVersionCode.toString())
         buildConfigField("String", "VERSION_NAME", "\"1.0.56\"")
         buildConfigField("int", "HOOK_BUILD", "46")
+        // Implementation freshness is separate from the stable LSPosed protocol.
+        // Updating this marker does not require a whole-phone restart.
+        buildConfigField("int", "INTERCEPT_IMPL_REVISION", "1")
         buildConfigField("String", "CONFIG_AUTHORITY", "\"$configAuthority\"")
         manifestPlaceholders["ynfcConfigAuthority"] = configAuthority
         consumerProguardFiles("consumer-rules.pro")
