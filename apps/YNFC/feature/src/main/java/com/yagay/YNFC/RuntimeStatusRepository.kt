@@ -122,6 +122,8 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
         return RuntimeStatus(
             appBuild = map[ConfigProvider.KEY_APP_BUILD]?.toIntOrNull() ?: 0,
             hookBuild = hookBuild,
+            hookImplementationRevision = map["hook_impl_revision"]?.toIntOrNull() ?: 0,
+            hookImplementationPid = map["hook_impl_revision_pid"]?.toIntOrNull() ?: 0,
             currentPid = currentPid,
             runtimePid = runtimePid,
             scopePid = scopePid,
