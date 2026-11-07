@@ -828,6 +828,7 @@ public class NfcInjectionModule extends XposedModule {
                 // parameters. All other hooks remain read-only observers.
                 SimConfig intercepted = cachedConfig;
                 Object[] replacement = null;
+                String interceptSkip = "";
                 if ("hce".equals(key) && intercepted.initialized && intercepted.active
                         && intercepted.useInterceptTypeA()
                         && intercepted.generation > 0L
@@ -854,9 +855,14 @@ public class NfcInjectionModule extends XposedModule {
                             // A failed OEM call can still have partially changed the
                             // controller. STOP must not claim a stock restore.
                             vendorTypeAWriteAttempted = true;
+                        } else {
+                            interceptSkip = "INVALID_IMPORTED_PROFILE";
                         }
+                    } else {
+                        interceptSkip = "ORIGINAL_OEM_ARGUMENT_SHAPE_MISMATCH";
                     }
                 }
+                final String skipDetail = interceptSkip;
                 final boolean replaced = replacement != null;
                 final long appliedGeneration = replaced ? intercepted.generation : 0L;
                 Object outcome = null;
@@ -878,6 +884,13 @@ public class NfcInjectionModule extends XposedModule {
                     try {
                         colorOsObserveExecutor.execute(() -> {
                             persistColorOsReadOnlyEvent(key, result, success);
+                            if (!skipDetail.isEmpty()) {
+                                ContentValues skipped = baseHookState();
+                                skipped.put("coloros_intercept_skip_pid", Process.myPid());
+                                skipped.put("coloros_intercept_skip_reason", skipDetail);
+                                skipped.put("coloros_intercept_skip_at_ms", System.currentTimeMillis());
+                                writeValuesWithRetry(skipped, 4, 75L);
+                            }
                             if (replaced) {
                                 publishTypeAInterceptOutcome(appliedGeneration, finalOutcome,
                                         finalFailure, result);
