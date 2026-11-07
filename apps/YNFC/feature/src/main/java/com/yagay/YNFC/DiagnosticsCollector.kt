@@ -106,14 +106,23 @@ class DiagnosticsCollector(
         // Do not alter HAL configuration, controller state or UID data.
         appendLine("--- NXP NATIVE NFC CONFIG / NCI EVIDENCE (READ ONLY) ---")
         appendLine(runRoot("""
-            echo '[NXP config files]'
-            find /vendor/etc /odm/etc /system/etc /system_ext/etc /product/etc -maxdepth 2 -type f -iname 'libnfc*.conf' 2>/dev/null | head -n 32 || true
-            echo '[NXP config keys (values hidden)]'
-            grep -HniE '^[[:space:]]*(NXP_CORE_CONF|NXP_CORE_CONF_EXTN|NXP_HCE_NFC_ID1|NXP_HCE_RNDM_UID_ENB|NXP_HCE_SENS_RES|NXP_HCE_SEL_RES|NXP_SET_CONFIG_ALWAYS|NXPLOG_NCIX_LOGLEVEL|NXPLOG_NCIR_LOGLEVEL|NFA_PROPRIETARY_CFG)[[:space:]]*=' /vendor/etc/libnfc*.conf /odm/etc/libnfc*.conf /system/etc/libnfc*.conf /system_ext/etc/libnfc*.conf /product/etc/libnfc*.conf 2>/dev/null | sed -E 's/=.*$/=<present>/' | head -n 32 || true
-            echo '[NCI TX/RX recent lines]'
+            echo '[All NFC-related config paths: no file contents]'
+            find /vendor/etc /odm/etc /system/etc /system_ext/etc /product/etc -maxdepth 3 -type f \( -iname '*nfc*.conf' -o -iname '*nfc*.cfg' -o -iname '*nfc*.xml' \) 2>/dev/null | head -n 55 || true
+            echo '[NFC config key inventory: values hidden]'
+            grep -HniE '^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*=' /vendor/etc/*nfc*.conf /odm/etc/*nfc*.conf /system/etc/*nfc*.conf /system_ext/etc/*nfc*.conf /product/etc/*nfc*.conf 2>/dev/null | sed -E 's/=.*$/=<hidden>/' | head -n 90 || true
+            echo '[NXP/HCE/UID-specific keys: values hidden]'
+            grep -HniEi '^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*(NFCID|UID|HCE|LISTEN|RNDM|RANDOM|CORE_CONF)[a-zA-Z0-9_]*[[:space:]]*=' /vendor/etc/*nfc*.conf /odm/etc/*nfc*.conf /system/etc/*nfc*.conf /system_ext/etc/*nfc*.conf /product/etc/*nfc*.conf 2>/dev/null | sed -E 's/=.*$/=<hidden>/' | head -n 45 || true
+            echo '[Logcat buffer availability]'
+            logcat -g 2>&1 | head -n 8 || true
+            echo '[Recent raw logcat line count]'
+            logcat -b all -d -t 350 -v brief 2>/dev/null | wc -l
+            echo '[NCI TX/RX recent lines: not guaranteed exposed on stock firmware]'
             logcat -b all -d -v threadtime -t 3000 2>/dev/null | grep -i -E 'NxpNciX|NxpNciR|CORE_SET_CONFIG|nfc_ncif_send|NfcAdaptation.*HalWrite' | tail -n 30 || true
-        """.trimIndent(), 12, 32_000))
+        """.trimIndent(), 12, 45_000))
         appendLine("UID_CONFIG_PATH_NOTE: No UID write or HAL configuration was attempted by diagnostic collection.")
+        if (snapshot["polling_guard_detail"].orEmpty().contains("java_poll_mask_not_zero_0xffffffff")) {
+            appendLine("POLLING_MASK_NOTE: 0xffffffff is also the Hook unreadable-mask sentinel (-1); it does not prove all polling technologies are enabled.")
+        }
         appendLine("--- SAVED CARD PARAMETERS ---")
         runCatching { cardRepository.load() }.getOrDefault(emptyList()).forEach { card ->
             appendLine("card uid=${card.uid} sak=${card.sak} atqa=${card.atqa}")
