@@ -8,14 +8,14 @@ import org.junit.Test
 
 class NfcProfileFileTest {
     private fun parse(text: String): CardModel =
-        NfcProfileFile.importProfile(ByteArrayInputStream(text.toByteArray(StandardCharsets.UTF_8)))
+        NfcProfileFile.readProfile(ByteArrayInputStream(text.toByteArray(StandardCharsets.UTF_8)))
 
     @Test fun savedCardAutomaticallyGeneratesValidJson() {
         val original = CardModel("Own test card", "c1:b0:bc:1b", "08", "00 04")
         val bytes = NfcProfileFile.encodeCard(original)
         val json = String(bytes, StandardCharsets.UTF_8)
         assertEquals("NFC_A", JsonParser.parseString(json).asJsonObject.get("type").asString)
-        val restored = NfcProfileFile.importProfile(ByteArrayInputStream(bytes))
+        val restored = NfcProfileFile.readProfile(ByteArrayInputStream(bytes))
         assertEquals("Own test card", restored.name)
         assertEquals("C1B0BC1B", restored.uid)
         assertEquals("0004", restored.atqa)
@@ -35,9 +35,9 @@ class NfcProfileFileTest {
         val first = NfcProfileFile.encodeCard(CardModel("First", "01020304", "08", "0004"))
         val second = NfcProfileFile.encodeCard(CardModel("Second", "AABBCCDD", "08", "0004"))
         assertEquals("01020304",
-            NfcProfileFile.importProfile(ByteArrayInputStream(first)).uid)
+            NfcProfileFile.readProfile(ByteArrayInputStream(first)).uid)
         assertEquals("AABBCCDD",
-            NfcProfileFile.importProfile(ByteArrayInputStream(second)).uid)
+            NfcProfileFile.readProfile(ByteArrayInputStream(second)).uid)
     }
 
     @Test fun validProfileImportsAndNormalizes() {
@@ -63,7 +63,7 @@ class NfcProfileFileTest {
     @Test fun rejectsOversizedFile() {
         val oversized = ByteArray(4097) { 'x'.code.toByte() }
         assertThrows(IllegalArgumentException::class.java) {
-            NfcProfileFile.importProfile(ByteArrayInputStream(oversized))
+            NfcProfileFile.readProfile(ByteArrayInputStream(oversized))
         }
     }
 
