@@ -17,23 +17,35 @@ internal object NfcPublicDownloads {
     private const val MAX_BYTES = 8 * 1024 * 1024
     private val collection get() = MediaStore.Downloads.EXTERNAL_CONTENT_URI
 
-    fun write(context: Context, name: String, bytes: ByteArray, mime: String): String {
+    fun write(
+        context: Context,
+        name: String,
+        bytes: ByteArray,
+        mime: String,
+        relativePath: String = RELATIVE_PATH,
+    ): String {
         require(validFileName.matches(name) && name != "." && name != "..") {
             "Invalid export file name"
         }
         require(bytes.size <= MAX_BYTES) { "Refusing to export file larger than 8 MiB" }
+        // All files must remain inside our own public Downloads subtree.
+        require(relativePath.startsWith(RELATIVE_PATH) &&
+            relativePath.endsWith("/") &&
+            relativePath.drop(RELATIVE_PATH.length).split("/")
+                .all { it.isEmpty() || it.matches(Regex("[A-Za-z0-9._-]+")) && it != "." && it != ".." }
+        ) { "Invalid YNFC download subdirectory" }
         val resolver = context.contentResolver
-        val existing = findOwned(context, name)
+        val existing = findOwned(context, name, relativePath)
         var uri: Uri? = existing
         var inserted = false
         try {
             if (uri == null) {
                 uri = resolver.insert(collection, ContentValues().apply {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, RELATIVE_PATH)
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
                     put(MediaStore.MediaColumns.MIME_TYPE, mime)
                     put(MediaStore.MediaColumns.IS_PENDING, 1)
-                }) ?: throw IOException("Cannot create Downloads/YSuite/YNFC/" + name)
+                }) ?: throw IOException("Cannot create " + relativePath + name)
                 inserted = true
             }
             resolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
@@ -44,7 +56,7 @@ internal object NfcPublicDownloads {
                 }, null, null)
                 if (published < 1) throw IOException("Cannot publish Downloads export: " + name)
             }
-            return RELATIVE_PATH + name
+            return relativePath + name
         } catch (error: Throwable) {
             // Never delete an existing user-visible snapshot after an IO error.
             if (inserted) uri?.let { runCatching { resolver.delete(it, null, null) } }
@@ -52,13 +64,13 @@ internal object NfcPublicDownloads {
         }
     }
 
-    private fun findOwned(context: Context, name: String): Uri? {
+    private fun findOwned(context: Context, name: String, relativePath: String): Uri? {
         val resolver = context.contentResolver
         val columns = arrayOf(MediaStore.MediaColumns._ID, MediaStore.MediaColumns.OWNER_PACKAGE_NAME)
         resolver.query(
             collection, columns,
             "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND ${MediaStore.MediaColumns.RELATIVE_PATH}=?",
-            arrayOf(name, RELATIVE_PATH), null
+            arrayOf(name, relativePath), null
         )?.use { cursor ->
             val idIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
             val ownerIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.OWNER_PACKAGE_NAME)
