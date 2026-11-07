@@ -2483,6 +2483,8 @@ public class NfcInjectionModule extends XposedModule {
     private void reportStatusWithRetry(int pid, boolean ready, int count, String stage, String summary, String targetId) {
         ContentValues v = new ContentValues();
         v.put("hook_build", HOOK_BUILD);
+        v.put("hook_impl_revision", BuildConfig.INTERCEPT_IMPL_REVISION);
+        v.put("hook_impl_revision_pid", Process.myPid());
         v.put("scope_ok", true);
         v.put("scope_process", "com.android.nfc");
         v.put("scope_pid", pid);
@@ -2664,6 +2666,8 @@ public class NfcInjectionModule extends XposedModule {
         int pid = Process.myPid();
         ContentValues v = new ContentValues();
         v.put("hook_build", HOOK_BUILD);
+        v.put("hook_impl_revision", BuildConfig.INTERCEPT_IMPL_REVISION);
+        v.put("hook_impl_revision_pid", Process.myPid());
         v.put("scope_ok", true);
         v.put("scope_process", "com.android.nfc");
         v.put("scope_pid", pid);
