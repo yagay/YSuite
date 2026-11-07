@@ -228,15 +228,17 @@ class MainActivity : YComposeActivity() {
     }
 
     private fun simulateCard(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
-        stopReadMode("simulation_start")
         val backend = when {
             nativeNciEnabled -> "NATIVE"
             fileInterceptEnabled -> "INTERCEPT"
             vendorTypeAEnabled -> "VENDOR"
             else -> "RF"
         }
+        // NATIVE is only an offline config export. It must not disable
+        // Android NFC reader mode or imply a controller mode transition.
+        if (backend != "NATIVE") stopReadMode("simulation_start")
         simulationCoordinator.simulate(card, backend) { state, message ->
-            if ((backend == "RF" || backend == "NATIVE") && state.commandGeneration > 0L &&
+            if (backend == "RF" && state.commandGeneration > 0L &&
                 state.commandAction == "APPLY") {
                 // Native NCI packets can disappear from small Android logcat
                 // buffers before the user exports diagnostics. Capture a
