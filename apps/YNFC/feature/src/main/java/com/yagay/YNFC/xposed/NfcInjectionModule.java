@@ -780,28 +780,32 @@ public class NfcInjectionModule extends XposedModule {
      * arguments, results or exceptions. They only record execution evidence.
      */
     private void installColorOsReadOnlyHooks(ClassLoader cl, int pid) {
-        int installed = 0;
-        installed += hookColorOsReadOnly(cl, "com.oplus.nfc.OplusNfcAdapterService",
+        final int serviceHook = hookColorOsReadOnly(cl, "com.oplus.nfc.OplusNfcAdapterService",
                 "setHceTypeAConfig", "service",
                 boolean.class, byte[].class, byte[].class, byte[].class);
-        installed += hookColorOsReadOnly(cl, "com.oplus.nfc.hceaccesscard.HceAccessCard",
+        final int hceHook = hookColorOsReadOnly(cl, "com.oplus.nfc.hceaccesscard.HceAccessCard",
                 "doSetHceTypeAConfig", "hce",
                 boolean.class, byte[].class, byte[].class, byte[].class);
-        installed += hookColorOsReadOnly(cl, "com.oplus.nfc.common.NfcChipDeviceImpl",
+        final int chipHook = hookColorOsReadOnly(cl, "com.oplus.nfc.common.NfcChipDeviceImpl",
                 "doSetHceTypeAConfig", "chip",
                 boolean.class, byte[].class, byte[].class, byte[].class);
-        installed += hookColorOsReadOnly(cl, "com.oplus.nfc.NfcFeatureFetcher",
+        final int regionHook = hookColorOsReadOnly(cl, "com.oplus.nfc.NfcFeatureFetcher",
                 "isSupportHceAccessCardByRegion", "region");
         // The NCI vendor sender is a general-purpose Android API. Observe it
         // only when called *from* HceAccessCard's Type-A method on this thread.
-        installed += hookColorOsReadOnly(cl, "android.nfc.NfcAdapter",
+        final int nciHook = hookColorOsReadOnly(cl, "android.nfc.NfcAdapter",
                 "sendVendorNciMessage", "nci",
                 int.class, int.class, int.class, byte[].class);
-        final int count = installed;
+        final int count = serviceHook + hceHook + chipHook + regionHook + nciHook;
         colorOsObserveExecutor.execute(() -> {
             ContentValues v = baseHookState();
             v.put("coloros_observe_pid", pid);
             v.put("coloros_observe_hook_count", count);
+            v.put("coloros_observe_service_hook_installed", serviceHook == 1);
+            v.put("coloros_observe_hce_hook_installed", hceHook == 1);
+            v.put("coloros_observe_chip_hook_installed", chipHook == 1);
+            v.put("coloros_observe_region_hook_installed", regionHook == 1);
+            v.put("coloros_observe_nci_hook_installed", nciHook == 1);
             v.put("coloros_observe_status", count > 0 ? "READ_ONLY_HOOKS_INSTALLED" : "METHODS_UNAVAILABLE");
             v.put("coloros_observe_note", "No Type-A commands were initiated by the observer; "
                     + "absence of a callback is not proof of absent native HAL traffic");
