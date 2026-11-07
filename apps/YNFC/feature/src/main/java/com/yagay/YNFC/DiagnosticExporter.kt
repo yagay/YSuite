@@ -46,6 +46,29 @@ internal class DiagnosticExporter(
         }
     }
 
+    /**
+     * Separate, user-triggered HAL evidence capture. Never restarts NFC or
+     * sends config commands. Save the probe beside the other YNFC exports.
+     */
+    fun exportHalConfigReadProbe(onDone: (Result<String>) -> Unit) {
+        executor.execute {
+            val result = runCatching {
+                val report = collector.buildHalConfigReadProbe()
+                val fileName = "YNFC-hal-config-probe_" + System.currentTimeMillis() + ".txt"
+                val saved = runCatching {
+                    NfcPublicDownloads.write(
+                        appContext, fileName, report.toByteArray(Charsets.UTF_8), "text/plain"
+                    )
+                }
+                if (saved.isSuccess) saved.getOrThrow()
+                else saveToAppFolder(fileName, report).absolutePath
+            }
+            runCatching { onDone(result) }.onFailure {
+                AppLogger.i("HAL config probe callback failed: " + it.message)
+            }
+        }
+    }
+
     private fun saveToAppFolder(fileName: String, report: String): File {
         val directory = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
             ?: appContext.filesDir
