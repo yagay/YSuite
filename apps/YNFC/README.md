@@ -177,3 +177,24 @@ commit `f444bdd6`'s known working one-shot RF pause/write/resume:
 
 This rollback changes NFC commands, not UID or card data. Test only with
 the owner's own test card; avoid wallet payment while emulation is active.
+
+## Fast switching and one-tap stock restoration UI
+
+The saved-card list now offers **Switch UID** when another UID is selected.
+Selecting another card issues a new serialized APPLY directly; it does not
+interpose STOP or restart the NFC process, and retains the existing *one*
+Discovery pause / NCI 0x33 write / routing resume for each manual switch.
+
+A prominent **Stop and restore stock NFC** control appears directly under
+the runtime status while emulation is selected. It uses the existing serialized
+STOP and verified stock-recovery fallback (which may reload com.android.nfc
+once if there is no reversible native stock snapshot). UI taps are guarded
+while an operation is in flight so users cannot accidentally queue repeated
+switches/stops. No new native hooks or controller recovery assumptions have
+been introduced.
+
+HAL startup configuration replacement alone is NOT the active fast-switch
+backend: it would require the next HAL initialization to apply another UID.
+In particular, a zero-length 0x33 soft restore must not be treated as a
+successful stock restoration without a matching NCI response and actual
+reader verification.

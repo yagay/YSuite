@@ -81,6 +81,8 @@ fun NfcAppScreen(
     var logsEnabled by remember { mutableStateOf(initialLogsEnabled) }
     var expandedUid by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
+    // One UI action at a time; backend serialization remains the authority.
+    var commandPending by remember { mutableStateOf(false) }
     val logListState = rememberLazyListState()
     val applyUidText = stringResource(R.string.ynfc_apply_uid, "%s")
     val restoreRfText = stringResource(R.string.ynfc_restore_stock_rf)
@@ -109,6 +111,33 @@ fun NfcAppScreen(
     ) { padding ->
         YPageList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
+            if (status.simulationEnabled) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_quick_controls),
+                        subtitle = stringResource(R.string.ynfc_quick_controls_desc),
+                    ) {
+                        YStatusLine(
+                            label = stringResource(R.string.ynfc_selected_uid),
+                            value = status.selectedUid ?: "-",
+                        )
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_stop_restore_default),
+                            onClick = {
+                                if (!commandPending) {
+                                    commandPending = true
+                                    operationMessage = restoreRfText
+                                    onStopSimulation {
+                                        operationMessage = it
+                                        commandPending = false
+                                    }
+                                }
+                            },
+                            enabled = !commandPending,
+                        )
+                    }
+                }
+            }
             if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
                 status.hookPid == status.currentPid && status.hookBuild > 0 &&
                 status.hookBuild != BuildConfig.HOOK_BUILD
@@ -169,14 +198,31 @@ fun NfcAppScreen(
                             expandedUid = if (expandedUid?.equals(card.uid, true) == true) null else card.uid
                         },
                         onSimulate = {
-                            operationMessage = applyUidText.replace("%s", card.uid) +
-                                "\n" + walletWarningText
-                            onSimulate(card) { operationMessage = it + "\n" + walletWarningText }
+                            if (!commandPending) {
+                                commandPending = true
+                                operationMessage = applyUidText.replace("%s", card.uid) +
+                                    "\n" + walletWarningText
+                                onSimulate(card) {
+                                    operationMessage = it + "\n" + walletWarningText
+                                    commandPending = false
+                                }
+                            }
                         },
                         onStop = {
-                            operationMessage = restoreRfText
-                            onStopSimulation { operationMessage = it }
+                            if (!commandPending) {
+                                commandPending = true
+                                operationMessage = restoreRfText
+                                onStopSimulation {
+                                    operationMessage = it
+                                    commandPending = false
+                                }
+                            }
                         },
+                        simulateLabel = if (status.simulationEnabled && !active) {
+                            stringResource(R.string.ynfc_switch_uid)
+                        } else null,
+                        simulateBusy = commandPending,
+                        stopBusy = commandPending,
                         onDelete = {
                             onDeleteCard(card, active)
                             if (expandedUid?.equals(card.uid, true) == true) expandedUid = null

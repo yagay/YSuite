@@ -363,6 +363,7 @@ fun CardItem(
     onStop: () -> Unit,
     simulateLabel: String? = null,
     simulateBusy: Boolean = false,
+    stopBusy: Boolean = false,
     operationHint: String? = null,
     onDelete: () -> Unit,
 ) {
@@ -377,7 +378,11 @@ fun CardItem(
         modifier = Modifier.clickable { onToggleDetails() },
         trailing = {
             if (isActive) {
-                YSecondaryButton(stringResource(R.string.ynfc_stop), onStop)
+                YSecondaryButton(
+                    text = stringResource(R.string.ynfc_stop),
+                    onClick = onStop,
+                    enabled = !stopBusy,
+                )
             } else {
                 YPrimaryButton(
                     text = simulateLabel ?: stringResource(R.string.ynfc_simulate),

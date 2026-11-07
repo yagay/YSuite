@@ -95,6 +95,11 @@
     <string name="ynfc_card_uid_subtitle">UID %1$s</string>
     <string name="ynfc_collapse_details">Tap to collapse details</string>
     <string name="ynfc_view_details">Tap to view details</string>
+    <string name="ynfc_quick_controls">Simulation controls</string>
+    <string name="ynfc_quick_controls_desc">Tap another saved card to switch UID without stopping first. Stop restores stock NFC; an NFC service reload may be required.</string>
+    <string name="ynfc_selected_uid">Selected UID</string>
+    <string name="ynfc_stop_restore_default">Stop and restore stock NFC</string>
+    <string name="ynfc_switch_uid">Switch UID</string>
     <string name="ynfc_stop">Stop</string>
     <string name="ynfc_simulate">Emulate</string>
     <string name="ynfc_delete">Delete</string>
