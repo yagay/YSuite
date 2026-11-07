@@ -237,6 +237,18 @@ class DiagnosticsCollector(
                 sha256sum "${'$'}lib" 2>/dev/null || echo "HASH_UNAVAILABLE ${'$'}lib"
               else echo "NOT_FOUND ${'$'}lib"; fi
             done
+            echo '[Critical NXP SNxxx HAL implementation, not just service launcher]'
+            for root in /vendor/lib64 /vendor/lib64/hw /odm/lib64 /odm/lib64/hw; do
+              for target in "$root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
             echo '[HAL loaded libraries: paths only]'
             for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
               pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
