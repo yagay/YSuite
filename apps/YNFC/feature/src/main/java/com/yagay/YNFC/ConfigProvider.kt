@@ -257,7 +257,11 @@ open class ConfigProvider : ContentProvider() {
                 val uid = extras?.getString(EXTRA_UID)
                 val sak = extras?.getString(EXTRA_SAK)
                 val atqa = extras?.getString(EXTRA_ATQA)
-                val backend = if (extras?.getString(EXTRA_BACKEND) == "VENDOR") "VENDOR" else "RF"
+                val backend = when (extras?.getString(EXTRA_BACKEND)) {
+                    "VENDOR" -> "VENDOR"
+                    "INTERCEPT" -> "INTERCEPT"
+                    else -> "RF"
+                }
                 val previousBackend = prefs().getString(KEY_BACKEND, "RF") ?: "RF"
                 if (enabled && prefs().getBoolean(KEY_SIMULATION_ENABLED, false) && backend != previousBackend) {
                     Log.w("NfcConfigProvider", "Backend switch rejected while simulation active; STOP first")
