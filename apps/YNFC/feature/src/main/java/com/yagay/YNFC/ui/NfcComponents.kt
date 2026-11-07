@@ -57,6 +57,9 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             status.commandGeneration,
             status.commandPid,
         )
+        status.commandStatus == "FAILED" &&
+            status.verificationConfidence == "NATIVE_HAL_ABI_UNVERIFIED" ->
+            stringResource(R.string.ynfc_native_abi_unverified)
         commandFailed -> stringResource(
             R.string.ynfc_cmd_failed,
             status.commandAction.ifBlank { unknown },
@@ -84,6 +87,10 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             applyVerified -> {
                 simulationTone = StatusTone.OK
                 simulationDetail = stringResource(R.string.ynfc_sim_active, status.selectedUid ?: "-")
+            }
+            commandFailed && status.verificationConfidence == "NATIVE_HAL_ABI_UNVERIFIED" -> {
+                simulationTone = StatusTone.ERROR
+                simulationDetail = stringResource(R.string.ynfc_native_abi_unverified)
             }
             commandFailed -> {
                 simulationTone = StatusTone.ERROR
