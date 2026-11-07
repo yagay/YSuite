@@ -134,6 +134,21 @@ class DiagnosticsCollector(
         appendLine("read_only_hook_fresh=${currentPid > 0 && observerPid == currentPid}")
         appendLine("read_only_hook_count=${snapshot["coloros_observe_hook_count"] ?: "NOT_REPORTED"}")
         appendLine("read_only_hook_status=${snapshot["coloros_observe_status"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_preload_pid=${snapshot["coloros_intercept_preload_pid"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_preload_generation=${snapshot["coloros_intercept_preload_generation"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_preload_active=${snapshot["coloros_intercept_preload_active"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_preload_at_ms=${snapshot["coloros_intercept_preload_at_ms"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_last_hce_before_apply=${snapshot["coloros_intercept_last_hce_before_apply"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_last_hce_at_ms=${snapshot["coloros_intercept_last_hce_at_ms"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_skip_reason=${snapshot["coloros_intercept_skip_reason"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_skip_pid=${snapshot["coloros_intercept_skip_pid"] ?: "NOT_REPORTED"}")
+        val hceAt = snapshot["coloros_observe_hce_at_ms"]?.toLongOrNull() ?: 0L
+        val applyAt = snapshot["command_generation"]?.toLongOrNull() ?: 0L
+        appendLine("observed_hce_before_apply=${hceAt > 0L && applyAt > 0L && hceAt < applyAt}")
+        if (backend == "INTERCEPT" && hceAt > 0L && applyAt > 0L && hceAt < applyAt) {
+            appendLine("ACTION: The last observed OEM HCE call preceded the current APPLY; "
+                + "reload only the NFC service after arming interception, then check fresh HCE events.")
+        }
         for ((tag, description) in listOf(
             "service" to "OplusNfcAdapterService.setHceTypeAConfig",
             "region" to "NfcFeatureFetcher.isSupportHceAccessCardByRegion (natural calls)",
