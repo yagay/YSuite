@@ -10,7 +10,7 @@ internal class SimulationCoordinator(
     private val runtimeRepository: RuntimeStatusRepository,
     private val nfcSystemService: NfcSystemService,
     private val expectedHookBuild: Int,
-    private val createProfile: ((CardModel) -> CardModel)? = null
+    private val createProfile: ((CardModel, String) -> CardModel)? = null
 ) : AutoCloseable {
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -52,12 +52,14 @@ internal class SimulationCoordinator(
                 val prepared = runCatching {
                     val generator = createProfile
                         ?: throw IllegalStateException("Automatic profile generator unavailable")
-                    generator(card)
+                    generator(card, backend)
                 }
                 if (prepared.isFailure) {
-                    AppLogger.e("INTERCEPT: automatic NFC-A profile generation failed",
+                    AppLogger.e("PROFILE: automatic NFC-A / SN220 profile preparation failed",
                         prepared.exceptionOrNull()!!)
-                    onDone(ready, YLocale.text(R.string.ynfc_profile_auto_failed))
+                    val detail = prepared.exceptionOrNull()?.message.orEmpty().take(180)
+                    onDone(ready, YLocale.text(R.string.ynfc_profile_auto_failed) +
+                        if (detail.isNotBlank()) " · " + detail else "")
                     return@execute
                 }
                 prepared.getOrThrow()
