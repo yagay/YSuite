@@ -11,9 +11,10 @@ import java.io.InputStream
 import java.nio.charset.StandardCharsets
 
 /**
- * A file is an offline profile, not an executable script or an NFC controller
- * configuration. Only three explicit NFC-A parameters are accepted and copied
- * into the existing per-card profile store. The NFC Hook never reads user files.
+ * Auto-generates an app-private NFC-A JSON profile from the selected saved card.
+ * It is not an executable script or a controller firmware/configuration file.
+ * The Hook receives only its validated UID/ATQA/SAK through ConfigProvider,
+ * never by reading external files or requiring storage permissions.
  */
 internal object NfcProfileFile {
     private const val MAX_FILE_BYTES = 4096
@@ -42,7 +43,7 @@ internal object NfcProfileFile {
             if (!temporary.renameTo(selected)) {
                 throw IOException("Could not save the selected NFC-A profile")
             }
-            return selected.inputStream().use(::importProfile)
+            return selected.inputStream().use(::readProfile)
         } finally {
             temporary.delete()
         }
@@ -65,11 +66,11 @@ internal object NfcProfileFile {
         val bytes = obj.toString().toByteArray(StandardCharsets.UTF_8)
         require(bytes.size <= MAX_FILE_BYTES) { "Generated profile file is too large" }
         // Re-use the importer for a single validation contract in both paths.
-        importProfile(ByteArrayInputStream(bytes))
+        readProfile(ByteArrayInputStream(bytes))
         return bytes
     }
 
-    fun importProfile(input: InputStream): CardModel {
+    fun readProfile(input: InputStream): CardModel {
         val content = input.use { stream ->
             val out = java.io.ByteArrayOutputStream()
             val buffer = ByteArray(1024)
