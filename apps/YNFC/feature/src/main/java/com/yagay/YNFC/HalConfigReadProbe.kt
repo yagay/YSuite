@@ -28,9 +28,13 @@ internal object HalConfigReadProbe {
         val hashes = lines.filter { it.startsWith("HAL_IMPLEMENTATION_SHA256=") }
         val logHints = lines.filter { it.startsWith("LOG_MATCH_") }
         val hadRoot = lines.any { it == "PROBE_UID=0" }
+        val finished = lines.any { it == "PROBE_FINISHED" }
+        val shellExitOk = lines.any { it == "[exit=0]" }
+        val timedOut = lines.any { it.startsWith("[timeout=") }
         val hashMatches = hashes.any { it.substringAfter("=").substringBefore(" ") == expectedHalHash }
         val classification = when {
             !hadRoot -> "ROOT_PROBE_UNAVAILABLE"
+            !finished || !shellExitOk || timedOut -> "PROBE_INCOMPLETE"
             processes.none { it.startsWith("HAL_PROCESS=android.hardware.nfc2-service.nxp ") } -> "NXP_HAL_PROCESS_NOT_OBSERVED"
             nxpConfigFds.isNotEmpty() -> "SN220_CONFIG_OPEN_FD_OBSERVED"
             else -> "SN220_CONFIG_OPEN_NOT_OBSERVED"
@@ -39,6 +43,9 @@ internal object HalConfigReadProbe {
             appendLine("=== YNFC NXP HAL CONFIG LOAD PROBE (READ ONLY) ===")
             appendLine("recorded_at_ms=" + System.currentTimeMillis())
             appendLine("result=" + classification)
+            appendLine("probe_completed=" + (finished && shellExitOk && !timedOut))
+            appendLine("probe_root_identity_confirmed=" + hadRoot)
+            appendLine("probe_timeout_detected=" + timedOut)
             appendLine("hal_processes_observed=" + processes.size)
             appendLine("hal_libraries_mapped=" + libraries.size)
             appendLine("sn220_config_open_fds_observed=" + configFds.size)
@@ -58,6 +65,7 @@ internal object HalConfigReadProbe {
             appendLine("NOTE: An open file descriptor proves the HAL process had that file open at sampling time; it does NOT prove use of NXP_CORE_CONF.")
             appendLine("NOTE: Absence of an open descriptor is not proof the file was never read; it may have been closed during earlier initialization.")
             appendLine("NOTE: Log keyword counts and mapped libraries provide hints only, not direct function call observations.")
+            appendLine("NOTE: Sampling runs after service startup; it cannot trace past CNfcConfig::readConfig calls.")
             appendLine("--- STRUCTURED OBSERVATIONS ---")
             (processes + libraries + configFds + configFiles + hashes + logHints).forEach { appendLine(it) }
             appendLine("--- ROOT PROBE OUTPUT (BOUNDED) ---")
