@@ -9,8 +9,7 @@ internal class SimulationCoordinator(
     private val configClient: ConfigClient,
     private val runtimeRepository: RuntimeStatusRepository,
     private val nfcSystemService: NfcSystemService,
-    private val expectedHookBuild: Int,
-    private val createProfile: ((CardModel, String) -> CardModel)? = null
+    private val expectedHookBuild: Int
 ) : AutoCloseable {
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -19,44 +18,9 @@ internal class SimulationCoordinator(
      * Otherwise a new APPLY could supersede a STOP while the earlier STOP
      * was already restarting com.android.nfc, causing a second restart.
      */
-    fun simulate(card: CardModel, backend: String, onDone: (RuntimeStatus, String) -> Unit) {
+    fun simulate(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
         executor.execute {
             var ready = runtimeRepository.read(includeRootPid = true)
-            // Files are generated even when the NFC service is running an old
-            // Hook. No command is published until the subsequent readiness
-            // checks pass, and preparation never modifies the controller.
-            // File mode is fully automatic: validate, atomically write, and
-            // read back the private profile on this serial IO worker BEFORE
-            // publishing any APPLY command. A file error cannot arm the Hook.
-            val selectedCard = if (backend in setOf("INTERCEPT", "NATIVE")) {
-                val prepared = runCatching {
-                    val generator = createProfile
-                        ?: throw IllegalStateException("Automatic profile generator unavailable")
-                    generator(card, backend)
-                }
-                if (prepared.isFailure) {
-                    AppLogger.e("PROFILE: automatic NFC-A / SN220 profile preparation failed",
-                        prepared.exceptionOrNull()!!)
-                    val detail = prepared.exceptionOrNull()?.message.orEmpty().take(180)
-                    onDone(ready, YLocale.text(R.string.ynfc_profile_auto_failed) +
-                        if (detail.isNotBlank()) " · " + detail else "")
-                    return@execute
-                }
-                prepared.getOrThrow()
-            } else card
-            // NATIVE is deliberately a PREVIEW-ONLY backend until the
-            // external HAL's ABI, SELinux access, and on-air NFCID1 support
-            // have been proven. Do not publish APPLY: that would persist
-            // simulation_enabled=true even though the Hook always fails
-            // NATIVE_HAL_ABI_UNVERIFIED, leaving a misleading active UI.
-            if (backend == "NATIVE") {
-                AppLogger.i("NATIVE: SN220 preview prepared; APPLY intentionally not published")
-                // The pre-capture runtime state is sufficient: a preview never
-                // publishes a command or changes NFC state. Avoid an extra
-                // synchronous Root PID check that delays button feedback.
-                onDone(ready, YLocale.text(R.string.ynfc_native_preview_only))
-                return@execute
-            }
             // Never publish APPLY to a stale/incompatible in-process Hook.
             // Wait briefly for an already-restarting NFC service, but never
             // restart it automatically as a side effect of an APK upgrade.
@@ -67,26 +31,13 @@ internal class SimulationCoordinator(
                 onDone(ready, YLocale.text(R.string.ynfc_sim_hook_not_ready))
                 return@execute
             }
-            // A stable LSPosed protocol number is not proof that the running
-            // NFC process loaded the newest implementation. A stale process
-            // must be reloaded explicitly by the user, never by APPLY.
-            if (backend in setOf("INTERCEPT", "NATIVE") && (
-                    ready.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ||
-                    ready.hookImplementationPid != ready.currentPid
-                )) {
-                AppLogger.i("INTERCEPT: Hook implementation stale; running=" +
-                    "${ready.hookImplementationRevision} expected=${BuildConfig.INTERCEPT_IMPL_REVISION} " +
-                    "revisionPid=${ready.hookImplementationPid} currentPid=${ready.currentPid}")
-                onDone(ready, YLocale.text(R.string.ynfc_intercept_hook_reload_required))
-                return@execute
-            }
-            val generation = configClient.publishCommand(enabled = true, card = selectedCard, backend = backend)
+            val generation = configClient.publishCommand(enabled = true, card = card)
             if (generation <= 0L) {
                 onDone(runtimeRepository.read(includeRootPid = true),
                     YLocale.text(R.string.ynfc_sim_command_superseded))
                 return@execute
             }
-            AppLogger.i("SIMULATION: serial COMMAND APPLY generation=$generation uid=${selectedCard.uid} backend=$backend")
+            AppLogger.i("SIMULATION: serial COMMAND APPLY generation=$generation uid=${card.uid} backend=RF")
             var state = runtimeRepository.read(includeRootPid = true)
             if (!hookReady(state)) {
                 // APK installation must never restart NFC implicitly. An already
@@ -100,25 +51,13 @@ internal class SimulationCoordinator(
             }
 
             if (hookReady(state)) {
-                state = waitForCommandCompletion(generation, selectedCard.uid, apply = true, timeoutMs = 12_000)
+                state = waitForCommandCompletion(generation, card.uid, apply = true, timeoutMs = 12_000)
             }
             val message = when {
                 state.commandGeneration != generation -> YLocale.text(R.string.ynfc_sim_command_superseded)
                 !hookReady(state) -> YLocale.text(R.string.ynfc_sim_hook_not_ready)
-                SimulationResultPolicy.isApplySuccess(state, generation, selectedCard.uid) ->
-                    YLocale.text(R.string.ynfc_sim_apply_success, selectedCard.uid)
-                state.commandStatus == "VENDOR_API_ACCEPTED" ->
-                    YLocale.text(R.string.ynfc_vendor_api_accepted)
-                state.commandStatus == "INTERCEPT_CALL_ACCEPTED" ->
-                    YLocale.text(R.string.ynfc_intercept_call_accepted)
-                state.commandStatus == "INTERCEPT_ARMED_NO_CALL" ->
-                    YLocale.text(R.string.ynfc_intercept_call_waiting)
-                state.commandStatus == "FAILED" &&
-                    state.verificationConfidence == "NATIVE_HAL_ABI_UNVERIFIED" ->
-                    YLocale.text(R.string.ynfc_native_abi_unverified)
-                state.commandStatus == "FAILED" &&
-                    state.verificationConfidence == "TYPE_A_PERMISSION_DENIED" ->
-                    YLocale.text(R.string.ynfc_vendor_permission_denied)
+                SimulationResultPolicy.isApplySuccess(state, generation, card.uid) ->
+                    YLocale.text(R.string.ynfc_sim_apply_success, card.uid)
                 state.commandStatus == "FAILED" &&
                     state.commandDetail?.contains("RF_NATIVE_WRITE_NOT_OBSERVED") == true ->
                     YLocale.text(R.string.ynfc_rf_uid_writer_not_observed)
@@ -160,15 +99,6 @@ internal class SimulationCoordinator(
                 AppLogger.i("SIMULATION: STOP no UID write; skip NFC restart generation=$generation " +
                     "proofComplete=$confirmedNoWrite operation=${state.operationState}")
                 onDone(state, YLocale.text(R.string.ynfc_sim_stop_no_override))
-                return@execute
-            }
-            if (state.commandGeneration == generation && state.handledGeneration == generation &&
-                state.commandStatus == "FAILED" &&
-                state.fullDiagStage == "TYPE_A_DISABLE_REJECTED") {
-                // The OEM service did not disable persistent Type-A mode. Restarting the
-                // NFC process is not sufficient proof of stock restoration.
-                AppLogger.i("SIMULATION: ColorOS Type-A disable rejected; refuse false stock confirmation")
-                onDone(state, YLocale.text(R.string.ynfc_type_a_disable_failed))
                 return@execute
             }
             if (SimulationResultPolicy.isStopSuccess(state, generation)) {
@@ -252,39 +182,6 @@ internal class SimulationCoordinator(
         }
     }
 
-    /**
-     * A deliberately user-triggered NFC-service-only reload for an armed
-     * file interceptor. The selected profile stays in ConfigProvider and is
-     * reloaded when the new com.android.nfc process starts. Never reboot
-     * Android, never do this automatically after an APK installation.
-     */
-    fun reloadNfcForFileIntercept(onDone: (RuntimeStatus, String) -> Unit) {
-        executor.execute {
-            var state = runtimeRepository.read(includeRootPid = true)
-            val config = runtimeRepository.readProviderMap()
-            if (config[ConfigProvider.KEY_BACKEND] != "INTERCEPT" ||
-                config[ConfigProvider.KEY_SIMULATION_ENABLED] != "true") {
-                onDone(state, YLocale.text(R.string.ynfc_intercept_reload_not_armed))
-                return@execute
-            }
-            if (!hookReady(state)) {
-                onDone(state, YLocale.text(R.string.ynfc_sim_hook_not_ready))
-                return@execute
-            }
-            val before = state.currentPid
-            val result = nfcSystemService.restartNfcProcessKeepingEnabled(
-                "user_requested_intercept_profile_reload"
-            )
-            AppLogger.i("INTERCEPT: user requested NFC-service-only reload oldPid=$before\n$result")
-            state = waitForHookOnly(12_000)
-            onDone(state, if (hookReady(state) && state.currentPid != before) {
-                YLocale.text(R.string.ynfc_intercept_reload_complete)
-            } else {
-                YLocale.text(R.string.ynfc_hook_reload_failed)
-            })
-        }
-    }
-
     private fun hookReady(state: RuntimeStatus): Boolean =
         state.hookInstalled && state.scopeOk && state.currentPid > 0 &&
             state.hookPid == state.currentPid && state.hookBuild == expectedHookBuild
@@ -306,9 +203,6 @@ internal class SimulationCoordinator(
             if (state.commandGeneration > generation) return state
             if (state.commandGeneration == generation && state.handledGeneration == generation &&
                 state.commandStatus in setOf("FAILED", "NO_OVERRIDE")) return state
-            if (apply && state.commandGeneration == generation &&
-                state.commandStatus in setOf("VENDOR_API_ACCEPTED",
-                    "INTERCEPT_CALL_ACCEPTED", "INTERCEPT_ARMED_NO_CALL")) return state
             Thread.sleep(100)
         }
         return state

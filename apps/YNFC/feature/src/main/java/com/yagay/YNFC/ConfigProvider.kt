@@ -257,12 +257,9 @@ open class ConfigProvider : ContentProvider() {
                 val uid = extras?.getString(EXTRA_UID)
                 val sak = extras?.getString(EXTRA_SAK)
                 val atqa = extras?.getString(EXTRA_ATQA)
-                val backend = when (extras?.getString(EXTRA_BACKEND)) {
-                    "VENDOR" -> "VENDOR"
-                    "INTERCEPT" -> "INTERCEPT"
-                    "NATIVE" -> "NATIVE"
-                    else -> "RF"
-                }
+                // New APPLY commands always use the main RF_CONFIG_WRITE Hook.
+                // Require STOP before migrating an already-active legacy session.
+                val backend = "RF"
                 val previousBackend = prefs().getString(KEY_BACKEND, "RF") ?: "RF"
                 if (enabled && prefs().getBoolean(KEY_SIMULATION_ENABLED, false) && backend != previousBackend) {
                     Log.w("NfcConfigProvider", "Backend switch rejected while simulation active; STOP first")

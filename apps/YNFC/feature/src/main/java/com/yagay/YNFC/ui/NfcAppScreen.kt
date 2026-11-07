@@ -57,13 +57,6 @@ fun NfcAppScreen(
     scannedCard: CardModel?,
     readModeEnabled: Boolean,
     pollingDisabled: Boolean,
-    vendorTypeAEnabled: Boolean,
-    onVendorTypeAEnabledChange: (Boolean) -> Unit,
-    fileInterceptEnabled: Boolean,
-    onFileInterceptEnabledChange: (Boolean) -> Unit,
-    nativeNciEnabled: Boolean,
-    onNativeNciEnabledChange: (Boolean) -> Unit,
-    onReloadFileIntercept: ((String) -> Unit) -> Unit,
     initialLogsEnabled: Boolean,
     diagnosticsCollector: DiagnosticsCollector,
     readRuntimeStatus: () -> RuntimeStatus,
@@ -79,25 +72,17 @@ fun NfcAppScreen(
     onDeleteCard: (CardModel, Boolean) -> Unit,
     onReloadNfcHook: ((String) -> Unit) -> Unit,
     onExportLogs: (() -> Unit) -> Unit,
-    onRunHalProbe: ((String) -> Unit) -> Unit,
 ) {
     val runtimeViewModel: RuntimeStatusViewModel = viewModel()
     val status by runtimeViewModel.status.collectAsState()
     val logLines = remember { mutableStateListOf<String>() }
     var selectedSource by remember { mutableStateOf(LogSource.STATUS) }
     var diagnosticRunning by remember { mutableStateOf(false) }
-    var halProbeRunning by remember { mutableStateOf(false) }
     var logsEnabled by remember { mutableStateOf(initialLogsEnabled) }
     var expandedUid by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
-    var previewRunningUid by remember { mutableStateOf<String?>(null) }
-    var previewFeedbackUid by remember { mutableStateOf<String?>(null) }
-    var previewFeedbackMessage by remember { mutableStateOf<String?>(null) }
     val logListState = rememberLazyListState()
     val applyUidText = stringResource(R.string.ynfc_apply_uid, "%s")
-    val nativePreviewAction = stringResource(R.string.ynfc_native_preview_action)
-    val nativePreviewPreparing = stringResource(R.string.ynfc_native_preview_preparing)
-    val nativePreviewPreparingShort = stringResource(R.string.ynfc_native_preview_preparing_short)
     val restoreRfText = stringResource(R.string.ynfc_restore_stock_rf)
 
     LaunchedEffect(selectedSource, logsEnabled) {
@@ -123,45 +108,6 @@ fun NfcAppScreen(
     ) { padding ->
         YPageList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
-            // Protocol 46 can remain unchanged across multiple implementations.
-            // Warn when this exact NFC PID still runs code from an older APK.
-            if (status.currentPid > 0 && status.hookInstalled &&
-                status.hookPid == status.currentPid &&
-                (status.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ||
-                    status.hookImplementationPid != status.currentPid)
-            ) {
-                item {
-                    YSection(
-                        title = stringResource(R.string.ynfc_intercept_old_hook_title),
-                        subtitle = stringResource(R.string.ynfc_intercept_hook_reload_required),
-                    ) {
-                        YSecondaryButton(
-                            text = stringResource(R.string.ynfc_hook_reload_button),
-                            onClick = {
-                                operationMessage = null
-                                onReloadNfcHook { operationMessage = it }
-                            },
-                            enabled = !status.simulationEnabled,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
-            if (!nativeNciEnabled && !fileInterceptEnabled && !vendorTypeAEnabled) {
-                item {
-                    YSection(
-                        title = stringResource(R.string.ynfc_rf_legacy_mode_title),
-                        subtitle = stringResource(R.string.ynfc_rf_legacy_mode_desc),
-                    ) {
-                        YSecondaryButton(
-                            text = stringResource(R.string.ynfc_switch_to_native),
-                            onClick = { onNativeNciEnabledChange(true) },
-                            enabled = !status.simulationEnabled,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
             if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
                 status.hookPid == status.currentPid && status.hookBuild > 0 &&
                 status.hookBuild != BuildConfig.HOOK_BUILD
@@ -189,94 +135,6 @@ fun NfcAppScreen(
                     checked = pollingDisabled,
                     onCheckedChange = { onPollingDisabledChange(it) },
                 )
-            }
-            item {
-                YSwitchItem(
-                    title = stringResource(R.string.ynfc_native_nci_mode),
-                    subtitle = if (status.simulationEnabled) {
-                        stringResource(R.string.ynfc_vendor_type_a_stop_first)
-                    } else {
-                        stringResource(R.string.ynfc_native_nci_desc)
-                    },
-                    checked = nativeNciEnabled,
-                    onCheckedChange = { requested ->
-                        if (!status.simulationEnabled) onNativeNciEnabledChange(requested)
-                    },
-                )
-            }
-            item {
-                YSwitchItem(
-                    title = stringResource(R.string.ynfc_vendor_type_a_mode),
-                    subtitle = if (status.simulationEnabled) {
-                        stringResource(R.string.ynfc_vendor_type_a_stop_first)
-                    } else {
-                        stringResource(R.string.ynfc_vendor_type_a_desc)
-                    },
-                    checked = vendorTypeAEnabled,
-                    onCheckedChange = { requested ->
-                        if (!status.simulationEnabled) onVendorTypeAEnabledChange(requested)
-                    },
-                )
-            }
-            item {
-                YSwitchItem(
-                    title = stringResource(R.string.ynfc_file_intercept_mode),
-                    subtitle = if (status.simulationEnabled) {
-                        stringResource(R.string.ynfc_vendor_type_a_stop_first)
-                    } else {
-                        stringResource(R.string.ynfc_file_intercept_desc)
-                    },
-                    checked = fileInterceptEnabled,
-                    onCheckedChange = { requested ->
-                        if (!status.simulationEnabled) onFileInterceptEnabledChange(requested)
-                    },
-                )
-            }
-            if (fileInterceptEnabled || nativeNciEnabled) {
-                item {
-                    YSection(
-                        title = stringResource(R.string.ynfc_profile_auto_title),
-                        subtitle = if (nativeNciEnabled) {
-                            stringResource(R.string.ynfc_native_profile_desc)
-                        } else {
-                            stringResource(R.string.ynfc_profile_auto_desc)
-                        },
-                    ) {
-                        if (nativeNciEnabled) {
-                            YSecondaryButton(
-                                text = if (halProbeRunning) {
-                                    stringResource(R.string.ynfc_hal_probe_running)
-                                } else {
-                                    stringResource(R.string.ynfc_hal_probe_button)
-                                },
-                                onClick = {
-                                    if (!halProbeRunning) {
-                                        halProbeRunning = true
-                                        onRunHalProbe { result ->
-                                            halProbeRunning = false
-                                            operationMessage = result
-                                        }
-                                    }
-                                },
-                                enabled = !halProbeRunning,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        if (fileInterceptEnabled && status.simulationEnabled &&
-                            status.currentPid > 0 && status.hookInstalled &&
-                            status.hookPid == status.currentPid &&
-                            status.hookBuild == BuildConfig.HOOK_BUILD
-                        ) {
-                            YSecondaryButton(
-                                text = stringResource(R.string.ynfc_intercept_reload_button),
-                                onClick = {
-                                    onReloadFileIntercept { operationMessage = it }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                }
             }
             item {
                 ReadCardPanel(
@@ -310,25 +168,8 @@ fun NfcAppScreen(
                             expandedUid = if (expandedUid?.equals(card.uid, true) == true) null else card.uid
                         },
                         onSimulate = {
-                            val isPreview = nativeNciEnabled
-                            if (!isPreview || previewRunningUid == null) {
-                                if (isPreview) {
-                                    previewRunningUid = card.uid
-                                    previewFeedbackUid = card.uid
-                                    previewFeedbackMessage = nativePreviewPreparing
-                                    operationMessage = nativePreviewPreparing
-                                } else {
-                                    operationMessage = applyUidText.replace("%s", card.uid)
-                                }
-                                onSimulate(card) { result ->
-                                    operationMessage = result
-                                    if (isPreview) {
-                                        previewRunningUid = null
-                                        previewFeedbackUid = card.uid
-                                        previewFeedbackMessage = result
-                                    }
-                                }
-                            }
+                            operationMessage = applyUidText.replace("%s", card.uid)
+                            onSimulate(card) { operationMessage = it }
                         },
                         onStop = {
                             operationMessage = restoreRfText
@@ -338,14 +179,6 @@ fun NfcAppScreen(
                             onDeleteCard(card, active)
                             if (expandedUid?.equals(card.uid, true) == true) expandedUid = null
                         },
-                        simulateLabel = if (nativeNciEnabled) {
-                            if (previewRunningUid == card.uid) nativePreviewPreparingShort
-                            else nativePreviewAction
-                        } else null,
-                        simulateBusy = previewRunningUid != null,
-                        operationHint = if (nativeNciEnabled &&
-                            previewFeedbackUid?.equals(card.uid, true) == true
-                        ) previewFeedbackMessage else null,
                     )
                 }
             }
@@ -392,9 +225,7 @@ fun NfcAppScreen(
             // classes until com.android.nfc itself is reloaded. This remains
             // optional, explicit, and never reboots the whole phone.
             if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
-                status.hookPid == status.currentPid && status.hookBuild == BuildConfig.HOOK_BUILD &&
-                status.hookImplementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION &&
-                status.hookImplementationPid == status.currentPid
+                status.hookPid == status.currentPid && status.hookBuild == BuildConfig.HOOK_BUILD
             ) {
                 item {
                     YSection(

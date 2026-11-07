@@ -677,48 +677,8 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
 
-        // The incoming process may already have an active INTERCEPT command
-        // when the user explicitly reloads the NFC service. Preload its durable
-        // Provider snapshot BEFORE installing the HCE interception hook and
-        // before expensive capability/region discovery. The old order only
-        // initialized cachedConfig at the end of startCommandBridge(), too late
-        // for ColorOS's natural startup HCE configuration call.
-        SimConfig startupConfig = readConfig();
-        if (startupConfig.initialized) {
-            cachedConfig = startupConfig;
-            ContentValues preload = baseHookState();
-            preload.put("coloros_intercept_preload_pid", pid);
-            preload.put("coloros_intercept_preload_at_ms", System.currentTimeMillis());
-            preload.put("coloros_intercept_preload_generation", startupConfig.generation);
-            preload.put("coloros_intercept_preload_active",
-                    startupConfig.active && startupConfig.useInterceptTypeA());
-            writeValuesWithRetry(preload, 6, 75L);
-        }
-        installColorOsReadOnlyHooks(cl, pid);
-
-        // Run capability discovery only after the HCE interceptor is installed.
-        // This avoids missing a natural Type-A call while discovery is running.
-        inspectUidEntryPoints(cl, pid);
-        inspectColorOsRegionSupport(cl, pid);
-
-        // Vendor capability discovery is informational; the user-selected RF
-        // backend continues to own only the UID (NCI LA_NFCID1) mutation.
-        NfcProcessVendorController.Result typeA = vendorController.probeTypeA();
-        // Save the actual ColorOS AIDL descriptor and probe PID in the existing
-        // diagnostic provider; method presence is not external RF UID proof.
-        ContentValues colorOsProbe = baseHookState();
-        colorOsProbe.put("coloros_type_a_probe_pid", pid);
-        colorOsProbe.put("coloros_type_a_probe_stage", typeA.stage);
-        colorOsProbe.put("coloros_type_a_probe_callable", typeA.success);
-        colorOsProbe.put("coloros_type_a_probe_descriptor",
-                typeA.vendorDescriptor == null ? "" : typeA.vendorDescriptor);
-        colorOsProbe.put("coloros_type_a_probe_detail", typeA.detail);
-        writeValuesWithRetry(colorOsProbe, 8, 75L);
-        Log.i(TAG, "TYPE_A_CAPABILITY stage=" + typeA.stage
-                + " callable=" + typeA.success
-                + " detail=" + typeA.detail
-                + " selectedBackend=CONFIG_DRIVEN"
-                + " note=uid_only_rf_does_not_require_atqa_sak");
+        // Use main's RF_CONFIG_WRITE writer discovery and replay.
+        // Experimental HCE interception and Type-A probes are not installed.
 
         List<HookTarget> installTargets = new ArrayList<>();
         List<HookTarget> triggerTargets = discoveryEngine.discoverKnownTriggerCandidates(cl);
@@ -1232,12 +1192,6 @@ public class NfcInjectionModule extends XposedModule {
                     return chain.proceed();
                 }
             }
-
-            // RF writer interception is strictly owned by RF mode. The native
-            // investigation backend and ColorOS experimental backends must
-            // NEVER inherit RF payload mutation or replay as a fallback.
-            if (cfg.useVendorTypeA() || cfg.useInterceptTypeA() || cfg.useNativeNci())
-                return chain.proceed();
 
             // A terminal failed APPLY is not a pending request. If a later OEM
             // RF write happens naturally, it must not silently apply a UID
@@ -2060,15 +2014,17 @@ public class NfcInjectionModule extends XposedModule {
         Log.i(TAG, "COMMAND " + action + " reason=" + reason + " generation=" + cfg.generation + " uid=" + cfg.uid + " pid=" + pid +
                 " restoreMode=" + restoreMode);
 
-        if (cfg.useNativeNci()) {
+        // Legacy STOP paths remain for safe recovery of already-running sessions.
+        // Provider rejects new non-RF APPLY commands.
+        if (!cfg.active && cfg.useNativeNci()) {
             runNativeNciCommand(cfg);
             return;
         }
-        if (cfg.useVendorTypeA()) {
+        if (!cfg.active && cfg.useVendorTypeA()) {
             runVendorTypeACommand(cfg, reason);
             return;
         }
-        if (cfg.useInterceptTypeA()) {
+        if (!cfg.active && cfg.useInterceptTypeA()) {
             runFileInterceptCommand(cfg);
             return;
         }

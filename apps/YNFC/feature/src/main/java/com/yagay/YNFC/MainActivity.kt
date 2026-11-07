@@ -34,22 +34,6 @@ class MainActivity : YComposeActivity() {
     private var savedCardsState by mutableStateOf<List<CardModel>>(emptyList())
     private var readModeEnabled by mutableStateOf(false)
     private var pollingDisabled by mutableStateOf(false)
-    private var vendorTypeAEnabled by mutableStateOf(false)
-    private var fileInterceptEnabled by mutableStateOf(false)
-    private var nativeNciEnabled by mutableStateOf(false)
-    private val backendPreferences by lazy {
-        getSharedPreferences("ynfc_backend_selection", android.content.Context.MODE_PRIVATE)
-    }
-
-    private fun selectBackendForNextSimulation(backend: String) {
-        if (getSimulationEnabled()) return
-        vendorTypeAEnabled = backend == "VENDOR"
-        fileInterceptEnabled = backend == "INTERCEPT"
-        nativeNciEnabled = backend == "NATIVE"
-        backendPreferences.edit().putString("preferred_backend", backend).apply()
-        AppLogger.i("SIMULATION: preferred backend=$backend; no active command changed")
-    }
-
     override fun onBeforeYContent(savedInstanceState: Bundle?) {
         nfcReader = NfcReaderController(this)
         cardRepository = CardRepository(this)
@@ -61,24 +45,10 @@ class MainActivity : YComposeActivity() {
         diagnosticExporter = DiagnosticExporter(this, diagnosticsCollector)
         simulationCoordinator = SimulationCoordinator(
             configClient, runtimeRepository, nfcSystemService, EXPECTED_HOOK_BUILD
-        ) { card, backend ->
-            NfcSharedConfigManager.prepare(applicationContext, rootShell, card, backend)
-        }
+        )
         savedCardsState = cardRepository.load()
         val provider = readProviderMap()
         pollingDisabled = provider[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
-        // A newly selected native analysis backend is independent of the
-        // OEM wallet/HCE implementation. Do not change an active simulation;
-        // a previous user choice remains explicit and durable.
-        val active = provider[ConfigProvider.KEY_SIMULATION_ENABLED].toBoolean()
-        val preferred = if (active) {
-            provider[ConfigProvider.KEY_BACKEND] ?: "RF"
-        } else {
-            backendPreferences.getString("preferred_backend", null) ?: "NATIVE"
-        }
-        vendorTypeAEnabled = preferred == "VENDOR"
-        fileInterceptEnabled = preferred == "INTERCEPT"
-        nativeNciEnabled = preferred == "NATIVE"
         AppLogger.i("NFC controller started; LSPosed in-process command engine enabled")
     }
 
@@ -158,23 +128,6 @@ class MainActivity : YComposeActivity() {
             scannedCard = scannedCardState,
             readModeEnabled = readModeEnabled,
             pollingDisabled = pollingDisabled,
-            vendorTypeAEnabled = vendorTypeAEnabled,
-            onVendorTypeAEnabledChange = { requested ->
-                selectBackendForNextSimulation(if (requested) "VENDOR" else "NATIVE")
-            },
-            fileInterceptEnabled = fileInterceptEnabled,
-            onFileInterceptEnabledChange = { requested ->
-                selectBackendForNextSimulation(if (requested) "INTERCEPT" else "NATIVE")
-            },
-            nativeNciEnabled = nativeNciEnabled,
-            onNativeNciEnabledChange = { requested ->
-                selectBackendForNextSimulation(if (requested) "NATIVE" else "RF")
-            },
-            onReloadFileIntercept = { onMessage ->
-                simulationCoordinator.reloadNfcForFileIntercept { _, message ->
-                    runOnUiThread { onMessage(message) }
-                }
-            },
             initialLogsEnabled = initialLogsEnabled,
             diagnosticsCollector = diagnosticsCollector,
             readRuntimeStatus = { readRuntimeStatus(includeRootPid = false) },
@@ -199,18 +152,7 @@ class MainActivity : YComposeActivity() {
                 simulateCard(card) { _, message -> runOnUiThread { onMessage(message) } }
             },
             onStopSimulation = { onMessage ->
-                stopSimulation { state, message ->
-                    runOnUiThread {
-                        // Old RF tests may still be active when the updated app
-                        // first starts. After explicit STOP, choose file mode
-                        // only if the user has not selected another preference.
-                        if (!state.simulationEnabled &&
-                            !backendPreferences.contains("preferred_backend")) {
-                            selectBackendForNextSimulation("NATIVE")
-                        }
-                        onMessage(message)
-                    }
-                }
+                stopSimulation { _, message -> runOnUiThread { onMessage(message) } }
             },
             onDeleteCard = { card, active ->
                 if (active) stopSimulation { _, _ -> }
@@ -223,23 +165,13 @@ class MainActivity : YComposeActivity() {
                 }
             },
             onExportLogs = ::saveDiagnosticWithoutSharing,
-            onRunHalProbe = ::saveHalConfigProbe,
         )
     }
 
     private fun simulateCard(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
-        val backend = when {
-            nativeNciEnabled -> "NATIVE"
-            fileInterceptEnabled -> "INTERCEPT"
-            vendorTypeAEnabled -> "VENDOR"
-            else -> "RF"
-        }
-        // NATIVE is only an offline config export. It must not disable
-        // Android NFC reader mode or imply a controller mode transition.
-        if (backend != "NATIVE") stopReadMode("simulation_start")
-        simulationCoordinator.simulate(card, backend) { state, message ->
-            if (backend == "RF" && state.commandGeneration > 0L &&
-                state.commandAction == "APPLY") {
+        stopReadMode("simulation_start")
+        simulationCoordinator.simulate(card) { state, message ->
+            if (state.commandGeneration > 0L && state.commandAction == "APPLY") {
                 // Native NCI packets can disappear from small Android logcat
                 // buffers before the user exports diagnostics. Capture a
                 // read-only, payload-free summary on a separate worker so UI
