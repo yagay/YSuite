@@ -1757,7 +1757,14 @@ public class NfcInjectionModule extends XposedModule {
                     vendorController.setTypeAConfig(false, atqa, sak, uid);
             Log.i(TAG, "VENDOR_TYPE_A_STOP stage=" + disabled.stage
                     + " accepted=" + disabled.success + " reason=" + reason);
-            requestControllerRestart(cfg, "Vendor Type-A disable: " + disabled.stage
+            if (!disabled.success) {
+                // ColorOS persists its access-card mode. An NFC-process restart by itself
+                // cannot prove that a rejected OEM disable restored the stock RF state.
+                failVendorTypeACommand(cfg, "TYPE_A_DISABLE_REJECTED",
+                        "ColorOS Type-A disable failed: " + disabled.stage + ": " + disabled.detail);
+                return;
+            }
+            requestControllerRestart(cfg, "Vendor Type-A disable accepted: " + disabled.stage
                     + "; stock NFC process/controller restart required");
             return;
         }
