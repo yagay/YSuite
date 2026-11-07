@@ -19,6 +19,9 @@ internal object Sn220ConfigPreview {
         val modifiedHash: String,
         val oldCoreBytes: Int,
         val newCoreBytes: Int,
+        val stockLaBitFrameSdd: Int?,
+        val stockLaPlatformConfig: Int?,
+        val stockLaSelInfo: Int?,
     )
 
     fun preview(original: ByteArray, uidHex: String): Result {
@@ -71,6 +74,9 @@ internal object Sn220ConfigPreview {
             modifiedHash = sha256(modifiedBytes),
             oldCoreBytes = tokens.size,
             newCoreBytes = frame.size,
+            stockLaBitFrameSdd = readSingleByteStandardParam(frame, 0x30),
+            stockLaPlatformConfig = readSingleByteStandardParam(frame, 0x31),
+            stockLaSelInfo = readSingleByteStandardParam(frame, 0x32),
         )
     }
 
@@ -108,6 +114,30 @@ internal object Sn220ConfigPreview {
         require(offset == frame.size) { "Trailing or malformed NCI parameters" }
         require(match >= 0) { "LA_NFCID1 not found in the stock config" }
         return match
+    }
+
+    /**
+     * Safe read-only audit of standard one-byte Listen A parameters.
+     * LA_BIT_FRAME_SDD and LA_PLATFORM_CONFIG contribute to SENS_RES;
+     * LA_SEL_INFO contributes to SEL_RES. Do not conflate the values with
+     * a complete RF ATQA/SAK measurement or a working card protocol.
+     */
+    private fun readSingleByteStandardParam(frame: List<Int>, tag: Int): Int? {
+        var offset = 4
+        var result: Int? = null
+        repeat(frame[3]) {
+            val proprietary = frame[offset] >= 0xA0
+            val lengthIndex = offset + if (proprietary) 2 else 1
+            val len = frame[lengthIndex]
+            if (!proprietary && frame[offset] == tag) {
+                require(len == 1 && result == null) {
+                    "Invalid or duplicate standard NFC-A Listen parameter"
+                }
+                result = frame[lengthIndex + 1]
+            }
+            offset = lengthIndex + 1 + len
+        }
+        return result
     }
 
     fun sha256(bytes: ByteArray): String =
