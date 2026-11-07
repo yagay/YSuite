@@ -140,4 +140,8 @@
     <string name="ynfc_native_profile_desc">选择卡片点击“模拟”后，自动读取当前 SN220 配置并保存 original-SN220.conf、modified-SN220.conf、selected-nfc-a.json 到 Download/YSuite/YNFC/。目前仅生成及校验副本，尚未安装原生 HAL 拦截，也不会发送 UID 命令。</string>
     <string name="ynfc_native_abi_unverified">原生 NCI/HAL 尚未就绪：需要验证本机固件库和 UID 写入接口后才允许配置控制器。本次没有模拟或发送 UID；请导出诊断文件。</string>
     <string name="ynfc_switch_to_native">切换到原生 NCI 分析</string>
+    <string name="ynfc_hal_probe_button">检查 HAL 配置加载（只读）</string>
+    <string name="ynfc_hal_probe_running">正在检查 NFC HAL…</string>
+    <string name="ynfc_hal_probe_saved">HAL 配置检查已保存：%1$s</string>
+    <string name="ynfc_hal_probe_failed">HAL 检查失败：%1$s</string>
 </resources>
