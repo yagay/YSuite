@@ -59,7 +59,7 @@ class NciHalTraceTest {
         val report = NciHalTrace.summarize(log, commandMs)
         assertTrue(report.contains("IN_WINDOW_FRAMES=0"))
         assertTrue(report.contains("LA_NFCID1_TAG_33_IN_CONFIG_TX=0"))
-        assertTrue(report.contains("NO_HAL_FRAMES_IN_COMMAND_WINDOW_OR_BUFFER_TRUNCATED"))
+        assertTrue(report.contains("ONLY_POST_WINDOW_HAL_FRAMES_EARLIER_TX_MAY_HAVE_BEEN_EVICTED"))
     }
 
     @Test fun lateProprietaryRxDoesNotProveMissingCommandOrUidWrite() {
