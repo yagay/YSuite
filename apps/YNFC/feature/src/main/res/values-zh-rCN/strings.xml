@@ -130,4 +130,9 @@
     <string name="ynfc_profile_auto_title">自动生成 NFC-A 配置</string>
     <string name="ynfc_profile_auto_desc">无需导入文件。选择已保存的卡片并点击“模拟”，YNFC 会校验 UID/ATQA/SAK、自动创建应用内部 JSON 文件，然后启用 ColorOS 拦截。</string>
     <string name="ynfc_profile_auto_failed">自动创建或校验 NFC-A 配置失败，未启动拦截；请检查诊断日志。</string>
+    <string name="ynfc_intercept_old_hook_title">NFC 服务仍在运行旧版 Hook 代码</string>
+    <string name="ynfc_intercept_hook_reload_required">请先停止当前模拟，再手动重新加载 NFC 服务以启用最新的文件拦截 Hook。无需重启手机。</string>
+    <string name="ynfc_rf_legacy_mode_title">目前选中的是旧 RF 模式</string>
+    <string name="ynfc_rf_legacy_mode_desc">旧 RF 模式不会自动生成 NFC-A 配置文件，也不会运行 ColorOS 文件拦截。请切换到文件拦截再测试。</string>
+    <string name="ynfc_switch_to_intercept">切换到文件拦截</string>
 </resources>
