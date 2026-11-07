@@ -130,3 +130,26 @@ That may reload NFC **once on explicit STOP**, not repeatedly during emulation.
 
 OPlus firmware's own discovery cycling on RF-field detection is not
 suppressed. Intercepting it would risk HCE, wallet payments and eSE routes.
+
+## 2026-11-07: direct UID write without RF Discovery pause (experimental)
+
+This branch intentionally tests **one** `NativeNfcManager#setNciConfig(0x33)`
+call per user APPLY, with **no explicit `disableDiscovery()`,
+`applyRouting(true)`, RF restart, or UID retry** in the direct write path.
+The OEM itself may still cycle RF discovery for normal NFC behavior; this
+experiment does not suppress those system operations.
+
+The original unpaused attempt on SN220T previously returned
+`NCI_STATUS_INVALID_PARAM (0x09)`; no guarantee is made that the direct
+unpaused request will work. Capture `LA_NFCID1_RSP_STATUS` and verify actual
+UID using a separate NFC-A reader. The API returns void and must stay
+`UNVERIFIED` until evidence is available.
+
+If the exact modern native writer is installed but not ready, YNFC now fails
+closed instead of starting an older RF refresh/share-mode fallback (which
+could restart Discovery). On older firmware without the modern writer,
+the legacy RF_CONFIG_WRITE path is left unchanged.
+
+STOP remains a separate explicit safety action: after a possible UID
+controller mutation, stock restoration may still reload the NFC service once.
+Changing the manual STOP recovery is outside this experiment.
