@@ -94,6 +94,30 @@ public final class HookConfigStore {
         return decode(values);
     }
 
+    /** Last RF request recorded by the Provider, without changing it. */
+    static final class OwnNciRfEvidence {
+        final String source;
+        final long controllerEpoch;
+        final int pid;
+
+        OwnNciRfEvidence(String source, long controllerEpoch, int pid) {
+            this.source = source;
+            this.controllerEpoch = controllerEpoch;
+            this.pid = pid;
+        }
+    }
+
+    OwnNciRfEvidence readOwnNciRfEvidence() {
+        Context context = NfcHookUtils.currentContext();
+        if (context == null) return new OwnNciRfEvidence("", 0L, 0);
+        Map<String, String> values = readValues(context, activeUri());
+        if (values == null) return new OwnNciRfEvidence("", 0L, 0);
+        return new OwnNciRfEvidence(
+                valueOrEmpty(values.get("rf_source")),
+                NfcHookUtils.parseLong(values.get("rf_controller_epoch"), 0L),
+                (int) NfcHookUtils.parseLong(values.get("rf_pid"), 0L));
+    }
+
     /** Independent persistent reader block, not coupled to UID emulation generation. */
     Boolean readPollingDisabled() {
         if (isPassive()) return null;
