@@ -27,6 +27,7 @@ import com.yagay.YNFC.xposed.profile.HookProfileStore;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -1904,7 +1905,8 @@ public class NfcInjectionModule extends XposedModule {
         // an already handled generation just because this Java instance lost its in-memory cache.
         boolean persistedTerminal = cfg.generation > 0L && cfg.handledGeneration == cfg.generation &&
                 ("SUCCESS".equals(cfg.commandStatus) || "FAILED".equals(cfg.commandStatus)
-                        || "NO_OVERRIDE".equals(cfg.commandStatus));
+                        || "NO_OVERRIDE".equals(cfg.commandStatus)
+                        || "UNVERIFIED".equals(cfg.commandStatus));
         if (persistedTerminal) {
             completedGeneration = cfg.generation;
             completedPid = pid;
@@ -1968,6 +1970,10 @@ public class NfcInjectionModule extends XposedModule {
             }
         }
 
+        // No OEM emulateNfcATag: try our own single LA_NFCID1 controller write.
+        // Older NFC APKs continue using the existing main RF Hook/refresh.
+        if (cfg.active && tryOwnNciUidWrite(cfg)) return;
+
         // RF UID-only is fully independent of the ColorOS Vendor backend.
         // Do not probe or call OEM Type-A/ShareMode just to start RF mode.
         NfcProcessVendorController.Result trigger = triggerRfRefresh(cfg, cfg.active, "command:" + reason);
@@ -1977,6 +1983,85 @@ public class NfcInjectionModule extends XposedModule {
             scheduleRfTriggerTimeout(cfg, pid);
         } else {
             failRfTriggerCommand(cfg, trigger);
+        }
+    }
+
+
+    /**
+     * NFC Service 17.0.0.260114: NativeNfcManager#setNciConfig(int,byte[],int,boolean).
+     * Send only LA_NFCID1=0x33 ourselves, without calling the OEM emulator.
+     * Because JNI returns void, dispatch is NEVER counted as verified RF success.
+     */
+    private boolean tryOwnNciUidWrite(SimConfig cfg) {
+        if (!cfg.initialized || !cfg.active || cfg.useVendorTypeA()
+                || cfg.useInterceptTypeA() || cfg.useNativeNci()) return false;
+        if (nfcClassLoader == null) return false;
+        byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
+        if (uid == null) return false;
+        boolean invoked = false;
+        try {
+            Class<?> cls = Class.forName("com.android.nfc.NfcService", false, nfcClassLoader);
+            Method instanceMethod = cls.getDeclaredMethod("getInstance");
+            instanceMethod.setAccessible(true);
+            Object service = instanceMethod.invoke(null);
+            if (service == null) return false;
+            if (!Boolean.TRUE.equals(cls.getMethod("isNfcEnabled").invoke(service)))
+                return false;
+            Object host = cls.getMethod("getDeviceHost").invoke(service);
+            if (host == null) return false;
+            Method setter = host.getClass().getMethod("setNciConfig",
+                    int.class, byte[].class, int.class, boolean.class);
+            if (!Modifier.isNative(setter.getModifiers()) ||
+                    !"com.android.nfc.dhimpl.NativeNfcManager".equals(
+                        setter.getDeclaringClass().getName())) return false;
+            // Record the possible controller mutation before calling void JNI.
+            nativeUidMutationAttempted = true;
+            controllerReinitRequired = true;
+            restoreMode = "CONTROLLER_REINIT";
+            persistRestoreState();
+            invoked = true;
+            setter.invoke(host, 0x33, uid.clone(), uid.length, true);
+            ContentValues v = baseHookState();
+            v.put("state_generation", cfg.generation);
+            v.put("command_consumed_generation", cfg.generation);
+            v.put("command_handled_generation", cfg.generation);
+            v.put("command_action", "APPLY");
+            v.put("command_status", "UNVERIFIED");
+            v.put("command_detail", "Own LA_NFCID1 0x33 native write invoked; void JNI has no controller acknowledgement");
+            v.put("command_pid", Process.myPid());
+            v.put("operation_state", "WAITING_FOR_RF");
+            v.put("effective_state", "UNKNOWN");
+            v.put("verification_confidence", "NCI_WRITE_UNVERIFIED");
+            v.put("rf_status", "OWN_NCI_UID_REQUESTED");
+            v.put("rf_uid", normalizeUid(cfg.uid));
+            v.put("rf_source", "own-nci-0x33");
+            v.put("rf_accepted", false);
+            v.put("rf_pid", Process.myPid());
+            v.put("rf_generation", cfg.generation);
+            v.put("rf_controller_epoch", cfg.controllerEpoch);
+            v.put("rf_native_result_type", "void-no-ack");
+            v.put("rf_verification", "EXTERNAL_RF_NOT_VERIFIED");
+            v.put("full_diag_stage", "OWN_NCI_UID_REQUESTED");
+            v.put("full_diag_summary", "Direct NCI 0x33 requested; not hardware-verified; STOP requires NFC service recovery");
+            writeValuesWithRetry(v, 20, 100L);
+            completedGeneration = cfg.generation;
+            completedPid = Process.myPid();
+            Log.i(TAG, "OWN_NCI_UID_REQUESTED generation=" + cfg.generation +
+                    " uidBytes=" + uid.length + " nativeVoid=true");
+            return true;
+        } catch (ClassNotFoundException | NoSuchMethodException absent) {
+            return false;
+        } catch (Throwable err) {
+            Throwable cause = err.getCause() == null ? err : err.getCause();
+            Log.e(TAG, "OWN_NCI_UID_EXCEPTION generation=" + cfg.generation, cause);
+            if (invoked) {
+                failRfTriggerCommand(cfg, new NfcProcessVendorController.Result(false,
+                        "OWN_NCI_NATIVE_EXCEPTION",
+                        cause.getClass().getSimpleName() + ": " + cause.getMessage()
+                        + "; recover NFC controller via STOP", null));
+                return true;
+            }
+            return false;
         }
     }
 

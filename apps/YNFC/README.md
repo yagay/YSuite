@@ -65,3 +65,7 @@ GitHub Actions 会构建 APK、运行 JVM 单元测试，并校验：
 ## 安全边界
 
 本项目直接作用于系统 NFC 进程。结构重构必须保持命令协议、generation/PID/epoch 归属与 RF 原生结果判定不变。没有设备日志证明收益时，不拆分 Hook 安装、生命周期恢复和早期 RF 回放之间的时序关键路径。
+
+## 新版系统的自定义 UID 写入（需设备验证）
+
+新系统已移除 NxpNativeNfcManager.changeRfParamsByConfig(byte[])；新增 NativeNfcManager.setNciConfig(int,byte[],int,boolean)。RF 模式直接获取 NfcService 的 DeviceHost，并仅发送自己构造的 LA_NFCID1 (0x33) 参数；从不调用系统 emulateNfcATag()，也没有新的模拟后端菜单。该方法返回 void：状态 UNVERIFIED 表示请求已下发而非实际射频验证成功。停止后采用 NFC 服务恢复，不要求整机重启。

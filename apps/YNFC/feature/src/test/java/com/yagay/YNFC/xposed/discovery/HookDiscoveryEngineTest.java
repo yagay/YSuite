@@ -16,6 +16,7 @@ public class HookDiscoveryEngineTest {
         int tooMany(int a, int b, int c, int d, byte[] data) { return 0; }
         int changeRfParamsByConfig(byte[] data) { return 0; }
         boolean sendRawFrame(byte[] data) { return true; }
+        void setNciConfig(int id, byte[] value, int count, boolean enabled) { }
     }
 
     private abstract static class AbstractSamples {
@@ -38,6 +39,10 @@ public class HookDiscoveryEngineTest {
 
     @Test public void semanticFilterRejectsUnrelatedByteArrayMethods() throws Exception {
         assertTrue(HookDiscoveryEngine.isRfSemanticCandidate(m("changeRfParamsByConfig", byte[].class)));
+        assertTrue(HookDiscoveryEngine.isRfSignatureCandidate(
+                m("setNciConfig", int.class, byte[].class, int.class, boolean.class)));
+        assertTrue(HookDiscoveryEngine.isRfSemanticCandidate(
+                m("setNciConfig", int.class, byte[].class, int.class, boolean.class)));
         assertFalse(HookDiscoveryEngine.isRfSemanticCandidate(m("sendRawFrame", byte[].class)));
     }
 

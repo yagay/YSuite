@@ -58,6 +58,9 @@ internal class SimulationCoordinator(
                 !hookReady(state) -> YLocale.text(R.string.ynfc_sim_hook_not_ready)
                 SimulationResultPolicy.isApplySuccess(state, generation, card.uid) ->
                     YLocale.text(R.string.ynfc_sim_apply_success, card.uid)
+                state.commandStatus == "UNVERIFIED" &&
+                    state.verificationConfidence == "NCI_WRITE_UNVERIFIED" ->
+                    YLocale.text(R.string.ynfc_own_nci_unverified)
                 state.commandStatus == "FAILED" &&
                     state.commandDetail?.contains("RF_NATIVE_WRITE_NOT_OBSERVED") == true ->
                     YLocale.text(R.string.ynfc_rf_uid_writer_not_observed)
@@ -202,7 +205,7 @@ internal class SimulationCoordinator(
                 state.consumedGeneration == generation) return state
             if (state.commandGeneration > generation) return state
             if (state.commandGeneration == generation && state.handledGeneration == generation &&
-                state.commandStatus in setOf("FAILED", "NO_OVERRIDE")) return state
+                state.commandStatus in setOf("FAILED", "NO_OVERRIDE", "UNVERIFIED")) return state
             Thread.sleep(100)
         }
         return state
