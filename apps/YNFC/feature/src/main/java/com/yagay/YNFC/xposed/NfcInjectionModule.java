@@ -679,6 +679,16 @@ public class NfcInjectionModule extends XposedModule {
         // Vendor capability discovery is informational; the user-selected RF
         // backend continues to own only the UID (NCI LA_NFCID1) mutation.
         NfcProcessVendorController.Result typeA = vendorController.probeTypeA();
+        // Save the actual ColorOS AIDL descriptor and probe PID in the existing
+        // diagnostic provider; method presence is not external RF UID proof.
+        ContentValues colorOsProbe = baseHookState();
+        colorOsProbe.put("coloros_type_a_probe_pid", pid);
+        colorOsProbe.put("coloros_type_a_probe_stage", typeA.stage);
+        colorOsProbe.put("coloros_type_a_probe_callable", typeA.success);
+        colorOsProbe.put("coloros_type_a_probe_descriptor",
+                typeA.vendorDescriptor == null ? "" : typeA.vendorDescriptor);
+        colorOsProbe.put("coloros_type_a_probe_detail", typeA.detail);
+        writeValuesWithRetry(colorOsProbe, 8, 75L);
         Log.i(TAG, "TYPE_A_CAPABILITY stage=" + typeA.stage
                 + " callable=" + typeA.success
                 + " detail=" + typeA.detail
