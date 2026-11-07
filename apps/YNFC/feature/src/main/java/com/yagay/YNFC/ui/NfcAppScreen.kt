@@ -38,6 +38,8 @@ import com.yagay.YNFC.RuntimeText
 import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
+import com.yagay.yui.YStatusLine
+import com.yagay.yui.YStatusTone
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YPageList
@@ -120,6 +122,7 @@ fun NfcAppScreen(
                         YStatusLine(
                             label = stringResource(R.string.ynfc_selected_uid),
                             value = status.selectedUid ?: "-",
+                            tone = YStatusTone.Neutral,
                         )
                         YSecondaryButton(
                             text = stringResource(R.string.ynfc_stop_restore_default),
