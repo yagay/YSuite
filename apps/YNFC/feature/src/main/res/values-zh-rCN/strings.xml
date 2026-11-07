@@ -17,7 +17,7 @@
     <string name="ynfc_log_enabled">已开启。正在抓取日志。</string>
     <string name="ynfc_log_disabled">已关闭。不抓取日志，减少性能影响。</string>
     <string name="ynfc_diagnostic_logs">诊断日志</string>
-    <string name="ynfc_diagnostic_logs_desc">日志区域保留高对比度控制台配色，页面结构仍由 YUI 管理。</string>
+    <string name="ynfc_diagnostic_logs_desc">诊断文件自动保存到 Download/YSuite/YNFC/，下方仍可查看实时日志。</string>
     <string name="ynfc_saving">保存中</string>
     <string name="ynfc_export_logs">导出日志</string>
     <string name="ynfc_clear_logs">清空日志</string>
@@ -128,8 +128,8 @@
     <string name="ynfc_intercept_reload_complete">NFC 服务已重新加载，文件拦截保持启用；请检查新的 HCE 调用，并使用外部读卡器验证。</string>
     <string name="ynfc_intercept_reload_not_armed">文件拦截尚未启用，请选择拦截模式并在保存的卡片上点击“模拟”。</string>
     <string name="ynfc_profile_auto_title">自动生成 NFC-A 配置</string>
-    <string name="ynfc_profile_auto_desc">无需导入文件。选择已保存的卡片并点击“模拟”，YNFC 会校验 UID/ATQA/SAK、自动创建应用内部 JSON 文件，然后启用 ColorOS 拦截。</string>
-    <string name="ynfc_profile_auto_failed">自动创建或校验 NFC-A 配置失败，未启动拦截；请检查诊断日志。</string>
+    <string name="ynfc_profile_auto_desc">无需导入文件。选择保存的卡片并点击“模拟”，自动生成私有 JSON 并同步到 Download/YSuite/YNFC/；ColorOS HCE 仅作为实验兼容模式。</string>
+    <string name="ynfc_profile_auto_failed">自动创建 NFC-A/SN220 配置副本失败，未发送新的模拟命令；请检查 config-status.txt 和诊断日志。</string>
     <string name="ynfc_intercept_old_hook_title">NFC 服务仍在运行旧版 Hook 代码</string>
     <string name="ynfc_intercept_hook_reload_required">请先停止当前模拟，再手动重新加载 NFC 服务以启用最新的文件拦截 Hook。无需重启手机。</string>
     <string name="ynfc_rf_legacy_mode_title">目前选中的是旧 RF 模式</string>
@@ -137,7 +137,7 @@
     <string name="ynfc_switch_to_intercept">切换到文件拦截</string>
     <string name="ynfc_native_nci_mode">独立 NFC NCI/HAL（固件分析）</string>
     <string name="ynfc_native_nci_desc">自动生成 NFC-A 配置，针对 NXP HAL 进行独立诊断，不依赖 ColorOS 钱包。当前尚未验证本机固件的 UID 写入 ABI，暂时禁止原生写入。</string>
-    <string name="ynfc_native_profile_desc">选择保存的卡片时自动建立 UID/ATQA/SAK 私有 JSON 文件。目前尚未实现安全的原生 NCI UID 写入；点击“模拟”只执行前置检查，不发送 UID 配置命令。</string>
+    <string name="ynfc_native_profile_desc">选择卡片点击“模拟”后，自动读取当前 SN220 配置并保存 original-SN220.conf、modified-SN220.conf、selected-nfc-a.json 到 Download/YSuite/YNFC/。目前仅生成及校验副本，尚未安装原生 HAL 拦截，也不会发送 UID 命令。</string>
     <string name="ynfc_native_abi_unverified">原生 NCI/HAL 尚未就绪：需要验证本机固件库和 UID 写入接口后才允许配置控制器。本次没有模拟或发送 UID；请导出诊断文件。</string>
     <string name="ynfc_switch_to_native">切换到原生 NCI 分析</string>
 </resources>
