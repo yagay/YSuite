@@ -1,6 +1,6 @@
 package com.yagay.YNFC
 
-import org.json.JSONObject
+import com.google.gson.JsonParser
 import java.io.InputStream
 
 /**
@@ -26,12 +26,17 @@ internal object NfcProfileFile {
             }
             out.toString(Charsets.UTF_8.name())
         }
-        val obj = JSONObject(content)
-        require(obj.optString("type") == "NFC_A") { "Profile type must be NFC_A" }
-        val uid = normalizedHex(obj.getString("uid"), 4, 7, 10)
-        val atqa = normalizedHex(obj.getString("atqa"), 2)
-        val sak = normalizedHex(obj.getString("sak"), 1)
-        val name = obj.optString("name", "Imported NFC-A").trim()
+        val root = JsonParser.parseString(content)
+        require(root.isJsonObject) { "Expected JSON object" }
+        val obj = root.asJsonObject
+        require(obj.get("type")?.asString == "NFC_A") { "Profile type must be NFC_A" }
+        val uid = normalizedHex(obj.get("uid")?.asString
+            ?: throw IllegalArgumentException("Missing UID"), 4, 7, 10)
+        val atqa = normalizedHex(obj.get("atqa")?.asString
+            ?: throw IllegalArgumentException("Missing ATQA"), 2)
+        val sak = normalizedHex(obj.get("sak")?.asString
+            ?: throw IllegalArgumentException("Missing SAK"), 1)
+        val name = obj.get("name")?.asString?.trim().orEmpty().ifBlank { "Imported NFC-A" }
         require(name.isNotEmpty() && name.length <= 48) { "Profile name must be 1–48 characters" }
         return CardModel(name, uid, sak, atqa)
     }
