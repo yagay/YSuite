@@ -18,6 +18,7 @@ class DiagnosticsCollector(
     private val runtimeRepository: RuntimeStatusRepository,
     private val cardRepository: CardRepository
 ) {
+    private val appContext = context.applicationContext
     private val packageName = context.packageName
     private val packageManager = context.applicationContext.packageManager
     private val nciTracePreferences = context.applicationContext.getSharedPreferences(
@@ -97,6 +98,7 @@ class DiagnosticsCollector(
         })
         appendLine("--- PROVIDER SNAPSHOT ---")
         snapshot.toSortedMap().forEach { (key, value) -> appendLine("$key=$value") }
+        appendLine(NfcSharedConfigManager.diagnostics(appContext))
         appendLine("--- COLOROS OEM BINDER / BACKEND DIAGNOSIS ---")
         val currentPid = snapshot["runtime_pid"]?.toIntOrNull() ?: 0
         val oplusProbePid = snapshot["coloros_type_a_probe_pid"]?.toIntOrNull() ?: 0
