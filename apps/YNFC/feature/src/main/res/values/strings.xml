@@ -104,7 +104,7 @@
     <string name="ynfc_hook_problem_build">Installed NFC Hook version differs from the APK. YNFC will try to reload only the NFC service; no full phone reboot is normally needed.</string>
     <string name="ynfc_hook_problem_unknown">NFC Hook is not ready. Check the scoped process and diagnostic logs.</string>
     <string name="ynfc_vendor_type_a_mode">Experimental ColorOS Vendor Type-A</string>
-    <string name="ynfc_vendor_type_a_desc">OFF = UID-only Root/LSPosed RF/NCI mode (recommended). ON = experimental ColorOS Vendor Type-A, which requires OEM signature/privileged NFC permission. An external reader must verify the actual UID.</string>
+    <string name="ynfc_vendor_type_a_desc">OFF = strict NFC-A UID replacement via Root/LSPosed RF/NCI (replaces an existing LA_NFCID1, never appends). ON = experimental ColorOS Vendor Type-A, which requires OEM signature/privileged NFC permission. An external reader must verify the actual UID.</string>
     <string name="ynfc_vendor_type_a_stop_first">Stop the current simulation before changing the backend.</string>
     <string name="ynfc_vendor_api_accepted">Vendor Type-A request accepted by OEM; actual card emulation has NOT been verified by an external reader.</string>
     <string name="ynfc_vendor_permission_denied">ColorOS denied Vendor Type-A because the NFC system process lacks com.oplus.permission.safe.NFC (signature|privileged). This cannot be fixed with a normal runtime permission grant. Stop emulation to restore NFC; see diagnostics for details.</string>
@@ -119,5 +119,5 @@
     <string name="ynfc_hook_manual_reload_title">Manual NFC Hook refresh</string>
     <string name="ynfc_hook_manual_reload_desc">Only use this after installing a test build with new in-process Hook code. Reloads the NFC service once, not the phone. No automatic restart.</string>
     <string name="ynfc_type_a_disable_failed">ColorOS rejected native NFC-A disable. Stock RF is not confirmed; check the diagnostic log.</string>
-    <string name="ynfc_rf_uid_writer_not_observed">RF-only UID configuration failed: routing refreshed, but this NFC process never called a native UID writer. This does not mean the UID was emulated. You may explicitly test the separate Vendor Type-A backend; ColorOS permission restrictions can still prevent it.</string>
+    <string name="ynfc_rf_uid_writer_not_observed">UID replacement not applied: NFC routing refreshed but the current process did not call a usable NCI UID writer. The RF backend only replaces an existing LA_NFCID1; it never appends another parameter. This firmware may require a separate, verified native HAL interception point.</string>
 </resources>
