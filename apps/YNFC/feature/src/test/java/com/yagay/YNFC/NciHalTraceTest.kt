@@ -69,7 +69,7 @@ class NciHalTraceTest {
         val logs = listOf(
             "1800000008.653  2366  8692 I NxpNciR : len = 13 > $packet",
             "1800000010.543  2366  8692 I NxpNciR : len = 13 > $packet",
-        ).joinToString("\\n")
+        ).joinToString("\n")
         val report = NciHalTrace.summarize(logs, commandMs)
         assertTrue(report.contains("SNAPSHOT_VALID_FRAMES=2"))
         assertTrue(report.contains("ALL_CAPTURED_HAL_TX=0 HAL_RX=2 PROPRIETARY_RX_NOTIFICATIONS=2"))
