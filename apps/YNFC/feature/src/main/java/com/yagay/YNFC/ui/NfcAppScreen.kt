@@ -311,21 +311,22 @@ fun NfcAppScreen(
                         },
                         onSimulate = {
                             val isPreview = nativeNciEnabled
-                            if (isPreview) {
-                                if (previewRunningUid != null) return@CardItem
-                                previewRunningUid = card.uid
-                                previewFeedbackUid = card.uid
-                                previewFeedbackMessage = nativePreviewPreparing
-                                operationMessage = nativePreviewPreparing
-                            } else {
-                                operationMessage = applyUidText.replace("%s", card.uid)
-                            }
-                            onSimulate(card) { result ->
-                                operationMessage = result
+                            if (!isPreview || previewRunningUid == null) {
                                 if (isPreview) {
-                                    previewRunningUid = null
+                                    previewRunningUid = card.uid
                                     previewFeedbackUid = card.uid
-                                    previewFeedbackMessage = result
+                                    previewFeedbackMessage = nativePreviewPreparing
+                                    operationMessage = nativePreviewPreparing
+                                } else {
+                                    operationMessage = applyUidText.replace("%s", card.uid)
+                                }
+                                onSimulate(card) { result ->
+                                    operationMessage = result
+                                    if (isPreview) {
+                                        previewRunningUid = null
+                                        previewFeedbackUid = card.uid
+                                        previewFeedbackMessage = result
+                                    }
                                 }
                             }
                         },
