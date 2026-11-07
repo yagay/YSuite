@@ -836,8 +836,13 @@ public class NfcInjectionModule extends XposedModule {
                     Object[] originalArgs = chain.getArgs().toArray();
                     if (originalArgs.length == 4 && Boolean.TRUE.equals(originalArgs[0])
                             && originalArgs[1] instanceof byte[]
+                            && ((byte[]) originalArgs[1]).length == 2
                             && originalArgs[2] instanceof byte[]
-                            && originalArgs[3] instanceof byte[]) {
+                            && ((byte[]) originalArgs[2]).length == 1
+                            && originalArgs[3] instanceof byte[]
+                            && (((byte[]) originalArgs[3]).length == 4
+                                || ((byte[]) originalArgs[3]).length == 7
+                                || ((byte[]) originalArgs[3]).length == 10)) {
                         byte[] atqa = strictTypeAHex(intercepted.atqa, 2);
                         byte[] sak = strictTypeAHex(intercepted.sak, 1);
                         byte[] uid = strictTypeAHex(intercepted.uid, 4, 7, 10);
