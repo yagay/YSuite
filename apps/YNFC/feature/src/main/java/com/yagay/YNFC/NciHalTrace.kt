@@ -25,6 +25,7 @@ internal object NciHalTrace {
         val name: String get() = when {
             gid == 0 && oid == 2 -> "CORE_SET_CONFIG"
             gid == 0 && oid == 3 -> "CORE_GET_CONFIG"
+            gid == 0x0f -> "PROPRIETARY_NCI_NOTIFICATION_OR_RESPONSE"
             gid == 1 && oid == 1 -> "RF_SET_LISTEN_MODE_ROUTING"
             gid == 1 && oid == 3 -> "RF_DISCOVER"
             gid == 1 && oid == 6 -> "RF_DEACTIVATE"
@@ -82,6 +83,18 @@ internal object NciHalTrace {
                 it.epochMillis <= commandEpochMillis + AFTER_MS
         } else emptyList()
 
+        val beforeWindow = frames.count {
+            commandEpochMillis > 0 && it.epochMillis < commandEpochMillis - BEFORE_MS
+        }
+        val afterWindow = frames.count {
+            commandEpochMillis > 0 && it.epochMillis > commandEpochMillis + AFTER_MS
+        }
+        val earliestDelta = frames.minOfOrNull { it.epochMillis - commandEpochMillis }
+        val latestDelta = frames.maxOfOrNull { it.epochMillis - commandEpochMillis }
+        val allTx = frames.count { it.tx }
+        val proprietaryNotifications = frames.count {
+            !it.tx && it.kind == 0x60 && it.gid == 0x0f
+        }
         val coreTx = window.filter {
             it.tx && it.kind == 0x20 && it.gid == 0 && it.oid == 2
         }
@@ -94,6 +107,13 @@ internal object NciHalTrace {
             appendLine("SNAPSHOT_VALID_FRAMES=" + frames.size + " malformed_or_truncated=" + malformed)
             appendLine("COMMAND_GENERATION_EPOCH_MS=" + commandEpochMillis)
             appendLine("COMMAND_WINDOW_MS=-" + BEFORE_MS + "..+" + AFTER_MS)
+            appendLine("ALL_CAPTURED_HAL_TX=" + allTx +
+                " HAL_RX=" + (frames.size - allTx) +
+                " PROPRIETARY_RX_NOTIFICATIONS=" + proprietaryNotifications)
+            appendLine("OUTSIDE_WINDOW_BEFORE=" + beforeWindow +
+                " AFTER=" + afterWindow +
+                " FIRST_DELTA_MS=" + (earliestDelta?.toString() ?: "NONE") +
+                " LAST_DELTA_MS=" + (latestDelta?.toString() ?: "NONE"))
             appendLine("IN_WINDOW_FRAMES=" + window.size +
                 " HAL_TX=" + window.count { it.tx } +
                 " HAL_RX=" + window.count { !it.tx })
@@ -105,6 +125,10 @@ internal object NciHalTrace {
             appendLine("LA_NFCID1_LENGTHS_ONLY=" + uidLengths.joinToString(",").ifBlank { "NONE" })
             appendLine("EVIDENCE=" + when {
                 commandEpochMillis <= 0L -> "NO_COMMAND_TIMESTAMP"
+                window.isEmpty() && afterWindow == frames.size && frames.isNotEmpty() ->
+                    "ONLY_POST_WINDOW_HAL_FRAMES_EARLIER_TX_MAY_HAVE_BEEN_EVICTED"
+                window.isEmpty() && beforeWindow == frames.size && frames.isNotEmpty() ->
+                    "ONLY_PRE_WINDOW_HAL_FRAMES_NO_CURRENT_WINDOW_EVIDENCE"
                 window.isEmpty() -> "NO_HAL_FRAMES_IN_COMMAND_WINDOW_OR_BUFFER_TRUNCATED"
                 uidLengths.isNotEmpty() -> "UID_PARAM_SENT_NOT_RF_VERIFIED"
                 coreTx.isNotEmpty() -> "CORE_CONFIG_SENT_NO_PARSEABLE_UID_PARAM"
@@ -116,6 +140,7 @@ internal object NciHalTrace {
                 appendLine("  " + (if (delta >= 0L) "+" else "") + delta + "ms " +
                     frame.direction + " " + frame.name + " bytes=" + frame.data.size)
             }
+            appendLine("NOTE: A zero CORE_SET_CONFIG count is not proof none was sent if the command window has no retained TX records.")
             appendLine("NOTE: Logcat can omit native packets. Only a separate NFC reader can verify the transmitted UID.")
         }
     }
