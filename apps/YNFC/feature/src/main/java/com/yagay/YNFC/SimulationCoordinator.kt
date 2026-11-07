@@ -35,7 +35,7 @@ internal class SimulationCoordinator(
             // A stable LSPosed protocol number is not proof that the running
             // NFC process loaded the newest implementation. A stale process
             // must be reloaded explicitly by the user, never by APPLY.
-            if (backend == "INTERCEPT" && (
+            if (backend in setOf("INTERCEPT", "NATIVE") && (
                     ready.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ||
                     ready.hookImplementationPid != ready.currentPid
                 )) {
@@ -48,7 +48,7 @@ internal class SimulationCoordinator(
             // File mode is fully automatic: validate, atomically write, and
             // read back the private profile on this serial IO worker BEFORE
             // publishing any APPLY command. A file error cannot arm the Hook.
-            val selectedCard = if (backend == "INTERCEPT") {
+            val selectedCard = if (backend in setOf("INTERCEPT", "NATIVE")) {
                 val prepared = runCatching {
                     val generator = createProfile
                         ?: throw IllegalStateException("Automatic profile generator unavailable")
@@ -95,6 +95,9 @@ internal class SimulationCoordinator(
                     YLocale.text(R.string.ynfc_intercept_call_accepted)
                 state.commandStatus == "INTERCEPT_ARMED_NO_CALL" ->
                     YLocale.text(R.string.ynfc_intercept_call_waiting)
+                state.commandStatus == "FAILED" &&
+                    state.verificationConfidence == "NATIVE_HAL_ABI_UNVERIFIED" ->
+                    YLocale.text(R.string.ynfc_native_abi_unverified)
                 state.commandStatus == "FAILED" &&
                     state.verificationConfidence == "TYPE_A_PERMISSION_DENIED" ->
                     YLocale.text(R.string.ynfc_vendor_permission_denied)
