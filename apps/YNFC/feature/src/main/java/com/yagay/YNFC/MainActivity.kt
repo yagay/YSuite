@@ -36,6 +36,17 @@ class MainActivity : YComposeActivity() {
     private var pollingDisabled by mutableStateOf(false)
     private var vendorTypeAEnabled by mutableStateOf(false)
     private var fileInterceptEnabled by mutableStateOf(false)
+    private val backendPreferences by lazy {
+        getSharedPreferences("ynfc_backend_selection", android.content.Context.MODE_PRIVATE)
+    }
+
+    private fun selectBackendForNextSimulation(backend: String) {
+        if (getSimulationEnabled()) return
+        vendorTypeAEnabled = backend == "VENDOR"
+        fileInterceptEnabled = backend == "INTERCEPT"
+        backendPreferences.edit().putString("preferred_backend", backend).apply()
+        AppLogger.i("SIMULATION: preferred backend=$backend; no active command changed")
+    }
 
     override fun onBeforeYContent(savedInstanceState: Bundle?) {
         nfcReader = NfcReaderController(this)
@@ -50,9 +61,20 @@ class MainActivity : YComposeActivity() {
             configClient, runtimeRepository, nfcSystemService, EXPECTED_HOOK_BUILD
         ) { card -> NfcProfileFile.createForCard(applicationContext, card) }
         savedCardsState = cardRepository.load()
-        pollingDisabled = readProviderMap()[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
-        vendorTypeAEnabled = readProviderMap()[ConfigProvider.KEY_BACKEND] == "VENDOR"
-        fileInterceptEnabled = readProviderMap()[ConfigProvider.KEY_BACKEND] == "INTERCEPT"
+        val provider = readProviderMap()
+        pollingDisabled = provider[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
+        // Before this update, existing installations could silently reuse an
+        // old RF command. Make the requested file interception the default
+        // *next* mode while stopped; never change a running controller.
+        val active = provider[ConfigProvider.KEY_SIMULATION_ENABLED].toBoolean()
+        val preferred = if (active) {
+            provider[ConfigProvider.KEY_BACKEND] ?: "RF"
+        } else {
+            backendPreferences.getString("preferred_backend", null)
+                ?: if (provider[ConfigProvider.KEY_BACKEND] == "VENDOR") "VENDOR" else "INTERCEPT"
+        }
+        vendorTypeAEnabled = preferred == "VENDOR"
+        fileInterceptEnabled = preferred == "INTERCEPT"
         AppLogger.i("NFC controller started; LSPosed in-process command engine enabled")
     }
 
@@ -134,17 +156,11 @@ class MainActivity : YComposeActivity() {
             pollingDisabled = pollingDisabled,
             vendorTypeAEnabled = vendorTypeAEnabled,
             onVendorTypeAEnabledChange = { requested ->
-                if (!getSimulationEnabled()) {
-                    vendorTypeAEnabled = requested
-                    if (requested) fileInterceptEnabled = false
-                }
+                selectBackendForNextSimulation(if (requested) "VENDOR" else "RF")
             },
             fileInterceptEnabled = fileInterceptEnabled,
             onFileInterceptEnabledChange = { requested ->
-                if (!getSimulationEnabled()) {
-                    fileInterceptEnabled = requested
-                    if (requested) vendorTypeAEnabled = false
-                }
+                selectBackendForNextSimulation(if (requested) "INTERCEPT" else "RF")
             },
             onReloadFileIntercept = { onMessage ->
                 simulationCoordinator.reloadNfcForFileIntercept { _, message ->
@@ -175,7 +191,19 @@ class MainActivity : YComposeActivity() {
                 simulateCard(card) { _, message -> runOnUiThread { onMessage(message) } }
             },
             onStopSimulation = { onMessage ->
-                stopSimulation { _, message -> runOnUiThread { onMessage(message) } }
+                stopSimulation { state, message ->
+                    runOnUiThread {
+                        // Old RF tests may still be active when the updated app
+                        // first starts. After explicit STOP, choose file mode
+                        // only if the user has not selected another preference.
+                        if (!state.simulationEnabled &&
+                            !backendPreferences.contains("preferred_backend")) {
+                            vendorTypeAEnabled = false
+                            fileInterceptEnabled = true
+                        }
+                        onMessage(message)
+                    }
+                }
             },
             onDeleteCard = { card, active ->
                 if (active) stopSimulation { _, _ -> }
