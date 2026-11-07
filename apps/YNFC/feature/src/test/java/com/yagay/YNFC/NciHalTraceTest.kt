@@ -78,6 +78,33 @@ class NciHalTraceTest {
         assertTrue(report.contains("CORE_SET_CONFIG_RSP_STATUS=NO_MATCHING_RESPONSE_IN_LOG"))
     }
 
+    @Test fun specificUidParamRejectionIsAuthoritative() {
+        val log = listOf(
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(952, "NxpNciR", "400203090133")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(log, commandMs)
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_STATUS=0x09_REJECTED"))
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_INVALID_PARAM_IDS=0x33"))
+        assertTrue(NciHalTrace.isOwnUidParameterRejected(report))
+        assertFalse(report.contains("04A1B2C3"))
+    }
+
+    @Test fun unrelatedOrMalformedNciRejectionCannotFinalizeUid() {
+        val uidTx = line(950, "NxpNciX", "20020701330404A1B2C3")
+        val unrelatedParam = line(952, "NxpNciR", "400203090131")
+        val missingInvalidId = line(952, "NxpNciR", "4002020900")
+        val otherCode = line(952, "NxpNciR", "40020101")
+        assertFalse(NciHalTrace.isOwnUidParameterRejected(
+            NciHalTrace.summarize(uidTx + "\n" + unrelatedParam, commandMs)))
+        assertFalse(NciHalTrace.isOwnUidParameterRejected(
+            NciHalTrace.summarize(uidTx + "\n" + missingInvalidId, commandMs)))
+        assertFalse(NciHalTrace.isOwnUidParameterRejected(
+            NciHalTrace.summarize(uidTx + "\n" + otherCode, commandMs)))
+        assertFalse(NciHalTrace.isOwnUidParameterRejected(
+            NciHalTrace.summarize(unrelatedParam, commandMs)))
+    }
+
     @Test fun randomUidConfigDoesNotClaimFixedUid() {
         val report = NciHalTrace.summarize(
             line(910, "NxpNciX", "200203013300"), commandMs)

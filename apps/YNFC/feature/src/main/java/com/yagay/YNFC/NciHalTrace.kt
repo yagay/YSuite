@@ -104,6 +104,7 @@ internal object NciHalTrace {
         // log order. Never report a response from an unrelated command as the
         // ACK for a UID request. NCI status is not over-the-air UID proof.
         val responseStatuses = ArrayList<Int>()
+        val rejectedParamLists = ArrayList<String>()
         var pendingConfig = 0
         for (frame in window) {
             if (frame.tx && frame.kind == 0x20 && frame.gid == 0 && frame.oid == 2) {
@@ -111,9 +112,18 @@ internal object NciHalTrace {
             } else if (!frame.tx && frame.kind == 0x40 &&
                 frame.gid == 0 && frame.oid == 2 && pendingConfig > 0) {
                 pendingConfig--
-                responseStatuses.add(
-                    if (frame.data.size >= 4) frame.data[3].toInt() and 0xff else -1
-                )
+                val status = if (frame.data.size >= 4) frame.data[3].toInt() and 0xff else -1
+                responseStatuses.add(status)
+                val invalidIds = if (status == 0x09 && frame.data.size >= 5) {
+                    val count = frame.data[4].toInt() and 0xff
+                    if (count > 0 && frame.data.size == 5 + count) {
+                        (5 until frame.data.size).joinToString(",") {
+                            "0x" + (frame.data[it].toInt() and 0xff)
+                                .toString(16).padStart(2, '0').uppercase()
+                        }
+                    } else "UNKNOWN"
+                } else "NONE"
+                rejectedParamLists.add(invalidIds)
             }
         }
         val configAccepted = responseStatuses.count { it == 0 }
@@ -155,6 +165,8 @@ internal object NciHalTrace {
                         else -> "MALFORMED"
                     }
                 }.ifBlank { "NO_MATCHING_RESPONSE_IN_LOG" })
+            appendLine("CORE_SET_CONFIG_RSP_INVALID_PARAM_IDS=" +
+                rejectedParamLists.joinToString(";").ifBlank { "NONE" })
             appendLine("CORE_SET_CONFIG_RSP_NOTE=Native NCI acceptance is not proof of the NFC-A UID seen by a reader")
             appendLine("EVIDENCE=" + when {
                 commandEpochMillis <= 0L -> "NO_COMMAND_TIMESTAMP"
@@ -176,6 +188,27 @@ internal object NciHalTrace {
             appendLine("NOTE: A zero CORE_SET_CONFIG count is not proof none was sent if the command window has no retained TX records.")
             appendLine("NOTE: Logcat can omit native packets. Only a separate NFC reader can verify the transmitted UID.")
         }
+    }
+
+    /**
+     * Conservative correlation: one complete UID-containing config TX, one
+     * following response with STATUS_INVALID_PARAM, and the NFCC explicitly
+     * names LA_NFCID1 (0x33) as its rejected parameter. Time-bound to the
+     * current APPLY, never use a stale logcat snapshot to revise state.
+     * No UID bytes or raw NCI payload leave the parser.
+     */
+    fun isOwnUidParameterRejected(summary: String): Boolean {
+        val properties = summary.lineSequence().mapNotNull { line ->
+            val cut = line.indexOf('=')
+            if (cut <= 0) null else line.substring(0, cut) to line.substring(cut + 1)
+        }.toMap()
+        val delta = properties["FIRST_DELTA_MS"]?.toLongOrNull() ?: return false
+        return delta in 0L..1_000L &&
+            properties["CORE_SET_CONFIG_TX"] == "1" &&
+            properties["LA_NFCID1_TAG_33_IN_CONFIG_TX"] == "1" &&
+            properties["CORE_SET_CONFIG_RSP_MATCHED"] == "1" &&
+            properties["CORE_SET_CONFIG_RSP_STATUS"] == "0x09_REJECTED" &&
+            properties["CORE_SET_CONFIG_RSP_INVALID_PARAM_IDS"] == "0x33"
     }
 
     /** Return length only, never expose an incidental card identifier. */

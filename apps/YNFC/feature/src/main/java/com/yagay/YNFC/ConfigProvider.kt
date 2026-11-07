@@ -27,6 +27,7 @@ open class ConfigProvider : ContentProvider() {
         const val METHOD_SET_DIAGNOSTIC_LOGGING = "set_diagnostic_logging"
         const val METHOD_SET_POLLING_DISABLED = "set_polling_disabled"
         const val METHOD_CONFIRM_STOCK_RESTART = "confirm_stock_restart"
+        const val METHOD_REPORT_OWN_NCI_INVALID_PARAM = "report_own_nci_invalid_param"
         const val EXTRA_ENABLED = "enabled"
         const val EXTRA_UID = "uid"
         const val EXTRA_SAK = "sak"
@@ -303,6 +304,52 @@ open class ConfigProvider : ContentProvider() {
                 Bundle().apply {
                     putBoolean(RESULT_SUCCESS, true)
                     putLong(RESULT_GENERATION, generation)
+                }
+            }
+            METHOD_REPORT_OWN_NCI_INVALID_PARAM -> {
+                // A read-only trace may finalize an earlier void JNI write.
+                // Only the app process can submit this report. Strict same
+                // generation, PID, source, and UNVERIFIED checks prevent stale
+                // logcat data from corrupting a newer APPLY or STOP.
+                val generation = extras?.getLong(EXTRA_GENERATION, 0L) ?: 0L
+                val pid = extras?.getInt(EXTRA_PID, 0) ?: 0
+                val current = prefs()
+                val accepted = Binder.getCallingUid() == Process.myUid() &&
+                    generation > 0L && pid > 0 &&
+                    (current.all[KEY_COMMAND_GENERATION] as? Number)?.toLong() == generation &&
+                    (current.all[KEY_COMMAND_HANDLED_GENERATION] as? Number)?.toLong() == generation &&
+                    (current.all[KEY_RF_GENERATION] as? Number)?.toLong() == generation &&
+                    current.getString(KEY_COMMAND_STATUS, "") == "UNVERIFIED" &&
+                    current.getString(KEY_COMMAND_ACTION, "") == "APPLY" &&
+                    current.getString(KEY_RF_SOURCE, "") == "own-nci-0x33" &&
+                    current.getString(KEY_RF_STATUS, "") == "OWN_NCI_UID_REQUESTED" &&
+                    current.getBoolean(KEY_SIMULATION_ENABLED, false) &&
+                    (current.all[KEY_COMMAND_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_RUNTIME_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_RF_PID] as? Number)?.toInt() == pid
+                if (!accepted) {
+                    Bundle().apply { putBoolean(RESULT_SUCCESS, false) }
+                } else {
+                    val detail = "NFCC rejected LA_NFCID1 (0x33): NCI CORE_SET_CONFIG_RSP " +
+                        "STATUS_INVALID_PARAM (0x09); custom UID was NOT accepted"
+                    val saved = current.edit()
+                        .putString(KEY_COMMAND_STATUS, "FAILED")
+                        .putString(KEY_COMMAND_DETAIL, detail)
+                        .putString(KEY_OPERATION_STATE, "FAILED")
+                        .putString(KEY_EFFECTIVE_STATE, "UNKNOWN")
+                        .putString(KEY_VERIFICATION_CONFIDENCE, "NCI_INVALID_PARAM")
+                        .putString(KEY_RF_STATUS, "OWN_NCI_UID_REJECTED")
+                        .putString(KEY_RF_ERROR, detail)
+                        .putString(KEY_RF_VERIFICATION, "REJECTED_BY_NFCC")
+                        .putBoolean(KEY_RF_ACCEPTED, false)
+                        .putString(KEY_FULL_DIAG_STAGE, "OWN_NCI_UID_REJECTED")
+                        .putString(KEY_FULL_DIAG_SUMMARY, detail)
+                        .commit()
+                    if (saved) {
+                        Log.w("NfcConfigProvider", "Own NCI UID rejected generation=$generation pid=$pid: 0x09/0x33")
+                        context?.contentResolver?.notifyChange(URI, null)
+                    }
+                    Bundle().apply { putBoolean(RESULT_SUCCESS, saved) }
                 }
             }
             METHOD_SET_DIAGNOSTIC_LOGGING -> {

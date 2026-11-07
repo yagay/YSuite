@@ -44,6 +44,24 @@ class DiagnosticsCollector(
             .putLong("captured_at_ms", capturedAt)
             .putString("summary", summary)
             .apply()
+        if (NciHalTrace.isOwnUidParameterRejected(summary) &&
+            runtimeRepository.isCurrentCommandGeneration(generation)) {
+            val snapshot = runtimeRepository.readProviderMap()
+            val pid = snapshot[ConfigProvider.KEY_COMMAND_PID]?.toIntOrNull() ?: 0
+            val applied = runCatching {
+                appContext.contentResolver.call(
+                    ConfigProvider.URI,
+                    ConfigProvider.METHOD_REPORT_OWN_NCI_INVALID_PARAM,
+                    null,
+                    android.os.Bundle().apply {
+                        putLong(ConfigProvider.EXTRA_GENERATION, generation)
+                        putInt(ConfigProvider.EXTRA_PID, pid)
+                    }
+                )?.getBoolean(ConfigProvider.RESULT_SUCCESS, false) == true
+            }.getOrDefault(false)
+            AppLogger.i("NCI_TRACE_UID_REJECTION generation=$generation " +
+                "status=0x09 parameter=0x33 stateUpdated=$applied")
+        }
         AppLogger.i("NCI_TRACE_SNAPSHOT commandGeneration=$generation capturedAt=$capturedAt " +
             "summaryOnly=true")
     }
