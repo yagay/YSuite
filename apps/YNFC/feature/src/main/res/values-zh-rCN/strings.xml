@@ -137,7 +137,7 @@
     <string name="ynfc_switch_to_intercept">切换到文件拦截</string>
     <string name="ynfc_native_nci_mode">独立 NFC NCI/HAL（固件分析）</string>
     <string name="ynfc_native_nci_desc">自动生成 NFC-A 配置，针对 NXP HAL 进行独立诊断，不依赖 ColorOS 钱包。当前尚未验证本机固件的 UID 写入 ABI，暂时禁止原生写入。</string>
-    <string name="ynfc_native_profile_desc">选择卡片点击“模拟”后，自动读取当前 SN220 配置并保存 original-SN220.conf、modified-SN220.conf、selected-nfc-a.json 到 Download/YSuite/YNFC/。目前仅生成及校验副本，尚未安装原生 HAL 拦截，也不会发送 UID 命令。</string>
+    <string name="ynfc_native_profile_desc">点击“模拟”后，在 Download/YSuite/YNFC/snapshots/ 内按操作生成独立的原始配置、修改配置、卡片 JSON 和 SHA-256 清单。仅修改 NFCID1，ATQA/SAK 只进行差异检查；原生 HAL 写入仍未安装。</string>
     <string name="ynfc_native_abi_unverified">原生 NCI/HAL 尚未就绪：需要验证本机固件库和 UID 写入接口后才允许配置控制器。本次没有模拟或发送 UID；请导出诊断文件。</string>
     <string name="ynfc_switch_to_native">切换到原生 NCI 分析</string>
     <string name="ynfc_hal_probe_button">检查 HAL 配置加载（只读）</string>
