@@ -132,6 +132,7 @@ class DiagnosticsCollector(
         )) {
             val eventPid = snapshot["coloros_observe_${tag}_pid"]?.toIntOrNull() ?: 0
             appendLine("${tag}_method=$description")
+            appendLine("${tag}_hook_installed=${if (currentPid > 0 && observerPid == currentPid) snapshot["coloros_observe_${tag}_hook_installed"] ?: "NOT_REPORTED" else "UNKNOWN_CURRENT_PID"}")
             appendLine("${tag}_observed_in_current_pid=${currentPid > 0 && eventPid == currentPid}")
             appendLine("${tag}_last_result=${if (currentPid > 0 && eventPid == currentPid) snapshot["coloros_observe_${tag}_result"] ?: "UNKNOWN" else "NOT_OBSERVED"}")
             appendLine("${tag}_last_at_ms=${if (currentPid > 0 && eventPid == currentPid) snapshot["coloros_observe_${tag}_at_ms"] ?: "0" else "0"}")
