@@ -230,7 +230,7 @@ class DiagnosticsCollector(
         appendLine("native_probe_stage=${snapshot["native_probe_stage"] ?: "NOT_ATTEMPTED"}")
         appendLine("native_probe_pid=${snapshot["native_probe_pid"] ?: "NOT_REPORTED"}")
         appendLine("native_probe_no_controller_write=${snapshot["native_probe_no_controller_write"] ?: "NOT_REPORTED"}")
-        appendLine(runRoot("""
+        val halBinaryInventory = runRoot("""
             echo '[Installed NFC firmware SHA-256 checksums]'
             for lib in /system/lib64/libnfc-nci.so /system/lib64/libnfc_nci_jni.so /system/lib64/libnfc_vendor_extn.so /odm/bin/hw/android.hardware.nfc2-service.nxp /odm/bin/hw/vendor.oplus.hardware.nfc_aidl-service; do
               if [ -f "${'$'}lib" ]; then
@@ -239,11 +239,1778 @@ class DiagnosticsCollector(
             done
             echo '[Critical NXP SNxxx HAL implementation, not just service launcher]'
             for root in /vendor/lib64 /vendor/lib64/hw /odm/lib64 /odm/lib64/hw; do
-              for target in "$root"/nfc_nci_nxp_snxxx_v2.so; do
+              for target in "${'/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[SN220 config files loaded by HAL only if selected: presence and fingerprints]'
+            for conf in /data/vendor/nfc/libnfc-mtp-SN220.conf /vendor/etc/libnfc-mtp-SN220.conf; do
+              if [ -f "${'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\\s+(\\S*nfc_nci_nxp_snxxx_v2\\.so)\\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Exact hash match confirms file identity only, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
                 if [ -f "$target" ]; then
                   echo "FOUND $target"
                   sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
                   ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}conf" ]; then
+                echo "CONFIG_FOUND ${'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\\s+(\\S*nfc_nci_nxp_snxxx_v2\\.so)\\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Exact hash match confirms file identity only, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}conf"
+                sha256sum "${'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\\s+(\\S*nfc_nci_nxp_snxxx_v2\\.so)\\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Exact hash match confirms file identity only, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}conf" 2>/dev/null || true
+                for key in NXP_CORE_CONF NXP_SET_CONFIG_ALWAYS; do
+                  if grep -Eq "^[[:space:]]*${'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\\s+(\\S*nfc_nci_nxp_snxxx_v2\\.so)\\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Exact hash match confirms file identity only, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}key[[:space:]]*=" "${'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\\s+(\\S*nfc_nci_nxp_snxxx_v2\\.so)\\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Exact hash match confirms file identity only, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}conf" 2>/dev/null; then
+                    echo "CONFIG_KEY_PRESENT ${'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\\s+(\\S*nfc_nci_nxp_snxxx_v2\\.so)\\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Exact hash match confirms file identity only, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}conf ${'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\\s+(\\S*nfc_nci_nxp_snxxx_v2\\.so)\\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Exact hash match confirms file identity only, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}key"
+                  fi
+                done
+              fi
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\\s+(\\S*nfc_nci_nxp_snxxx_v2\\.so)\\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Exact hash match confirms file identity only, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "$target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${' ]; then
+                  echo "FOUND $target"
+                  sha256sum "$target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" ]; then
+                  echo "FOUND $target"
+                  sha256sum "${' 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "$target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  ls -l "${' 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000))
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+}target" 2>/dev/null || true
                 fi
               done
             done
