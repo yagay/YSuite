@@ -81,6 +81,61 @@ public final class RawNciCodec implements RfPayloadCodec {
         return RewriteResult.skip(id(), "NO_SAFE_REWRITE_TARGET");
     }
 
+    /**
+     * Strict replacement mode: never append an extra LA_NFCID1 field.
+     * Existing parameter lists are accepted only when their entire NCI frame
+     * parses correctly and there is exactly one replaceable 0x33 parameter
+     * in the input. No other RF configuration parameter is modified.
+     *
+     * This is the only operation selected by YSuite RF mode. The older
+     * rewrite() entry remains for explicit compatibility tests/legacy users.
+     */
+    public RewriteResult replaceExisting(byte[] input, byte[] uid) {
+        if (input == null || input.length < 4) return RewriteResult.skip(id(), "INPUT_TOO_SHORT");
+        if (!isSupportedUid(uid)) return RewriteResult.skip(id(), "UID_LENGTH_NOT_4_7_10_BYTES");
+        List<Frame> frames = findFrames(input);
+        if (frames.isEmpty()) return RewriteResult.skip(id(), "CORE_SET_CONFIG_NOT_FOUND");
+
+        Frame target = null;
+        Parse selected = null;
+        int candidates = 0;
+        for (Frame frame : frames) {
+            Parse parse = parseParams(input, frame);
+            if (!parse.sawNfcid1) continue;
+            if (!parse.complete || parse.nfcid1Count != 1 || parse.nfcid1ValueOffset < 0) {
+                return RewriteResult.skip(id(), "UNVERIFIED_OR_AMBIGUOUS_EXISTING_LA_NFCID1");
+            }
+            target = frame;
+            selected = parse;
+            candidates++;
+        }
+        if (candidates == 0) return RewriteResult.skip(id(), "NO_EXISTING_LA_NFCID1_TO_REPLACE");
+        if (candidates != 1) return RewriteResult.skip(id(), "MULTIPLE_EXISTING_LA_NFCID1_FRAMES");
+        if (selected == null || target == null)
+            return RewriteResult.skip(id(), "NO_EXISTING_LA_NFCID1_TO_REPLACE");
+
+        if (selected.nfcid1Length == uid.length) {
+            byte[] out = Arrays.copyOf(input, input.length);
+            System.arraycopy(uid, 0, out, selected.nfcid1ValueOffset, uid.length);
+            return RewriteResult.changed(id(), "STRICT_REPLACED_EXISTING_LA_NFCID1", out,
+                    target.payloadLength, target.payloadLength, target.paramCount, target.paramCount);
+        }
+
+        int delta = uid.length - selected.nfcid1Length;
+        int payloadLength = target.payloadLength + delta;
+        if (payloadLength < 1 || payloadLength > 0xFF)
+            return RewriteResult.skip(id(), "REPLACEMENT_PAYLOAD_LENGTH_OVERFLOW");
+        byte[] out = new byte[input.length + delta];
+        System.arraycopy(input, 0, out, 0, selected.nfcid1ValueOffset);
+        out[selected.nfcid1LengthOffset] = (byte) uid.length;
+        System.arraycopy(uid, 0, out, selected.nfcid1ValueOffset, uid.length);
+        int tail = selected.nfcid1ValueOffset + selected.nfcid1Length;
+        System.arraycopy(input, tail, out, tail + delta, input.length - tail);
+        out[target.start + 2] = (byte) payloadLength;
+        return RewriteResult.changed(id(), "STRICT_RESIZED_EXISTING_LA_NFCID1", out,
+                target.payloadLength, payloadLength, target.paramCount, target.paramCount);
+    }
+
     static boolean isSupportedUid(byte[] uid) {
         return uid != null && (uid.length == 4 || uid.length == 7 || uid.length == 10);
     }
@@ -107,22 +162,24 @@ public final class RawNciCodec implements RfPayloadCodec {
         int pos = frame.start + 4;
         int valueOffset = -1, lengthOffset = -1, nfcid1Length = -1;
         boolean sawNfcid1 = false;
+        int nfcid1Count = 0;
         for (int n = 0; n < frame.paramCount; n++) {
-            if (pos >= frame.end) return new Parse(false, sawNfcid1, valueOffset, lengthOffset, nfcid1Length);
+            if (pos >= frame.end) return new Parse(false, sawNfcid1, nfcid1Count, valueOffset, lengthOffset, nfcid1Length);
             int first = data[pos] & 0xFF;
             int id, lenPos;
             if (first == 0xA0) {
-                if (pos + 2 >= frame.end) return new Parse(false, sawNfcid1, valueOffset, lengthOffset, nfcid1Length);
+                if (pos + 2 >= frame.end) return new Parse(false, sawNfcid1, nfcid1Count, valueOffset, lengthOffset, nfcid1Length);
                 id = (first << 8) | (data[pos + 1] & 0xFF); lenPos = pos + 2;
             } else {
-                if (pos + 1 >= frame.end) return new Parse(false, sawNfcid1, valueOffset, lengthOffset, nfcid1Length);
+                if (pos + 1 >= frame.end) return new Parse(false, sawNfcid1, nfcid1Count, valueOffset, lengthOffset, nfcid1Length);
                 id = first; lenPos = pos + 1;
             }
             int len = data[lenPos] & 0xFF;
             int value = lenPos + 1;
-            if (value + len > frame.end) return new Parse(false, sawNfcid1, valueOffset, lengthOffset, nfcid1Length);
+            if (value + len > frame.end) return new Parse(false, sawNfcid1, nfcid1Count, valueOffset, lengthOffset, nfcid1Length);
             if (id == LA_NFCID1) {
                 sawNfcid1 = true;
+                nfcid1Count++;
                 if (isSupportedExistingNfcid1Length(len)) {
                     valueOffset = value;
                     lengthOffset = lenPos;
@@ -131,7 +188,7 @@ public final class RawNciCodec implements RfPayloadCodec {
             }
             pos = value + len;
         }
-        return new Parse(pos == frame.end, sawNfcid1, valueOffset, lengthOffset, nfcid1Length);
+        return new Parse(pos == frame.end, sawNfcid1, nfcid1Count, valueOffset, lengthOffset, nfcid1Length);
     }
 
     private static final class Frame {
@@ -142,10 +199,13 @@ public final class RawNciCodec implements RfPayloadCodec {
     }
     private static final class Parse {
         final boolean complete, sawNfcid1;
+        final int nfcid1Count;
         final int nfcid1ValueOffset, nfcid1LengthOffset, nfcid1Length;
-        Parse(boolean complete, boolean sawNfcid1, int valueOffset, int lengthOffset, int length) {
+        Parse(boolean complete, boolean sawNfcid1, int nfcid1Count,
+              int valueOffset, int lengthOffset, int length) {
             this.complete = complete;
             this.sawNfcid1 = sawNfcid1;
+            this.nfcid1Count = nfcid1Count;
             this.nfcid1ValueOffset = valueOffset;
             this.nfcid1LengthOffset = lengthOffset;
             this.nfcid1Length = length;
