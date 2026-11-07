@@ -11,6 +11,28 @@ import com.android.nfc.NfcDiscoveryParameters;
 import org.junit.Test;
 
 public class NfcPollingGuardTest {
+    @Test public void android17FieldOnlyParametersBlockReaderPollingAndPreserveHce() throws Exception {
+        com.example.nfc.Nfc17FieldOnlyParameters original =
+                new com.example.nfc.Nfc17FieldOnlyParameters();
+        assertTrue(NfcPollingGuard.supportsType(original.getClass()));
+        assertEquals(0x2f, NfcPollingGuard.mask(original));
+        assertTrue(NfcPollingGuard.hostRouting(original));
+        com.example.nfc.Nfc17FieldOnlyParameters result =
+                (com.example.nfc.Nfc17FieldOnlyParameters)
+                        NfcPollingGuard.withoutPolling(original);
+        assertNotSame(original, result);
+        assertEquals(0x2f, original.mTechMask);
+        assertEquals(0, result.mTechMask);
+        assertEquals(original.mEnableHostRouting, result.mEnableHostRouting);
+        assertTrue(result.mEnableHostRouting);
+        assertTrue(result.shouldEnableDiscovery());
+        assertEquals(original.mEnableReaderMode, result.mEnableReaderMode);
+        assertEquals(original.mEnableLowPowerDiscovery, result.mEnableLowPowerDiscovery);
+        assertSame(original.mTechAPollingLoopAnnotation, result.mTechAPollingLoopAnnotation);
+        assertSame(original.mExtraAnnotation, result.mExtraAnnotation);
+        assertSame(result, NfcPollingGuard.withoutPolling(result));
+    }
+
     @Test public void onlyNonzeroPollingMaskNeedsChange() {
         assertTrue(NfcPollingGuard.shouldReplace(true, 0x2f));
         assertFalse(NfcPollingGuard.shouldReplace(false, 0x2f));

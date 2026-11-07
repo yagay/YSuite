@@ -23,7 +23,7 @@ android {
         buildConfigField("int", "HOOK_BUILD", "46")
         // Implementation freshness is separate from the stable LSPosed protocol.
         // Updating this marker does not require a whole-phone restart.
-        buildConfigField("int", "INTERCEPT_IMPL_REVISION", "5")
+        buildConfigField("int", "INTERCEPT_IMPL_REVISION", "6")
         buildConfigField("String", "CONFIG_AUTHORITY", "\"$configAuthority\"")
         manifestPlaceholders["ynfcConfigAuthority"] = configAuthority
         consumerProguardFiles("consumer-rules.pro")

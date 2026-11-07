@@ -99,6 +99,9 @@ public class NfcInjectionModule extends XposedModule {
     // controller epoch. A call can itself deactivate and restart RF Discovery.
     // Never retry a routing call just because the OEM does not expose proof.
     private volatile boolean automaticRoutingRefreshAttempted;
+    // A natural computeDiscoveryParameters / enableDiscovery hook is always
+    // preferable to proactively restarting the OEM RF discovery state.
+    private volatile boolean pollingDiscoveryHooksInstalled;
     private volatile String pollingCapabilitySummary = "UNDETECTED";
     private final Handler pollingMainHandler = new Handler(Looper.getMainLooper());
     private volatile BroadcastReceiver adapterStateReceiver;
@@ -203,9 +206,19 @@ public class NfcInjectionModule extends XposedModule {
                         return original;
                     }
                     try {
-                        return NfcPollingGuard.withoutPolling(original);
+                        int previousMask = NfcPollingGuard.mask(original);
+                        Object updated = NfcPollingGuard.withoutPolling(original);
+                        if (updated != original) {
+                            recordPollingGuardState("JAVA_DISCOVERY_MASK_BLOCKED",
+                                    "computeDiscoveryParameters oldMask=0x"
+                                            + Integer.toHexString(previousMask)
+                                            + " newMask=0x0; awaiting native discovery", true);
+                        }
+                        return updated;
                     } catch (Throwable t) {
                         Log.w(TAG, "POLLING_GUARD compute compatibility failure", t);
+                        recordPollingGuardState("UNVERIFIED",
+                                "computeDiscoveryParameters compatibility failure", true);
                         return original;
                     }
                 });
@@ -279,6 +292,7 @@ public class NfcInjectionModule extends XposedModule {
 
         final NfcDiscoveryCapabilityRegistry.ServiceAdapter adapter =
                 NfcDiscoveryCapabilityRegistry.resolveRouting(service);
+        pollingDiscoveryHooksInstalled = installed > 0;
         pollingCapabilitySummary = "compute=" + (compute != null)
                 + ";driverHooks=" + driverHooks
                 + ";routeRefresh=" + adapter.available()
@@ -381,7 +395,17 @@ public class NfcInjectionModule extends XposedModule {
         if (changed) {
             pollingGuardLastProof = "";
             Log.i(TAG, "POLLING_GUARD desired=" + provider + " reason=" + reason);
-            requestPollingRoutingRefresh("desired_change:" + reason);
+            if ("startup".equals(reason) && pollingDiscoveryHooksInstalled) {
+                // Discovery hooks were installed before NFC initialized.
+                // The natural OEM discovery transaction owns initial routing.
+                // A second applyRouting() here can rewrite a newly set UID.
+                Log.i(TAG, "POLLING_GUARD startup uses natural discovery hooks; "
+                        + "no extra RF refresh");
+            } else {
+                // An explicit preference toggle while NFC is already ON
+                // still needs one routing update, never a retry loop.
+                requestPollingRoutingRefresh("desired_change:" + reason);
+            }
         }
     }
 
@@ -662,7 +686,12 @@ public class NfcInjectionModule extends XposedModule {
         Log.i(TAG, "CONTROLLER READY reason=" + reason + " pid=" + Process.myPid() +
                 " wasInvalid=" + wasInvalid);
         scheduleLifecycleRecovery("controller_ready:" + reason);
-        pollingExecutor.execute(() -> requestPollingRoutingRefresh("controller_ready"));
+        if (!pollingDiscoveryHooksInstalled) {
+            // Legacy fallback only: with natural compute/driver hooks installed,
+            // applying routing here would redundantly restart Discovery and
+            // might overwrite the just-recovered NFCID1.
+            pollingExecutor.execute(() -> requestPollingRoutingRefresh("controller_ready"));
+        }
     }
 
     private void persistControllerLifecycle(String status, String source, String detail) {

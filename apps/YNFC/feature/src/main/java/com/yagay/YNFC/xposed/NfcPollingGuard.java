@@ -22,29 +22,71 @@ final class NfcPollingGuard {
         return disabled && techMask != 0;
     }
 
+    /**
+     * The older NfcNci.apk exposes getTechMask()/shouldEnableHostRouting().
+     * OxygenOS NFC Service 17 (APK-verified) replaced these accessors with
+     * PUBLIC mTechMask and mEnableHostRouting fields. Both APKs retain the
+     * class name and a zero-argument constructor. Only these two explicitly
+     * verified contracts may be modified. Do not guess obfuscated fields.
+     */
     static boolean supportsType(Class<?> type) {
         if (type == null || !type.getName().toLowerCase(java.util.Locale.ROOT).contains("nfc")) {
             return false;
         }
         try {
-            return type.getDeclaredMethod("getTechMask").getReturnType() == int.class
-                    && type.getDeclaredMethod("shouldEnableHostRouting").getReturnType()
-                    == boolean.class;
-        } catch (Throwable ignored) {
+            Method mask = type.getDeclaredMethod("getTechMask");
+            Method host = type.getDeclaredMethod("shouldEnableHostRouting");
+            if (mask.getReturnType() == int.class &&
+                    host.getReturnType() == boolean.class &&
+                    !Modifier.isStatic(mask.getModifiers()) &&
+                    !Modifier.isStatic(host.getModifiers())) return true;
+        } catch (NoSuchMethodException ignored) {
+            // NFC Service 17 has fields instead of the old accessors.
+        } catch (Throwable incompatible) {
+            return false;
+        }
+        try {
+            Field mask = type.getDeclaredField("mTechMask");
+            Field host = type.getDeclaredField("mEnableHostRouting");
+            Field reader = type.getDeclaredField("mEnableReaderMode");
+            Field lowPower = type.getDeclaredField("mEnableLowPowerDiscovery");
+            return mask.getType() == int.class &&
+                    host.getType() == boolean.class &&
+                    reader.getType() == boolean.class &&
+                    lowPower.getType() == boolean.class &&
+                    !Modifier.isStatic(mask.getModifiers()) &&
+                    !Modifier.isStatic(host.getModifiers()) &&
+                    !Modifier.isFinal(mask.getModifiers()) &&
+                    type.getDeclaredConstructor().getParameterCount() == 0;
+        } catch (ReflectiveOperationException ignored) {
             return false;
         }
     }
 
     static int mask(Object params) throws ReflectiveOperationException {
-        Method getter = params.getClass().getDeclaredMethod("getTechMask");
-        getter.setAccessible(true);
-        return (Integer) getter.invoke(params);
+        Class<?> type = params.getClass();
+        try {
+            Method getter = type.getDeclaredMethod("getTechMask");
+            getter.setAccessible(true);
+            return (Integer) getter.invoke(params);
+        } catch (NoSuchMethodException noGetterOnNfc17) {
+            Field field = type.getDeclaredField("mTechMask");
+            field.setAccessible(true);
+            return field.getInt(params);
+        }
     }
 
     static boolean hostRouting(Object params) throws ReflectiveOperationException {
-        Method getter = params.getClass().getDeclaredMethod("shouldEnableHostRouting");
-        getter.setAccessible(true);
-        return (Boolean) getter.invoke(params);
+        Class<?> type = params.getClass();
+        try {
+            Method getter = type.getDeclaredMethod("shouldEnableHostRouting");
+            getter.setAccessible(true);
+            return (Boolean) getter.invoke(params);
+        } catch (NoSuchMethodException noGetterOnNfc17) {
+            Field field = type.getDeclaredField("mEnableHostRouting");
+            field.setAccessible(true);
+            return field.getBoolean(params);
+        }
     }
 
     static Object withoutPolling(Object original) throws ReflectiveOperationException {

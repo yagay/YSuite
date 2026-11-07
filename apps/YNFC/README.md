@@ -277,3 +277,42 @@ The export prints both cached snapshots and the currently retained
 logcat frames. Nothing here sends NCI packets or restarts Discovery.
 If the app was not open/diagnostics disabled during NFC restart,
 early cached snapshots may be unavailable.
+
+## 2026-11-07: persistent HCE-only active NFC polling suppression on NFC Service 17
+
+The user's NFC Service 17 APK was inspected directly. Compared with
+older NfcNci.apk, the current `NfcDiscoveryParameters` class no longer has
+`getTechMask()` or `shouldEnableHostRouting()` methods. Its compatible
+public fields are `mTechMask`, `mEnableHostRouting`,
+`mEnableLowPowerDiscovery`, `mEnableReaderMode`,
+`mTechAPollingLoopAnnotation`, and `mExtraAnnotation`. The class still
+has an empty constructor. `NfcService.computeDiscoveryParameters(int)`
+and `NativeNfcManager.enableDiscovery(NfcDiscoveryParameters, boolean)`
+remain present. The old guard required the missing getters and therefore
+installed zero compute/driver hooks on this firmware (compute=false,
+driverHooks=0).
+
+Impl revision 6 supports BOTH validated contracts: old getter-driven
+objects and new Android 17 field-only objects. It clones a discovery
+parameters object, changes only the polling `mTechMask` to zero, and
+checks that host HCE routing, low-power/reader flags and ALL other
+fields were preserved. Neither the original argument object nor any
+HAL files are mutated. Normal native Discovery calls are intercepted
+at their existing entrypoints, including future OEM routing cycles.
+The Java interceptor logs `JAVA_DISCOVERY_MASK_BLOCKED` or
+`PARAMETERS_INTERCEPTED`; these prove Java arguments were modified,
+NOT that native RF or payment routing is verified.
+
+Natural compute/driver hooks eliminate the previously unconditional
+controller-READY `applyRouting(true)` call; no repeated Discovery
+restart, UID rewrite, or process reboot is added. Explicit user
+changes still request one normal routing refresh. If no compatible
+target exists, the guard reports unsupported rather than pretending
+success. Unit tests use an APK-shaped field-only fixture, plus legacy
+getter and obfuscated-builder fixtures.
+
+The setting disables *active reader polling*; the phone can still
+respond as an NFC-A/HCE card. The existing UID-only write path and
+automatic ON/boot restore are intentionally unchanged. Any real
+contactless payments should be tested only after STOP and stock
+restoration.

@@ -14,6 +14,30 @@ import java.util.List;
 import org.junit.Test;
 
 public class NfcDiscoveryCapabilityRegistryTest {
+    @Test public void detectsAndroid17GetterFreeComputeAndNativeDriver() {
+        Method compute = NfcDiscoveryCapabilityRegistry.findCompute(
+                com.example.nfc.Nfc17Service.class,
+                com.example.nfc.Nfc17FieldOnlyParameters.class);
+        assertNotNull(compute);
+        assertEquals("computeDiscoveryParameters", compute.getName());
+        List<NfcDiscoveryCapabilityRegistry.Candidate> drivers =
+                NfcDiscoveryCapabilityRegistry.findDrivers(
+                        getClass().getClassLoader(),
+                        List.of(com.example.nfc.Nfc17NativeNfcManager.class.getName()),
+                        com.example.nfc.Nfc17FieldOnlyParameters.class);
+        // Driver discovery intentionally allowlists com.android.nfc.* only.
+        assertEquals(0, drivers.size());
+        try {
+            Method driver = com.example.nfc.Nfc17NativeNfcManager.class.getDeclaredMethod(
+                    "enableDiscovery",
+                    com.example.nfc.Nfc17FieldOnlyParameters.class, boolean.class);
+            assertTrue(NfcDiscoveryCapabilityRegistry.isDiscoveryDriver(
+                    driver, com.example.nfc.Nfc17FieldOnlyParameters.class));
+        } catch (NoSuchMethodException impossible) {
+            throw new AssertionError(impossible);
+        }
+    }
+
     @Test public void detectsAospComputeAndRoutingContract() {
         Method compute = NfcDiscoveryCapabilityRegistry.findCompute(
                 NfcService.class, NfcDiscoveryParameters.class);
