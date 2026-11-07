@@ -1,6 +1,7 @@
 package com.yagay.YNFC
 
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,12 @@ class MainActivity : YComposeActivity() {
     private var readModeEnabled by mutableStateOf(false)
     private var pollingDisabled by mutableStateOf(false)
     private var vendorTypeAEnabled by mutableStateOf(false)
+    private var fileInterceptEnabled by mutableStateOf(false)
+    private val importProfileLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) importProfileFromUri(uri)
+    }
 
     override fun onBeforeYContent(savedInstanceState: Bundle?) {
         nfcReader = NfcReaderController(this)
@@ -49,6 +56,7 @@ class MainActivity : YComposeActivity() {
         savedCardsState = cardRepository.load()
         pollingDisabled = readProviderMap()[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
         vendorTypeAEnabled = readProviderMap()[ConfigProvider.KEY_BACKEND] == "VENDOR"
+        fileInterceptEnabled = readProviderMap()[ConfigProvider.KEY_BACKEND] == "INTERCEPT"
         AppLogger.i("NFC controller started; LSPosed in-process command engine enabled")
     }
 
@@ -130,7 +138,22 @@ class MainActivity : YComposeActivity() {
             pollingDisabled = pollingDisabled,
             vendorTypeAEnabled = vendorTypeAEnabled,
             onVendorTypeAEnabledChange = { requested ->
-                if (!getSimulationEnabled()) vendorTypeAEnabled = requested
+                if (!getSimulationEnabled()) {
+                    vendorTypeAEnabled = requested
+                    if (requested) fileInterceptEnabled = false
+                }
+            },
+            fileInterceptEnabled = fileInterceptEnabled,
+            onFileInterceptEnabledChange = { requested ->
+                if (!getSimulationEnabled()) {
+                    fileInterceptEnabled = requested
+                    if (requested) vendorTypeAEnabled = false
+                }
+            },
+            onImportProfile = {
+                if (!getSimulationEnabled()) {
+                    importProfileLauncher.launch(arrayOf("application/json", "text/plain"))
+                }
             },
             initialLogsEnabled = initialLogsEnabled,
             diagnosticsCollector = diagnosticsCollector,
@@ -172,9 +195,41 @@ class MainActivity : YComposeActivity() {
         )
     }
 
+    private fun importProfileFromUri(uri: android.net.Uri) {
+        if (getSimulationEnabled()) {
+            Toast.makeText(this, R.string.ynfc_vendor_type_a_stop_first, Toast.LENGTH_SHORT).show()
+            return
+        }
+        runCatching {
+            val input = contentResolver.openInputStream(uri)
+                ?: throw IllegalArgumentException("Cannot open selected file")
+            NfcProfileFile.importProfile(input)
+        }.onSuccess { card ->
+            if (savedCardsState.any { it.uid.equals(card.uid, ignoreCase = true) }) {
+                Toast.makeText(this, R.string.ynfc_card_already_saved, Toast.LENGTH_LONG).show()
+                return@onSuccess
+            }
+            savedCardsState = savedCardsState + card
+            cardRepository.save(savedCardsState)
+            fileInterceptEnabled = true
+            vendorTypeAEnabled = false
+            AppLogger.i("NFC_A_PROFILE: imported and validated; interceptor selected, "
+                    + "controller state unchanged")
+            Toast.makeText(this, R.string.ynfc_profile_imported, Toast.LENGTH_LONG).show()
+        }.onFailure { error ->
+            AppLogger.e("NFC_A_PROFILE: import rejected", error)
+            Toast.makeText(this, getString(R.string.ynfc_profile_import_failed,
+                error.message ?: error.javaClass.simpleName), Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun simulateCard(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
         stopReadMode("simulation_start")
-        val backend = if (vendorTypeAEnabled) "VENDOR" else "RF"
+        val backend = when {
+            fileInterceptEnabled -> "INTERCEPT"
+            vendorTypeAEnabled -> "VENDOR"
+            else -> "RF"
+        }
         simulationCoordinator.simulate(card, backend) { state, message ->
             if (backend == "RF" && state.commandGeneration > 0L &&
                 state.commandAction == "APPLY") {
