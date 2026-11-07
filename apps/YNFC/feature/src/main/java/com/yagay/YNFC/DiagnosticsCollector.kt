@@ -111,6 +111,33 @@ class DiagnosticsCollector(
         appendLine("old_rf_replay_reusable=${currentPid > 0 && currentPid == previousRfReplayPid}")
         appendLine("NOTE: shell 'service list' registration does not prove Binder availability in com.android.nfc.")
         appendLine("NOTE: the Vendor Type-A mode is opt-in and is not auto-selected after an RF-only failure.")
+        appendLine("--- COLOROS TYPE-A READ-ONLY EXECUTION CHAIN ---")
+        val regionPid = snapshot["coloros_region_probe_pid"]?.toIntOrNull() ?: 0
+        val observerPid = snapshot["coloros_observe_pid"]?.toIntOrNull() ?: 0
+        appendLine("region_probe_pid=$regionPid current_pid=$currentPid")
+        appendLine("region_probe_fresh=${currentPid > 0 && regionPid == currentPid}")
+        appendLine("region_cn=${snapshot["coloros_region_cn"] ?: "NOT_PROBED"}")
+        appendLine("region_hce_property=${snapshot["coloros_region_hce_property"] ?: "NOT_PROBED"}")
+        appendLine("region_hce_supported=${snapshot["coloros_region_support"] ?: "NOT_PROBED"}")
+        appendLine("read_only_hook_pid=$observerPid current_pid=$currentPid")
+        appendLine("read_only_hook_fresh=${currentPid > 0 && observerPid == currentPid}")
+        appendLine("read_only_hook_count=${snapshot["coloros_observe_hook_count"] ?: "NOT_REPORTED"}")
+        appendLine("read_only_hook_status=${snapshot["coloros_observe_status"] ?: "NOT_REPORTED"}")
+        for ((tag, description) in listOf(
+            "service" to "OplusNfcAdapterService.setHceTypeAConfig",
+            "region" to "NfcFeatureFetcher.isSupportHceAccessCardByRegion (natural calls)",
+            "hce" to "HceAccessCard.doSetHceTypeAConfig",
+            "chip" to "NfcChipDeviceImpl.doSetHceTypeAConfig",
+            "nci" to "NfcAdapter.sendVendorNciMessage (Type-A call stack only)"
+        )) {
+            val eventPid = snapshot["coloros_observe_${tag}_pid"]?.toIntOrNull() ?: 0
+            appendLine("${tag}_method=$description")
+            appendLine("${tag}_observed_in_current_pid=${currentPid > 0 && eventPid == currentPid}")
+            appendLine("${tag}_last_result=${if (currentPid > 0 && eventPid == currentPid) snapshot["coloros_observe_${tag}_result"] ?: "UNKNOWN" else "NOT_OBSERVED"}")
+            appendLine("${tag}_last_at_ms=${if (currentPid > 0 && eventPid == currentPid) snapshot["coloros_observe_${tag}_at_ms"] ?: "0" else "0"}")
+        }
+        appendLine("NOTE: These callbacks are passive and do not call Type-A configuration methods.")
+        appendLine("NOTE: A successful region getter, OEM method, or NCI return cannot verify an over-the-air UID.")
         appendLine("--- UID-ONLY RF ENTRYPOINT COMPARISON ---")
         appendLine("legacy_changeRfParamsByConfig=${snapshot["rf_uid_legacy_entry"] ?: "NOT_REPORTED"}")
         appendLine("modern_setNciConfig=${snapshot["rf_uid_modern_entry"] ?: "NOT_REPORTED"}")
