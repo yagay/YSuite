@@ -824,10 +824,40 @@ public class NfcInjectionModule extends XposedModule {
                 // Do not attribute an unrelated message to Type-A configuration.
                 boolean relevant = !"nci".equals(key) || isColorOsTypeACallOnStack();
                 if (!relevant || HookConfigStore.isPassive()) return chain.proceed();
+                // Only the HCE implementation entrypoint is allowed to replace
+                // parameters. All other hooks remain read-only observers.
+                SimConfig intercepted = cachedConfig;
+                Object[] replacement = null;
+                if ("hce".equals(key) && intercepted.initialized && intercepted.active
+                        && intercepted.useInterceptTypeA()
+                        && intercepted.generation > 0L
+                        && intercepted.handledGeneration != intercepted.generation
+                        && !"FAILED".equals(intercepted.commandStatus)) {
+                    Object[] originalArgs = chain.getArgs().toArray();
+                    if (originalArgs.length == 4 && Boolean.TRUE.equals(originalArgs[0])
+                            && originalArgs[1] instanceof byte[]
+                            && originalArgs[2] instanceof byte[]
+                            && originalArgs[3] instanceof byte[]) {
+                        byte[] atqa = strictTypeAHex(intercepted.atqa, 2);
+                        byte[] sak = strictTypeAHex(intercepted.sak, 1);
+                        byte[] uid = strictTypeAHex(intercepted.uid, 4, 7, 10);
+                        if (atqa != null && sak != null && uid != null) {
+                            replacement = originalArgs.clone();
+                            replacement[1] = atqa;
+                            replacement[2] = sak;
+                            replacement[3] = uid;
+                            // A failed OEM call can still have partially changed the
+                            // controller. STOP must not claim a stock restore.
+                            vendorTypeAWriteAttempted = true;
+                        }
+                    }
+                }
+                final boolean replaced = replacement != null;
+                final long appliedGeneration = replaced ? intercepted.generation : 0L;
                 Object outcome = null;
                 Throwable failure = null;
                 try {
-                    outcome = chain.proceed();
+                    outcome = replaced ? chain.proceed(replacement) : chain.proceed();
                     return outcome;
                 } catch (Throwable error) {
                     failure = error;
@@ -836,11 +866,18 @@ public class NfcInjectionModule extends XposedModule {
                     final String result = failure == null
                             ? readOnlyResult(outcome) : "THREW_" + failure.getClass().getSimpleName();
                     final boolean success = failure == null;
+                    final Object finalOutcome = outcome;
+                    final Throwable finalFailure = failure;
                     // Do not record raw UID/ATQA/SAK, NCI payload, or arbitrary OEM bytes.
                     // Queued writes are non-blocking and cannot change the Binder result.
                     try {
-                        colorOsObserveExecutor.execute(() ->
-                                persistColorOsReadOnlyEvent(key, result, success));
+                        colorOsObserveExecutor.execute(() -> {
+                            persistColorOsReadOnlyEvent(key, result, success);
+                            if (replaced) {
+                                publishTypeAInterceptOutcome(appliedGeneration, finalOutcome,
+                                        finalFailure, result);
+                            }
+                        });
                     } catch (Throwable ignored) {
                         // Failed telemetry must never affect the NFC service.
                     }
@@ -853,6 +890,84 @@ public class NfcInjectionModule extends XposedModule {
                     + " reason=" + error.getClass().getSimpleName());
             return 0;
         }
+    }
+
+    /**
+     * A successful intercepted Java call does not prove the UID on the air.
+     * Publish a non-verified state only for the exact generation still selected.
+     * Never mark RF accepted or effective ACTIVE.
+     */
+    private void publishTypeAInterceptOutcome(long generation, Object outcome,
+                                              Throwable error, String result) {
+        SimConfig latest = readConfig();
+        if (!latest.initialized || !latest.active || !latest.useInterceptTypeA()
+                || latest.generation != generation) return;
+        boolean accepted = error == null && Boolean.TRUE.equals(outcome);
+        String stage = accepted ? "INTERCEPT_CALL_ACCEPTED" : "INTERCEPT_CALL_REJECTED";
+        ContentValues v = baseHookState();
+        v.put("state_generation", generation);
+        v.put("command_consumed_generation", generation);
+        v.put("command_handled_generation", generation);
+        v.put("command_action", "APPLY");
+        v.put("command_status", accepted ? "INTERCEPT_CALL_ACCEPTED" : "FAILED");
+        v.put("command_detail", "HceAccessCard original method returned " + result
+                + "; external NFC reader validation required");
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", accepted ? "VERIFYING" : "FAILED");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", accepted ? "UNVERIFIED" : stage);
+        v.put("rf_accepted", false);
+        v.put("rf_status", stage);
+        v.put("rf_uid", "");
+        v.put("rf_source", "file-intercept-hce");
+        v.put("rf_generation", generation);
+        v.put("rf_pid", Process.myPid());
+        v.put("rf_verification", "EXTERNAL_READER_REQUIRED");
+        v.put("full_diag_stage", stage);
+        v.put("full_diag_summary", "Type-A parameters substituted at the OEM HCE entrypoint; "
+                + "method result=" + result + "; over-the-air UID unknown");
+        writeValuesWithRetry(v, 12, 75L);
+        completedGeneration = generation;
+        completedPid = Process.myPid();
+    }
+
+    /**
+     * INTERCEPT never calls the privileged Vendor API or triggers applyRouting.
+     * It only arms an in-process replacement for the next natural OEM HCE call.
+     */
+    private void runFileInterceptCommand(SimConfig cfg) {
+        if (!cfg.active) {
+            if (noUidWriteToRestore()) {
+                completeNoOverrideStop(cfg, "No Type-A parameters were replaced in this NFC process");
+            } else {
+                requestControllerRestart(cfg, "OEM HCE parameters were intercepted; stock restoration "
+                        + "requires explicit NFC service reload and external verification");
+            }
+            return;
+        }
+        if (strictTypeAHex(cfg.uid, 4, 7, 10) == null ||
+                strictTypeAHex(cfg.atqa, 2) == null ||
+                strictTypeAHex(cfg.sak, 1) == null) {
+            failVendorTypeACommand(cfg, "INTERCEPT_INVALID_PARAMETERS",
+                    "File profile requires NFC-A UID (4/7/10), ATQA (2) and SAK (1) bytes");
+            return;
+        }
+        writeSimpleCommandState("INTERCEPT_WAITING",
+                "Waiting for a natural ColorOS HceAccessCard Type-A configuration call; "
+                        + "no OEM request was generated", cfg.generation, "APPLY", false);
+        lifecycleExecutor.execute(() -> {
+            sleep(6_000L);
+            SimConfig latest = readConfig();
+            if (!latest.initialized || latest.generation != cfg.generation ||
+                    latest.handledGeneration == cfg.generation ||
+                    !latest.active || !latest.useInterceptTypeA() ||
+                    isGenerationCompleted(cfg.generation, Process.myPid())) return;
+            failVendorTypeACommand(latest, "INTERCEPT_NO_OEM_CALL",
+                    "No ColorOS HceAccessCard Type-A configuration call occurred "
+                            + "after the file interception was armed; nothing was replaced");
+            completedGeneration = cfg.generation;
+            completedPid = Process.myPid();
+        });
     }
 
     private static boolean isColorOsTypeACallOnStack() {
@@ -1797,6 +1912,10 @@ public class NfcInjectionModule extends XposedModule {
 
         if (cfg.useVendorTypeA()) {
             runVendorTypeACommand(cfg, reason);
+            return;
+        }
+        if (cfg.useInterceptTypeA()) {
+            runFileInterceptCommand(cfg);
             return;
         }
 
