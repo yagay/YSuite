@@ -36,6 +36,7 @@ class MainActivity : YComposeActivity() {
     private var pollingDisabled by mutableStateOf(false)
     private var vendorTypeAEnabled by mutableStateOf(false)
     private var fileInterceptEnabled by mutableStateOf(false)
+    private var nativeNciEnabled by mutableStateOf(false)
     private val backendPreferences by lazy {
         getSharedPreferences("ynfc_backend_selection", android.content.Context.MODE_PRIVATE)
     }
@@ -44,6 +45,7 @@ class MainActivity : YComposeActivity() {
         if (getSimulationEnabled()) return
         vendorTypeAEnabled = backend == "VENDOR"
         fileInterceptEnabled = backend == "INTERCEPT"
+        nativeNciEnabled = backend == "NATIVE"
         backendPreferences.edit().putString("preferred_backend", backend).apply()
         AppLogger.i("SIMULATION: preferred backend=$backend; no active command changed")
     }
@@ -63,18 +65,18 @@ class MainActivity : YComposeActivity() {
         savedCardsState = cardRepository.load()
         val provider = readProviderMap()
         pollingDisabled = provider[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
-        // Before this update, existing installations could silently reuse an
-        // old RF command. Make the requested file interception the default
-        // *next* mode while stopped; never change a running controller.
+        // A newly selected native analysis backend is independent of the
+        // OEM wallet/HCE implementation. Do not change an active simulation;
+        // a previous user choice remains explicit and durable.
         val active = provider[ConfigProvider.KEY_SIMULATION_ENABLED].toBoolean()
         val preferred = if (active) {
             provider[ConfigProvider.KEY_BACKEND] ?: "RF"
         } else {
-            backendPreferences.getString("preferred_backend", null)
-                ?: if (provider[ConfigProvider.KEY_BACKEND] == "VENDOR") "VENDOR" else "INTERCEPT"
+            backendPreferences.getString("preferred_backend", null) ?: "NATIVE"
         }
         vendorTypeAEnabled = preferred == "VENDOR"
         fileInterceptEnabled = preferred == "INTERCEPT"
+        nativeNciEnabled = preferred == "NATIVE"
         AppLogger.i("NFC controller started; LSPosed in-process command engine enabled")
     }
 
@@ -156,11 +158,15 @@ class MainActivity : YComposeActivity() {
             pollingDisabled = pollingDisabled,
             vendorTypeAEnabled = vendorTypeAEnabled,
             onVendorTypeAEnabledChange = { requested ->
-                selectBackendForNextSimulation(if (requested) "VENDOR" else "RF")
+                selectBackendForNextSimulation(if (requested) "VENDOR" else "NATIVE")
             },
             fileInterceptEnabled = fileInterceptEnabled,
             onFileInterceptEnabledChange = { requested ->
-                selectBackendForNextSimulation(if (requested) "INTERCEPT" else "RF")
+                selectBackendForNextSimulation(if (requested) "INTERCEPT" else "NATIVE")
+            },
+            nativeNciEnabled = nativeNciEnabled,
+            onNativeNciEnabledChange = { requested ->
+                selectBackendForNextSimulation(if (requested) "NATIVE" else "RF")
             },
             onReloadFileIntercept = { onMessage ->
                 simulationCoordinator.reloadNfcForFileIntercept { _, message ->
@@ -198,8 +204,7 @@ class MainActivity : YComposeActivity() {
                         // only if the user has not selected another preference.
                         if (!state.simulationEnabled &&
                             !backendPreferences.contains("preferred_backend")) {
-                            vendorTypeAEnabled = false
-                            fileInterceptEnabled = true
+                            selectBackendForNextSimulation("NATIVE")
                         }
                         onMessage(message)
                     }
@@ -222,12 +227,13 @@ class MainActivity : YComposeActivity() {
     private fun simulateCard(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
         stopReadMode("simulation_start")
         val backend = when {
+            nativeNciEnabled -> "NATIVE"
             fileInterceptEnabled -> "INTERCEPT"
             vendorTypeAEnabled -> "VENDOR"
             else -> "RF"
         }
         simulationCoordinator.simulate(card, backend) { state, message ->
-            if (backend == "RF" && state.commandGeneration > 0L &&
+            if ((backend == "RF" || backend == "NATIVE") && state.commandGeneration > 0L &&
                 state.commandAction == "APPLY") {
                 // Native NCI packets can disappear from small Android logcat
                 // buffers before the user exports diagnostics. Capture a
