@@ -99,6 +99,26 @@ internal object NciHalTrace {
             it.tx && it.kind == 0x20 && it.gid == 0 && it.oid == 2
         }
         val uidLengths = coreTx.mapNotNull { uidParameterLength(it.data) }
+
+        // Correlate CORE_SET_CONFIG responses with preceding TX commands in
+        // log order. Never report a response from an unrelated command as the
+        // ACK for a UID request. NCI status is not over-the-air UID proof.
+        val responseStatuses = ArrayList<Int>()
+        var pendingConfig = 0
+        for (frame in window) {
+            if (frame.tx && frame.kind == 0x20 && frame.gid == 0 && frame.oid == 2) {
+                pendingConfig++
+            } else if (!frame.tx && frame.kind == 0x40 &&
+                frame.gid == 0 && frame.oid == 2 && pendingConfig > 0) {
+                pendingConfig--
+                responseStatuses.add(
+                    if (frame.data.size >= 4) frame.data[3].toInt() and 0xff else -1
+                )
+            }
+        }
+        val configAccepted = responseStatuses.count { it == 0 }
+        val configRejected = responseStatuses.count { it > 0 }
+        val configUnknown = responseStatuses.count { it < 0 }
         val routing = window.count { it.tx && it.kind == 0x20 && it.gid == 1 && it.oid == 1 }
         val discover = window.count { it.tx && it.kind == 0x20 && it.gid == 1 && it.oid == 3 }
         val deactivate = window.count { it.tx && it.kind == 0x20 && it.gid == 1 && it.oid == 6 }
@@ -123,6 +143,19 @@ internal object NciHalTrace {
             appendLine("CORE_SET_CONFIG_TX=" + coreTx.size)
             appendLine("LA_NFCID1_TAG_33_IN_CONFIG_TX=" + uidLengths.size)
             appendLine("LA_NFCID1_LENGTHS_ONLY=" + uidLengths.joinToString(",").ifBlank { "NONE" })
+            appendLine("CORE_SET_CONFIG_RSP_MATCHED=" + responseStatuses.size)
+            appendLine("CORE_SET_CONFIG_RSP_ACCEPTED=" + configAccepted)
+            appendLine("CORE_SET_CONFIG_RSP_REJECTED=" + configRejected)
+            appendLine("CORE_SET_CONFIG_RSP_UNKNOWN=" + configUnknown)
+            appendLine("CORE_SET_CONFIG_RSP_STATUS=" +
+                responseStatuses.joinToString(",") { status ->
+                    when {
+                        status == 0 -> "0x00_ACCEPTED"
+                        status > 0 -> "0x" + status.toString(16).padStart(2, '0').uppercase() + "_REJECTED"
+                        else -> "MALFORMED"
+                    }
+                }.ifBlank { "NO_MATCHING_RESPONSE_IN_LOG" })
+            appendLine("CORE_SET_CONFIG_RSP_NOTE=Native NCI acceptance is not proof of the NFC-A UID seen by a reader")
             appendLine("EVIDENCE=" + when {
                 commandEpochMillis <= 0L -> "NO_COMMAND_TIMESTAMP"
                 window.isEmpty() && afterWindow == frames.size && frames.isNotEmpty() ->

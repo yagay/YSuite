@@ -134,8 +134,21 @@ class DiagnosticsCollector(
         appendLine("hal_implementation_hash_status=" +
             halProbePrefs.getString("sha_match", "NOT_RUN"))
         appendLine("hal_config_interception=NOT_INSTALLED")
-        appendLine("nci_native_writer=NOT_IMPLEMENTED")
-        appendLine("controller_uid_acceptance=NOT_TESTED")
+        val ownNciRequested = snapshot["rf_source"] == "own-nci-0x33" &&
+            snapshot["rf_status"] == "OWN_NCI_UID_REQUESTED"
+        appendLine("nci_native_writer=" +
+            if (ownNciRequested) "JAVA_NATIVE_SET_NCI_CONFIG_0x33_INVOKED"
+            else "NO_CURRENT_OWN_NCI_REQUEST_EVIDENCE")
+        val activeCommandGeneration = snapshot["command_generation"]?.toLongOrNull() ?: 0L
+        val cachedNciGeneration = nciTracePreferences.getLong("generation", 0L)
+        val cachedNciSummary = nciTracePreferences.getString("summary", "").orEmpty()
+        val responseLine = cachedNciSummary.lineSequence()
+            .firstOrNull { it.startsWith("CORE_SET_CONFIG_RSP_STATUS=") }
+            ?.substringAfter('=')
+        appendLine("nci_config_response=" + if (
+            activeCommandGeneration > 0L && activeCommandGeneration == cachedNciGeneration
+        ) responseLine ?: "NOT_CAPTURED_BY_OLDER_TRACE_FORMAT" else "NO_CURRENT_COMMAND_SNAPSHOT")
+        appendLine("controller_uid_acceptance=NOT_RF_VERIFIED")
         appendLine("external_reader_verification=NOT_PERFORMED")
         appendLine("NOTE: Last HAL probe may be older than this report; absence of an observed FD never proves config was not loaded.")
         appendLine("--- COLOROS OEM BINDER / BACKEND DIAGNOSIS ---")

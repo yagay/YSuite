@@ -46,6 +46,38 @@ class NciHalTraceTest {
         assertFalse(report.contains("04A1B2C3"))
     }
 
+    @Test fun acceptedNciResponseIsNotConfusedWithRfUidVerification() {
+        val log = listOf(
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(951, "NxpNciR", "400203000000")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(log, commandMs)
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_MATCHED=1"))
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_ACCEPTED=1"))
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_STATUS=0x00_ACCEPTED"))
+        assertTrue(report.contains("UID_PARAM_SENT_NOT_RF_VERIFIED"))
+        assertFalse(report.contains("04A1B2C3"))
+    }
+
+    @Test fun rejectedNciResponseIsVisibleWithoutReportingPayload() {
+        val log = listOf(
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(951, "NxpNciR", "40020101")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(log, commandMs)
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_MATCHED=1"))
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_REJECTED=1"))
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_STATUS=0x01_REJECTED"))
+        assertFalse(report.contains("04A1B2C3"))
+    }
+
+    @Test fun orphanResponseDoesNotGetAssignedToUidCommand() {
+        val report = NciHalTrace.summarize(
+            line(952, "NxpNciR", "40020100"), commandMs)
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_MATCHED=0"))
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_STATUS=NO_MATCHING_RESPONSE_IN_LOG"))
+    }
+
     @Test fun randomUidConfigDoesNotClaimFixedUid() {
         val report = NciHalTrace.summarize(
             line(910, "NxpNciX", "200203013300"), commandMs)
