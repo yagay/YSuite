@@ -319,7 +319,9 @@ fun NfcAppScreen(
             // classes until com.android.nfc itself is reloaded. This remains
             // optional, explicit, and never reboots the whole phone.
             if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
-                status.hookPid == status.currentPid && status.hookBuild == BuildConfig.HOOK_BUILD
+                status.hookPid == status.currentPid && status.hookBuild == BuildConfig.HOOK_BUILD &&
+                status.hookImplementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION &&
+                status.hookImplementationPid == status.currentPid
             ) {
                 item {
                     YSection(
