@@ -18,6 +18,19 @@ public class NfcControlPolicyTest {
         assertFalse(NfcControlPolicy.canRead(NfcControlPolicy.Mode.NORMAL, true));
     }
 
+    @Test public void automaticRoutingRefreshNeverLoopsDiscovery() {
+        // The OEM may invoke controller-ready multiple times while NFC is ON.
+        assertTrue(NfcControlPolicy.shouldSkipRoutingRefresh(true, 0, true, false));
+        assertTrue(NfcControlPolicy.shouldSkipRoutingRefresh(true, -1, true, false));
+        assertTrue(NfcControlPolicy.shouldSkipRoutingRefresh(true, 0x2f, true, true));
+        assertTrue(NfcControlPolicy.shouldSkipRoutingRefresh(false, 0x2f, true, false));
+        assertFalse(NfcControlPolicy.shouldSkipRoutingRefresh(true, 0x2f, true, false));
+        // User explicitly toggled the guard: one real routing request remains.
+        assertFalse(NfcControlPolicy.shouldSkipRoutingRefresh(false, 0, false, true));
+        assertFalse(NfcControlPolicy.shouldSkipRoutingRefresh(true, -1, false, true));
+        assertTrue(NfcControlPolicy.shouldSkipRoutingRefresh(true, 0, false, true));
+    }
+
     @Test public void liveChangesCancelStaleRefreshRevisions() {
         NfcControlPolicy policy = new NfcControlPolicy();
         assertTrue(policy.setDesired(true));

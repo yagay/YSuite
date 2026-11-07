@@ -105,3 +105,28 @@ Only the matching LA_NFCID1 CORE_SET_CONFIG response is now reported as
 Do not treat unrelated 0x00 successes or a rejected empty-param command as
 an NFCID1 result. No new HAL native hook, wallet AID changes, or automatic
 service restart are introduced.
+
+## Discovery one-shot rollback (2026-11-07)
+
+The primary RF mode is restored to the **first hardware-accepted single-shot
+implementation** from commit `6c062c0f`: per explicit APPLY, pause discovery
+once, send exactly one LA_NFCID1 (`0x33`) config, then post exactly one
+`NfcService.applyRouting(true)` resume to the NFC main looper.
+
+Removed the later `NativeNfcManager.enableDiscovery()` hook and all automatic
+UID reassertion during natural OEM discovery changes. In particular, YNFC
+does **not** repeatedly send `0x33` when OPlus ExtendedFieldDetectMode
+cycles Listen ON/OFF. There is no periodic task and no NFC-process reboot
+to maintain the UID. The firmware can still naturally rotate identities;
+the app must report that as unverified, not claim on-air stability.
+
+The separately user-controlled polling guard now skips duplicate/unknown
+automatic startup/controller-ready routing refreshes; after attempting an
+actual routing refresh it never retries simply because the OEM Java mask
+is unverified. Explicit user preference changes retain a single request.
+`STOP` continues using the pre-existing stock-controller recovery if a
+native UID write has occurred and no reversible stock snapshot exists.
+That may reload NFC **once on explicit STOP**, not repeatedly during emulation.
+
+OPlus firmware's own discovery cycling on RF-field detection is not
+suppressed. Intercepting it would risk HCE, wallet payments and eSE routes.

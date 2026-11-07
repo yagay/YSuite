@@ -23,6 +23,20 @@ public final class NfcControlPolicy {
         return mode == Mode.HCE_ONLY && technologyMask != 0;
     }
 
+    /**
+     * A routing change can stop/start RF discovery. Do not issue an automatic
+     * refresh if the controller is already in the desired Java state, the
+     * OEM state is unobservable, or an automatic attempt has already run in
+     * this controller epoch. Explicit preference changes are still supported.
+     */
+    public static boolean shouldSkipRoutingRefresh(boolean blocked, int currentMask,
+                                                   boolean automatic, boolean attemptedAuto) {
+        if (blocked && currentMask == 0) return true;
+        if (!automatic) return false;
+        if (!blocked || attemptedAuto) return true;
+        return currentMask < 0;
+    }
+
     public Boolean desired() { return desiredBlock; }
 
     /** True only for a real state change; null means not initialized yet. */

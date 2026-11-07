@@ -36,7 +36,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.yagay.YNFC.xposed.NfcHookUtils.*;
@@ -96,6 +95,10 @@ public class NfcInjectionModule extends XposedModule {
     private volatile ContentObserver pollingGuardObserver;
     private final NfcControlPolicy pollingPolicy = new NfcControlPolicy();
     private volatile String pollingGuardLastProof = "";
+    // Avoid automatically requesting applyRouting more than once per NFC
+    // controller epoch. A call can itself deactivate and restart RF Discovery.
+    // Never retry a routing call just because the OEM does not expose proof.
+    private volatile boolean automaticRoutingRefreshAttempted;
     private volatile String pollingCapabilitySummary = "UNDETECTED";
     private final Handler pollingMainHandler = new Handler(Looper.getMainLooper());
     private volatile BroadcastReceiver adapterStateReceiver;
@@ -145,14 +148,6 @@ public class NfcInjectionModule extends XposedModule {
     // *no attempted write* may skip restoration/restart.
     private volatile boolean nativeUidMutationAttempted;
     private volatile boolean vendorTypeAWriteAttempted;
-    // A successful initial 0x33 SET_CONFIG is not guaranteed to survive the
-    // OEM's later Listen-A discovery/routing reconfiguration. Reassert only at
-    // the *natural* NativeNfcManager.enableDiscovery boundary, before RF
-    // discovery starts; never change UID during an active RF session.
-    private static final long OWN_UID_REASSERT_MIN_INTERVAL_MS = 850L;
-    private final AtomicBoolean ownUidReasserting = new AtomicBoolean();
-    private volatile long lastOwnUidSetConfigAtElapsed;
-    private volatile long lastOwnUidSetConfigGeneration = Long.MIN_VALUE;
 
     @Override public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param) {
         super.onModuleLoaded(param);
@@ -171,110 +166,12 @@ public class NfcInjectionModule extends XposedModule {
         markControllerInvalid("process_start_early");
         installEarlyKnownRfHook(cl, pid);
         installControllerLifecycleHooks(cl, pid);
-        installOwnUidDiscoveryReassertHook(cl);
         installPollingGuardHooks(cl);
         // Independent of UID emulation initialization: a missing RF writer does not
         // prevent persistent reader-block enforcement after a service restart.
         pollingExecutor.execute(this::startPollingGuardBridge);
         installEarlyAdapterStateBridge(pid);
         commandExecutor.execute(() -> initializeRuntime(cl, pid));
-    }
-
-    /**
-     * NFC Service 17.0.0.260114 has the exact signature
-     * NativeNfcManager#enableDiscovery(NfcDiscoveryParameters, boolean):void.
-     * This is a narrow pre-discovery hook, NOT a second emulation backend.
-     *
-     * OEM ExtendedFieldDetectMode repeatedly stops and restarts discovery;
-     * if LA_NFCID1 was reconfigured to random by the NFCC/OEM, the one-shot
-     * APPLY write cannot protect later activations. Setting 0x33 immediately
-     * before natural enableDiscovery keeps all existing routing and SE
-     * selection decisions with Android. No forced discovery restart occurs.
-     */
-    private void installOwnUidDiscoveryReassertHook(ClassLoader cl) {
-        try {
-            Class<?> cls = Class.forName("com.android.nfc.dhimpl.NativeNfcManager", false, cl);
-            Class<?> params = Class.forName("com.android.nfc.NfcDiscoveryParameters", false, cl);
-            Method enable = cls.getDeclaredMethod("enableDiscovery", params, boolean.class);
-            if (enable.getReturnType() != void.class) {
-                Log.w(TAG, "OWN_NCI_DISCOVERY_REASSERT unsupported enableDiscovery return type");
-                return;
-            }
-            enable.setAccessible(true);
-            hook(enable).intercept(chain -> {
-                if (!HookConfigStore.isPassive()) {
-                    reassertOwnUidBeforeNaturalDiscovery(chain.getThisObject(), chain.getArg(0));
-                }
-                return chain.proceed();
-            });
-            Log.i(TAG, "OWN_NCI_DISCOVERY_REASSERT_HOOK installed pid=" + Process.myPid());
-        } catch (Throwable failure) {
-            // Any unsupported OEM signature must leave all ordinary NFC paths intact.
-            Log.w(TAG, "OWN_NCI_DISCOVERY_REASSERT_HOOK unavailable", failure);
-        }
-    }
-
-    private void reassertOwnUidBeforeNaturalDiscovery(Object host, Object discoveryParams) {
-        SimConfig cfg = cachedConfig;
-        if (host == null || !cfg.initialized || !cfg.active || cfg.useVendorTypeA()
-                || cfg.useInterceptTypeA() || cfg.useNativeNci()
-                || controllerInvalid || !controllerReadyObserved
-                || !nativeUidMutationAttempted
-                || completedGeneration != cfg.generation
-                || completedPid != Process.myPid()) return;
-
-        // The OEM switches Listen OFF and back ON as part of its field-detect
-        // routine. Never reassert while host routing is off or in reader mode;
-        // a write then consumes the throttle window for the later Listen-ON
-        // transition and may interfere with payment/secure-element routing.
-        final String gate = OwnUidDiscoveryPolicy.classify(discoveryParams);
-        if (!"HOST_LISTEN_ELIGIBLE".equals(gate)) {
-            if (cfg.diagnostics) Log.i(TAG, "OWN_NCI_DISCOVERY_REASSERT_SKIP generation="
-                    + cfg.generation + " reason=" + gate + " pid=" + Process.myPid());
-            return;
-        }
-        byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
-        if (uid == null) return;
-        final long now = android.os.SystemClock.elapsedRealtime();
-        if (lastOwnUidSetConfigGeneration == cfg.generation &&
-                now - lastOwnUidSetConfigAtElapsed < OWN_UID_REASSERT_MIN_INTERVAL_MS) return;
-        if (!ownUidReasserting.compareAndSet(false, true)) return;
-        try {
-            // Recheck after entering the gate. STOP or a new APPLY must not be
-            // superseded by a stale discovery callback from the previous card.
-            cfg = cachedConfig;
-            if (!cfg.initialized || !cfg.active || cfg.useVendorTypeA() ||
-                    cfg.useInterceptTypeA() || cfg.useNativeNci() ||
-                    completedGeneration != cfg.generation ||
-                    completedPid != Process.myPid() || controllerInvalid ||
-                    !"HOST_LISTEN_ELIGIBLE".equals(OwnUidDiscoveryPolicy.classify(discoveryParams)))
-                return;
-            final long started = android.os.SystemClock.elapsedRealtime();
-            if (lastOwnUidSetConfigGeneration == cfg.generation &&
-                    started - lastOwnUidSetConfigAtElapsed < OWN_UID_REASSERT_MIN_INTERVAL_MS) return;
-            Method setter = host.getClass().getMethod("setNciConfig",
-                    int.class, byte[].class, int.class, boolean.class);
-            if (!Modifier.isNative(setter.getModifiers()) ||
-                    !"com.android.nfc.dhimpl.NativeNfcManager".equals(
-                        setter.getDeclaringClass().getName())) return;
-
-            // Mark before invoking a void JNI method; a native exception still
-            // requires the existing STOP/controller-recovery safeguard.
-            nativeUidMutationAttempted = true;
-            controllerReinitRequired = true;
-            lastOwnUidSetConfigAtElapsed = started;
-            lastOwnUidSetConfigGeneration = cfg.generation;
-            setter.invoke(host, 0x33, uid.clone(), uid.length, true);
-            Log.i(TAG, "OWN_NCI_DISCOVERY_REASSERT_REQUEST generation=" + cfg.generation
-                    + " pid=" + Process.myPid() + " gate=HOST_LISTEN_ELIGIBLE elapsedMs="
-                    + (android.os.SystemClock.elapsedRealtime() - started)
-                    + " nativeVoid=true ack=NOT_VERIFIED");
-        } catch (Throwable failure) {
-            Log.w(TAG, "OWN_NCI_DISCOVERY_REASSERT_FAILED generation=" + cfg.generation
-                    + " discoveryWillContinue=true", failure);
-        } finally {
-            ownUidReasserting.set(false);
-        }
     }
 
     /**
@@ -502,6 +399,7 @@ public class NfcInjectionModule extends XposedModule {
                                            int attempt) {
         if (!pollingPolicy.isCurrent(revision) || HookConfigStore.isPassive()
                 || blocked != pollingBlocked()) return;
+        boolean routingRequested = false;
         try {
             ClassLoader loader = nfcClassLoader;
             if (loader == null) throw new IllegalStateException("NFC class loader unavailable");
@@ -525,8 +423,24 @@ public class NfcInjectionModule extends XposedModule {
                         "disabled=" + blocked + " reason=" + reason, blocked);
                 return;
             }
-            // Retain existing routing and card emulation; apply only a new
-            // discovery policy. Never restart NFC as an automatic fallback.
+            // Avoid restarting discovery when startup/controller-ready routing
+            // is already in the desired state or cannot be read reliably.
+            // The NFC service itself owns normal discovery after initialize.
+            int maskBefore = readServiceDiscoveryMask(service, owner);
+            boolean automatic = "controller_ready".equals(reason)
+                    || "desired_change:startup".equals(reason);
+            if (NfcControlPolicy.shouldSkipRoutingRefresh(blocked, maskBefore,
+                    automatic, automaticRoutingRefreshAttempted)) {
+                recordPollingGuardState("ROUTING_ALREADY_STABLE_OR_OWNED_BY_SYSTEM",
+                        "disabled=" + blocked + " maskBefore=0x"
+                                + Integer.toHexString(maskBefore)
+                                + " automatic=" + automatic + " reason=" + reason, blocked);
+                return;
+            }
+            // This is ONE routing request, not a keep-alive. Do not retry
+            // when the OEM refuses to publish an updated Java-side mask.
+            if (automatic) automaticRoutingRefreshAttempted = true;
+            routingRequested = true;
             adapter.applyRouting.invoke(owner, true);
 
             int observedMask = readServiceDiscoveryMask(service, owner);
@@ -536,8 +450,12 @@ public class NfcInjectionModule extends XposedModule {
                     + " thread=" + Thread.currentThread().getName()
                     + " reason=" + reason);
             if (blocked && observedMask != 0) {
-                schedulePollingRetry(revision, blocked, reason, attempt,
-                        "java_poll_mask_not_zero_0x" + Integer.toHexString(observedMask));
+                // An unverified outcome is not permission to issue additional
+                // discovery stop/start cycles. Preserve native NFC stability.
+                recordPollingGuardState("LIVE_REFRESH_UNCONFIRMED",
+                        "disabled=" + blocked + " currentMask=0x"
+                                + Integer.toHexString(observedMask)
+                                + " reason=" + reason + " routingRequestedOnce=true", blocked);
                 return;
             }
             // This confirms a Java-side routing refresh only. The OEM controller
@@ -550,8 +468,17 @@ public class NfcInjectionModule extends XposedModule {
         } catch (Throwable t) {
             Log.w(TAG, "POLLING_GUARD live refresh failed revision=" + revision
                     + " attempt=" + attempt + " reason=" + reason, t);
-            schedulePollingRetry(revision, blocked, reason, attempt,
-                    t.getClass().getSimpleName());
+            if (routingRequested) {
+                // A throwing OEM method may still have restarted RF. Retrying
+                // it is unsafe and can race a wallet/card transaction.
+                recordPollingGuardState("LIVE_REFRESH_UNCONFIRMED",
+                        "disabled=" + blocked + " reason=" + reason
+                                + " routingRequestedOnce=true error="
+                                + t.getClass().getSimpleName(), blocked);
+            } else {
+                schedulePollingRetry(revision, blocked, reason, attempt,
+                        t.getClass().getSimpleName());
+            }
         }
     }
 
@@ -700,6 +627,7 @@ public class NfcInjectionModule extends XposedModule {
         if (!firstInvalid) return;
         pollingGuardLastProof = "";
         pollingPolicy.invalidateRefresh();
+        automaticRoutingRefreshAttempted = false;
         lifecycleFailureGeneration = Long.MIN_VALUE;
         lifecycleFailureControllerEpoch = Long.MIN_VALUE;
         invalidateRfEvidenceForControllerReset(reason);
@@ -2153,10 +2081,6 @@ public class NfcInjectionModule extends XposedModule {
             Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_REQUEST generation=" + cfg.generation);
             stopDiscovery.invoke(host);
             Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_RETURN generation=" + cfg.generation);
-            // Suppress a duplicate write on the initial routing resume, but
-            // allow reassertion on any later natural discovery cycle.
-            lastOwnUidSetConfigAtElapsed = android.os.SystemClock.elapsedRealtime();
-            lastOwnUidSetConfigGeneration = cfg.generation;
             setter.invoke(host, 0x33, uid.clone(), uid.length, true);
             ContentValues v = baseHookState();
             v.put("state_generation", cfg.generation);
