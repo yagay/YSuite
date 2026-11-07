@@ -2005,6 +2005,9 @@ public class NfcInjectionModule extends XposedModule {
         byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
         if (uid == null) return false;
         boolean invoked = false;
+        boolean discoveryPauseAttempted = false;
+        Method restoreRouting = null;
+        Object routingOwner = null;
         try {
             Class<?> cls = Class.forName("com.android.nfc.NfcService", false, nfcClassLoader);
             Method instanceMethod = cls.getDeclaredMethod("getInstance");
@@ -2020,12 +2023,29 @@ public class NfcInjectionModule extends XposedModule {
             if (!Modifier.isNative(setter.getModifiers()) ||
                     !"com.android.nfc.dhimpl.NativeNfcManager".equals(
                         setter.getDeclaringClass().getName())) return false;
+
+            // On NFC Service 17, both methods are present in the uploaded APK.
+            // NCI Listen-A parameters should be changed while RF Discovery is
+            // stopped. The old direct 0x33 write was sent during an unknown RF
+            // state and the NFCC rejected it with 0x09 (invalid parameter).
+            // This is still our original RF/LSPosed path; do not invoke the
+            // OEM Type-A emulator, vendor Binder, or any new backend.
+            Method stopDiscovery = host.getClass().getMethod("disableDiscovery");
+            restoreRouting = cls.getDeclaredMethod("applyRouting", boolean.class);
+            restoreRouting.setAccessible(true);
+            routingOwner = service;
             // Record the possible controller mutation before calling void JNI.
             nativeUidMutationAttempted = true;
             controllerReinitRequired = true;
             restoreMode = "CONTROLLER_REINIT";
             persistRestoreState();
             invoked = true;
+            // Set the recovery flag before invoking even the first native
+            // transition: a thrown exception may leave discovery suspended.
+            discoveryPauseAttempted = true;
+            Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_REQUEST generation=" + cfg.generation);
+            stopDiscovery.invoke(host);
+            Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_RETURN generation=" + cfg.generation);
             setter.invoke(host, 0x33, uid.clone(), uid.length, true);
             ContentValues v = baseHookState();
             v.put("state_generation", cfg.generation);
@@ -2033,7 +2053,7 @@ public class NfcInjectionModule extends XposedModule {
             v.put("command_handled_generation", cfg.generation);
             v.put("command_action", "APPLY");
             v.put("command_status", "UNVERIFIED");
-            v.put("command_detail", "Own LA_NFCID1 0x33 native write invoked; void JNI has no controller acknowledgement");
+            v.put("command_detail", "Own LA_NFCID1 0x33 write invoked after discovery-pause request; NCI response pending");
             v.put("command_pid", Process.myPid());
             v.put("operation_state", "WAITING_FOR_RF");
             v.put("effective_state", "UNKNOWN");
@@ -2048,7 +2068,7 @@ public class NfcInjectionModule extends XposedModule {
             v.put("rf_native_result_type", "void-no-ack");
             v.put("rf_verification", "EXTERNAL_RF_NOT_VERIFIED");
             v.put("full_diag_stage", "OWN_NCI_UID_REQUESTED");
-            v.put("full_diag_summary", "Direct NCI 0x33 requested; not hardware-verified; STOP requires NFC service recovery");
+            v.put("full_diag_summary", "RF discovery pause requested, direct NCI 0x33 sent, routing resume queued; await NCI response");
             writeValuesWithRetry(v, 20, 100L);
             completedGeneration = cfg.generation;
             completedPid = Process.myPid();
@@ -2068,6 +2088,31 @@ public class NfcInjectionModule extends XposedModule {
                 return true;
             }
             return false;
+        } finally {
+            if (discoveryPauseAttempted && restoreRouting != null && routingOwner != null) {
+                final Method method = restoreRouting;
+                final Object owner = routingOwner;
+                final long generation = cfg.generation;
+                final int pid = Process.myPid();
+                // The OEM NFC service owns discovery/routing on its main looper.
+                // Posting the restore avoids invoking applyRouting from a
+                // command executor and preserves HCE and polling policies.
+                boolean scheduled = pollingMainHandler.post(() -> {
+                    try {
+                        method.invoke(owner, true);
+                        Log.i(TAG, "OWN_NCI_DISCOVERY_RESUME_REQUEST generation="
+                                + generation + " pid=" + pid + " mainThread=true");
+                    } catch (Throwable failure) {
+                        Log.e(TAG, "OWN_NCI_DISCOVERY_RESUME_FAILED generation="
+                                + generation + " pid=" + pid + " (STOP can restore service)",
+                                failure);
+                    }
+                });
+                if (!scheduled) {
+                    Log.e(TAG, "OWN_NCI_DISCOVERY_RESUME_NOT_SCHEDULED generation="
+                            + generation + " pid=" + pid);
+                }
+            }
         }
     }
 

@@ -40,6 +40,22 @@ class NciHalTraceTest {
             "  2347  8200 I $tag : len = " + (hex.length / 2) + " > " + hex
     }
 
+    @Test fun proposedPauseWriteResumeNciSequenceIsVisibleInTrace() {
+        val log = listOf(
+            line(900, "NxpNciX", "21060100"),
+            line(901, "NxpNciR", "41060100"),
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(951, "NxpNciR", "400203090133"),
+            line(980, "NxpNciX", "21030100"),
+            line(982, "NxpNciR", "41030100")
+        ).joinToString("\n")
+        val summary = NciHalTrace.summarize(log, commandMs)
+        assertTrue(summary.contains("RF_DEACTIVATE_TX=1"))
+        assertTrue(summary.contains("RF_DISCOVER_TX=1"))
+        assertTrue(summary.contains("CORE_SET_CONFIG_RSP_INVALID_PARAM_IDS=0x33"))
+        assertTrue(NciHalTrace.isOwnUidParameterRejected(summary))
+    }
+
     @Test fun preWindowRfDiscoveryIsRetainedInReadOnlyStateHint() {
         val log = listOf(
             earlierLine(1799999998L, 400, "NxpNciX", "21030100"),
