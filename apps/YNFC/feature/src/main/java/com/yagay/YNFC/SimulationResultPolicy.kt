@@ -19,7 +19,13 @@ internal object SimulationResultPolicy {
         // If the OS already replaced com.android.nfc after the no-write STOP,
         // another process restart cannot improve UID restoration.
         if (state.commandPid != state.currentPid) return true
-        return state.operationState == "IDLE" &&
+        // Require matching in-process no-write evidence, not the UI operation
+        // label. Old "LIFECYCLE_INVALIDATED" metadata can make the *display*
+        // operation REVERIFY_PENDING although the Hook completed STOP.
+        return state.rfGeneration == generation && state.rfPid == state.currentPid &&
+            state.rfStatus == "NO_OVERRIDE" &&
+            state.rfVerification == "NO_UID_WRITE" &&
+            state.rfSource == "no-uid-write" &&
             state.verificationConfidence == "NO_MODIFICATION"
     }
 
