@@ -62,6 +62,24 @@ class NciHalTraceTest {
         assertTrue(report.contains("NO_HAL_FRAMES_IN_COMMAND_WINDOW_OR_BUFFER_TRUNCATED"))
     }
 
+    @Test fun lateProprietaryRxDoesNotProveMissingCommandOrUidWrite() {
+        // Real SN220T-style vendor notifications are logged several seconds
+        // after an APPLY, once the small logcat ring buffer has rotated.
+        val packet = "6F360A1904000501000000000C"
+        val logs = listOf(
+            "1800000008.653  2366  8692 I NxpNciR : len = 13 > $packet",
+            "1800000010.543  2366  8692 I NxpNciR : len = 13 > $packet",
+        ).joinToString("\\n")
+        val report = NciHalTrace.summarize(logs, commandMs)
+        assertTrue(report.contains("SNAPSHOT_VALID_FRAMES=2"))
+        assertTrue(report.contains("ALL_CAPTURED_HAL_TX=0 HAL_RX=2 PROPRIETARY_RX_NOTIFICATIONS=2"))
+        assertTrue(report.contains("OUTSIDE_WINDOW_BEFORE=0 AFTER=2"))
+        assertTrue(report.contains("FIRST_DELTA_MS=7816"))
+        assertTrue(report.contains("IN_WINDOW_FRAMES=0"))
+        assertTrue(report.contains("ONLY_POST_WINDOW_HAL_FRAMES_EARLIER_TX_MAY_HAVE_BEEN_EVICTED"))
+        assertFalse(report.contains(packet))
+    }
+
     @Test fun emptyLogIsNotTreatedAsHardwareFailureProof() {
         val report = NciHalTrace.summarize("", commandMs)
         assertTrue(report.contains("SNAPSHOT_VALID_FRAMES=0"))
