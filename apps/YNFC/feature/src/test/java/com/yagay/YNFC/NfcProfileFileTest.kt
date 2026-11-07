@@ -1,5 +1,6 @@
 package com.yagay.YNFC
 
+import com.google.gson.JsonParser
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import org.junit.Assert.*
@@ -13,7 +14,7 @@ class NfcProfileFileTest {
         val original = CardModel("Own test card", "c1:b0:bc:1b", "08", "00 04")
         val bytes = NfcProfileFile.encodeCard(original)
         val json = String(bytes, StandardCharsets.UTF_8)
-        assertTrue(json.contains("\\"type\\":\\"NFC_A\\""))
+        assertEquals("NFC_A", JsonParser.parseString(json).asJsonObject.get("type").asString)
         val restored = NfcProfileFile.importProfile(ByteArrayInputStream(bytes))
         assertEquals("Own test card", restored.name)
         assertEquals("C1B0BC1B", restored.uid)
