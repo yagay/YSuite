@@ -113,6 +113,45 @@ fun NfcAppScreen(
     ) { padding ->
         YPageList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
+            // Protocol 46 can remain unchanged across multiple implementations.
+            // Warn when this exact NFC PID still runs code from an older APK.
+            if (status.currentPid > 0 && status.hookInstalled &&
+                status.hookPid == status.currentPid &&
+                (status.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ||
+                    status.hookImplementationPid != status.currentPid)
+            ) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_intercept_old_hook_title),
+                        subtitle = stringResource(R.string.ynfc_intercept_hook_reload_required),
+                    ) {
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_hook_reload_button),
+                            onClick = {
+                                operationMessage = null
+                                onReloadNfcHook { operationMessage = it }
+                            },
+                            enabled = !status.simulationEnabled,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+            if (!fileInterceptEnabled && !vendorTypeAEnabled) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_rf_legacy_mode_title),
+                        subtitle = stringResource(R.string.ynfc_rf_legacy_mode_desc),
+                    ) {
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_switch_to_intercept),
+                            onClick = { onFileInterceptEnabledChange(true) },
+                            enabled = !status.simulationEnabled,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
             if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
                 status.hookPid == status.currentPid && status.hookBuild > 0 &&
                 status.hookBuild != BuildConfig.HOOK_BUILD
