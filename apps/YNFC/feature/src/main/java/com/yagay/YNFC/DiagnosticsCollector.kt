@@ -119,6 +119,14 @@ class DiagnosticsCollector(
             echo '[NCI TX/RX recent lines: not guaranteed exposed on stock firmware]'
             logcat -b all -d -v threadtime -t 3000 2>/dev/null | grep -i -E 'NxpNciX|NxpNciR|CORE_SET_CONFIG|nfc_ncif_send|NfcAdaptation.*HalWrite' | tail -n 30 || true
         """.trimIndent(), 12, 45_000))
+        appendLine("--- NATIVE NCI CORRELATION TO LAST UID COMMAND (READ ONLY) ---")
+        appendLine(runCatching {
+            val halPackets = runRoot(
+                "logcat -b all -d -v epoch -t 4200 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 400",
+                12, 150_000
+            )
+            NciHalTrace.summarize(halPackets, state.commandGeneration)
+        }.getOrElse { "NCI analysis unavailable: " + it.javaClass.simpleName })
         appendLine("UID_CONFIG_PATH_NOTE: No UID write or HAL configuration was attempted by diagnostic collection.")
         if (snapshot["polling_guard_detail"].orEmpty().contains("java_poll_mask_not_zero_0xffffffff")) {
             appendLine("POLLING_MASK_NOTE: 0xffffffff is also the Hook unreadable-mask sentinel (-1); it does not prove all polling technologies are enabled.")
