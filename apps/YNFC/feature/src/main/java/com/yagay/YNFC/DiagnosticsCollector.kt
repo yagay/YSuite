@@ -100,7 +100,18 @@ class DiagnosticsCollector(
         appendLine("--- COLOROS OEM BINDER / BACKEND DIAGNOSIS ---")
         val currentPid = snapshot["runtime_pid"]?.toIntOrNull() ?: 0
         val oplusProbePid = snapshot["coloros_type_a_probe_pid"]?.toIntOrNull() ?: 0
-        appendLine("selected_backend=${snapshot["simulation_backend"] ?: "NOT_REPORTED"}")
+        val backend = snapshot["simulation_backend"] ?: "NOT_REPORTED"
+        val implementationRevision = snapshot["hook_impl_revision"]?.toIntOrNull() ?: 0
+        val implementationPid = snapshot["hook_impl_revision_pid"]?.toIntOrNull() ?: 0
+        appendLine("selected_backend=$backend")
+        appendLine("auto_profile_expected=${backend == "INTERCEPT"}")
+        appendLine("hook_impl_revision=$implementationRevision")
+        appendLine("hook_impl_expected=${BuildConfig.INTERCEPT_IMPL_REVISION}")
+        appendLine("hook_impl_revision_pid=$implementationPid current_pid=$currentPid")
+        appendLine("hook_impl_current=${currentPid > 0 && currentPid == implementationPid && implementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION}")
+        if (backend == "RF") {
+            appendLine("ACTION: Legacy RF mode is selected; no automatic profile file or HCE interception will run.")
+        }
         appendLine("oplus_probe_pid=$oplusProbePid current_pid=$currentPid")
         appendLine("oplus_probe_fresh=${currentPid > 0 && currentPid == oplusProbePid}")
         appendLine("oplus_probe_stage=${snapshot["coloros_type_a_probe_stage"] ?: "NOT_REPORTED"}")
