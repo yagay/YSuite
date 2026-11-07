@@ -48,8 +48,25 @@ class DiagnosticsCollector(
             "summaryOnly=true")
     }
 
+    private val halProbePrefs = appContext.getSharedPreferences(
+        "ynfc_hal_probe_readonly_v1", Context.MODE_PRIVATE
+    )
+
     /** On-demand passive survey; never hooks or restarts the HAL. */
-    fun buildHalConfigReadProbe(): String = HalConfigReadProbe.capture(rootShell)
+    fun buildHalConfigReadProbe(): String {
+        val report = HalConfigReadProbe.capture(rootShell)
+        val result = report.lineSequence().firstOrNull { it.startsWith("result=") }
+            ?.substringAfter('=') ?: "UNAVAILABLE"
+        halProbePrefs.edit()
+            .putString("result", result)
+            .putLong("captured_at_ms", System.currentTimeMillis())
+            .putString("sha_match", report.lineSequence().firstOrNull {
+                it.startsWith("installed_sn220_hal_hash_status=")
+            }?.substringAfter('=') ?: "UNAVAILABLE")
+            .putBoolean("completed", report.contains("probe_completed=true"))
+            .apply()
+        return report
+    }
 
     fun fetchLogs(source: LogSource): String {
         val pid = currentNfcPid()
@@ -101,7 +118,26 @@ class DiagnosticsCollector(
         })
         appendLine("--- PROVIDER SNAPSHOT ---")
         snapshot.toSortedMap().forEach { (key, value) -> appendLine("$key=$value") }
-        appendLine(NfcSharedConfigManager.diagnostics(appContext))
+        val configSnapshot = NfcSharedConfigManager.diagnostics(appContext)
+        appendLine(configSnapshot)
+        appendLine("--- END-TO-END NFC PIPELINE CHECK ---")
+        val configStage = configSnapshot.lineSequence().firstOrNull {
+            it.startsWith("status=")
+        }?.substringAfter('=') ?: "NOT_PREPARED"
+        appendLine("config_snapshot_status=$configStage")
+        appendLine("hal_probe_last_result=" +
+            halProbePrefs.getString("result", "NOT_RUN"))
+        appendLine("hal_probe_captured_at_ms=" +
+            halProbePrefs.getLong("captured_at_ms", 0L))
+        appendLine("hal_probe_completed=" +
+            halProbePrefs.getBoolean("completed", false))
+        appendLine("hal_implementation_hash_status=" +
+            halProbePrefs.getString("sha_match", "NOT_RUN"))
+        appendLine("hal_config_interception=NOT_INSTALLED")
+        appendLine("nci_native_writer=NOT_IMPLEMENTED")
+        appendLine("controller_uid_acceptance=NOT_TESTED")
+        appendLine("external_reader_verification=NOT_PERFORMED")
+        appendLine("NOTE: Last HAL probe may be older than this report; absence of an observed FD never proves config was not loaded.")
         appendLine("--- COLOROS OEM BINDER / BACKEND DIAGNOSIS ---")
         val currentPid = snapshot["runtime_pid"]?.toIntOrNull() ?: 0
         val oplusProbePid = snapshot["coloros_type_a_probe_pid"]?.toIntOrNull() ?: 0
