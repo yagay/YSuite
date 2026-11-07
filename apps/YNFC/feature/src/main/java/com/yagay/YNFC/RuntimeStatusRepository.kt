@@ -98,7 +98,11 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             map[ConfigProvider.KEY_COMMAND_STATUS] == "NO_OVERRIDE" &&
             map[ConfigProvider.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
             map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() == currentCommandGeneration
-        val lifecycleReverifyPending = rfFresh &&
+        // A terminal NO_OVERRIDE STOP is *command* evidence that no UID write
+        // happened, not an RF readback. Old lifecycle refresh metadata must
+        // never transform that terminal IDLE into REVERIFY_PENDING and cause
+        // the upper layer to restart an unchanged NFC process.
+        val lifecycleReverifyPending = !noOverrideVisible && rfFresh &&
             map[ConfigProvider.KEY_REFRESH_TRIGGER_STATUS] in setOf(
                 "LIFECYCLE_INVALIDATED",
                 "LIFECYCLE_REPLAY_WAIT",
@@ -143,14 +147,14 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             rfAccepted = rfFresh && providerAccepted,
             rfStatus = visibleRfStatus,
             rfUid = if (rfFresh) map[ConfigProvider.KEY_RF_UID]?.takeIf { it.isNotBlank() } else null,
-            rfSource = if (rfFresh || terminalFailureVisible) map[ConfigProvider.KEY_RF_SOURCE]?.takeIf { it.isNotBlank() } else null,
+            rfSource = if (rfFresh || terminalFailureVisible || noOverrideVisible) map[ConfigProvider.KEY_RF_SOURCE]?.takeIf { it.isNotBlank() } else null,
             rfResult = if (rfFresh) map[ConfigProvider.KEY_RF_RESULT]?.takeIf { it.isNotBlank() } else null,
             rfNativeResult = if (rfFresh) map[ConfigProvider.KEY_RF_NATIVE_RESULT]?.takeIf { it.isNotBlank() } else null,
             rfNativeResultType = if (rfFresh) map[ConfigProvider.KEY_RF_NATIVE_RESULT_TYPE]?.takeIf { it.isNotBlank() } else null,
             rfError = if (rfFresh || terminalFailureVisible) map[ConfigProvider.KEY_RF_ERROR]?.takeIf { it.isNotBlank() } else null,
             rfPid = rfPid,
             rfGeneration = map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() ?: 0L,
-            rfVerification = if (rfFresh || terminalFailureVisible) map[ConfigProvider.KEY_RF_VERIFICATION]?.takeIf { it.isNotBlank() } else if (restartTransition) "LIFECYCLE_PENDING" else null,
+            rfVerification = if (rfFresh || terminalFailureVisible || noOverrideVisible) map[ConfigProvider.KEY_RF_VERIFICATION]?.takeIf { it.isNotBlank() } else if (restartTransition) "LIFECYCLE_PENDING" else null,
             fullDiagStage = map[ConfigProvider.KEY_FULL_DIAG_STAGE]?.takeIf { it.isNotBlank() },
             fullDiagSummary = map[ConfigProvider.KEY_FULL_DIAG_SUMMARY]?.takeIf { it.isNotBlank() },
             pollingDisabled = map[ConfigProvider.KEY_POLLING_DISABLED].toBoolean(),
