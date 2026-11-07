@@ -49,6 +49,24 @@ class Sn220ConfigPreviewTest {
         }
     }
 
+    @Test fun realSn220NineteenParameterLayoutIsPreserved() {
+        // Real device NXP_CORE_CONF parameter order; no proprietary RF
+        // block or sensitive data is needed in this fixture.
+        val input = "NXP_CORE_CONF={20,02,3A,13,00,02,64,00,18,01,01,21,01,00,28,01,00," +
+            "30,01,08,31,01,03,32,01,20,33,00,38,01,01,3E,01,00," +
+            "50,01,02,54,01,06,58,01,74,5B,01,00,68,01,01," +
+            "80,01,01,81,01,01,82,01,0E,85,01,01}\n"
+        val before = input.toByteArray(Charsets.UTF_8)
+        val output = Sn220ConfigPreview.preview(before, "C1B0BC1B")
+        assertArrayEquals(before, input.toByteArray(Charsets.UTF_8))
+        assertEquals(61, output.oldCoreBytes)
+        assertEquals(65, output.newCoreBytes)
+        assertEquals(0x08, output.stockLaBitFrameSdd)
+        assertEquals(0x03, output.stockLaPlatformConfig)
+        assertEquals(0x20, output.stockLaSelInfo)
+        assertTrue(String(output.modified, Charsets.UTF_8).contains("33, 04, C1, B0, BC, 1B"))
+    }
+
     @Test fun refusesMalformedOrMissingCoreWithoutSilentlyCreatingConfig() {
         val badLength = stock.decodeToString().replace("20, 02, 06, 02", "20, 02, 07, 02")
         assertThrows(IllegalArgumentException::class.java) {
