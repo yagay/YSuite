@@ -144,4 +144,5 @@
     <string name="ynfc_hal_probe_running">正在检查 NFC HAL…</string>
     <string name="ynfc_hal_probe_saved">HAL 配置检查已保存：%1$s</string>
     <string name="ynfc_hal_probe_failed">HAL 检查失败：%1$s</string>
+    <string name="ynfc_native_preview_only">SN220 配置预览已导出。原生 HAL 拦截尚未安装，未发送模拟命令，也不会错误地标记为正在模拟。</string>
 </resources>
