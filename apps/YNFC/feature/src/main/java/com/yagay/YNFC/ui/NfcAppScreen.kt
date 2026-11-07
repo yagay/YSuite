@@ -61,7 +61,6 @@ fun NfcAppScreen(
     onVendorTypeAEnabledChange: (Boolean) -> Unit,
     fileInterceptEnabled: Boolean,
     onFileInterceptEnabledChange: (Boolean) -> Unit,
-    onImportProfile: () -> Unit,
     onReloadFileIntercept: ((String) -> Unit) -> Unit,
     initialLogsEnabled: Boolean,
     diagnosticsCollector: DiagnosticsCollector,
@@ -170,29 +169,25 @@ fun NfcAppScreen(
                     },
                 )
             }
-            item {
-                YSection(
-                    title = stringResource(R.string.ynfc_profile_import_title),
-                    subtitle = stringResource(R.string.ynfc_profile_import_desc),
-                ) {
-                    YSecondaryButton(
-                        text = stringResource(R.string.ynfc_profile_import_button),
-                        onClick = onImportProfile,
-                        enabled = !status.simulationEnabled,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    if (fileInterceptEnabled && status.simulationEnabled &&
-                        status.currentPid > 0 && status.hookInstalled &&
-                        status.hookPid == status.currentPid &&
-                        status.hookBuild == BuildConfig.HOOK_BUILD
+            if (fileInterceptEnabled) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_profile_auto_title),
+                        subtitle = stringResource(R.string.ynfc_profile_auto_desc),
                     ) {
-                        YSecondaryButton(
-                            text = stringResource(R.string.ynfc_intercept_reload_button),
-                            onClick = {
-                                onReloadFileIntercept { operationMessage = it }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        if (status.simulationEnabled &&
+                            status.currentPid > 0 && status.hookInstalled &&
+                            status.hookPid == status.currentPid &&
+                            status.hookBuild == BuildConfig.HOOK_BUILD
+                        ) {
+                            YSecondaryButton(
+                                text = stringResource(R.string.ynfc_intercept_reload_button),
+                                onClick = {
+                                    onReloadFileIntercept { operationMessage = it }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
             }
