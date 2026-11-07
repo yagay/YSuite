@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ynfc-test-debug-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   debug:
     runs-on: ubuntu-24.04
