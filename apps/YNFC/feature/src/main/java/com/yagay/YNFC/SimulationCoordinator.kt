@@ -44,6 +44,17 @@ internal class SimulationCoordinator(
                 }
                 prepared.getOrThrow()
             } else card
+            // NATIVE is deliberately a PREVIEW-ONLY backend until the
+            // external HAL's ABI, SELinux access, and on-air NFCID1 support
+            // have been proven. Do not publish APPLY: that would persist
+            // simulation_enabled=true even though the Hook always fails
+            // NATIVE_HAL_ABI_UNVERIFIED, leaving a misleading active UI.
+            if (backend == "NATIVE") {
+                AppLogger.i("NATIVE: SN220 preview prepared; APPLY intentionally not published")
+                onDone(runtimeRepository.read(includeRootPid = true),
+                    YLocale.text(R.string.ynfc_native_preview_only))
+                return@execute
+            }
             // Never publish APPLY to a stale/incompatible in-process Hook.
             // Wait briefly for an already-restarting NFC service, but never
             // restart it automatically as a side effect of an APK upgrade.
