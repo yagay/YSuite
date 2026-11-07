@@ -21,15 +21,18 @@ internal object HalConfigReadProbe {
         val processes = lines.filter { it.startsWith("HAL_PROCESS=") }
         val libraries = lines.filter { it.startsWith("HAL_LOADED_LIB=") }
         val configFds = lines.filter { it.startsWith("CONFIG_FD_OBSERVED=") }
+        val nxpConfigFds = configFds.filter {
+            it.startsWith("CONFIG_FD_OBSERVED=android.hardware.nfc2-service.nxp/")
+        }
         val configFiles = lines.filter { it.startsWith("CONFIG_CANDIDATE=") }
         val hashes = lines.filter { it.startsWith("HAL_IMPLEMENTATION_SHA256=") }
         val logHints = lines.filter { it.startsWith("LOG_MATCH_") }
-        val hadRoot = lines.any { it == "PROBE_STARTED" }
+        val hadRoot = lines.any { it == "PROBE_UID=0" }
         val hashMatches = hashes.any { it.substringAfter("=").substringBefore(" ") == expectedHalHash }
         val classification = when {
             !hadRoot -> "ROOT_PROBE_UNAVAILABLE"
             processes.none { it.startsWith("HAL_PROCESS=android.hardware.nfc2-service.nxp ") } -> "NXP_HAL_PROCESS_NOT_OBSERVED"
-            configFds.isNotEmpty() -> "SN220_CONFIG_OPEN_FD_OBSERVED"
+            nxpConfigFds.isNotEmpty() -> "SN220_CONFIG_OPEN_FD_OBSERVED"
             else -> "SN220_CONFIG_OPEN_NOT_OBSERVED"
         }
         return buildString {
@@ -39,6 +42,7 @@ internal object HalConfigReadProbe {
             appendLine("hal_processes_observed=" + processes.size)
             appendLine("hal_libraries_mapped=" + libraries.size)
             appendLine("sn220_config_open_fds_observed=" + configFds.size)
+            appendLine("sn220_nxp_hal_config_fds_observed=" + nxpConfigFds.size)
             appendLine("sn220_config_file_candidates=" + configFiles.size)
             appendLine("uploaded_sn220_hal_sha256=" + expectedHalHash)
             appendLine("installed_sn220_hal_hash_status=" + when {
@@ -63,6 +67,7 @@ internal object HalConfigReadProbe {
 
     private fun probeScript(): String = """
         echo PROBE_STARTED
+        echo "PROBE_UID=__D__(id -u 2>/dev/null)"
         echo '[NFC HAL processes and loaded native libraries]'
         for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service vendor.oplus.hardware.nfcExtns-service; do
           pid=__D__(pidof "__D__name" 2>/dev/null | awk '{print __D__1}')
