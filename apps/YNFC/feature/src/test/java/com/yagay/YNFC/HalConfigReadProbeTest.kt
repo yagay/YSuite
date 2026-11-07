@@ -23,7 +23,7 @@ class HalConfigReadProbeTest {
 
     @Test fun noOpenFdCannotProveFileWasNeverRead() {
         val report = HalConfigReadProbe.summarize(
-            "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\nPROBE_FINISHED"
+            "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\nPROBE_FINISHED\n[exit=0]"
         )
         assertTrue(report.contains("result=SN220_CONFIG_OPEN_NOT_OBSERVED"))
         assertTrue(report.contains("it may have been closed during earlier initialization"))
@@ -31,7 +31,7 @@ class HalConfigReadProbeTest {
 
     @Test fun differentNfcServiceCannotMasqueradeAsNxpHal() {
         val report = HalConfigReadProbe.summarize(
-            "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=vendor.oplus.hardware.nfc_aidl-service PID=100\nPROBE_FINISHED"
+            "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=vendor.oplus.hardware.nfc_aidl-service PID=100\nPROBE_FINISHED\n[exit=0]"
         )
         assertTrue(report.contains("result=NXP_HAL_PROCESS_NOT_OBSERVED"))
     }
@@ -39,10 +39,18 @@ class HalConfigReadProbeTest {
     @Test fun otherServiceFdDoesNotCountAsNxpConfigOpen() {
         val report = HalConfigReadProbe.summarize(
             "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\n" +
-            "CONFIG_FD_OBSERVED=vendor.oplus.hardware.nfc_aidl-service/110/1 PATH=/data/vendor/nfc/libnfc-mtp-SN220.conf\nPROBE_FINISHED"
+            "CONFIG_FD_OBSERVED=vendor.oplus.hardware.nfc_aidl-service/110/1 PATH=/data/vendor/nfc/libnfc-mtp-SN220.conf\nPROBE_FINISHED\n[exit=0]"
         )
         assertTrue(report.contains("result=SN220_CONFIG_OPEN_NOT_OBSERVED"))
         assertTrue(report.contains("sn220_nxp_hal_config_fds_observed=0"))
+    }
+
+    @Test fun incompleteRootProbeCannotBeReportedAsNoFd() {
+        val report = HalConfigReadProbe.summarize(
+            "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\n[timeout=20s]"
+        )
+        assertTrue(report.contains("result=PROBE_INCOMPLETE"))
+        assertTrue(report.contains("probe_completed=false"))
     }
 
     @Test fun rootFailureReportedExplicitly() {
