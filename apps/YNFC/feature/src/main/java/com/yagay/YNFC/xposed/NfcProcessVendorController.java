@@ -411,39 +411,15 @@ final class NfcProcessVendorController {
             // not depend on transaction numbering. If the OEM interface cannot be reflected, use
             // only transaction IDs reflected from the current Stub; never guess a numeric ID.
             Object mainProxy = asInterface(INFC_STUB, main);
-            // ColorOS may expose the NFC service as a local Binder implementation
-            // while its framework AIDL Stub differs from the SDK-facing class.
-            // Probe the in-process interface first, without hardcoding an OEM tx ID.
-            Object localMain = null;
-            try { localMain = main.queryLocalInterface(mainDescriptor); }
-            catch (Throwable ignored) { }
-            IBinder vendor = getVendorBinderViaProxy(localMain);
-            if (vendor == null) vendor = getVendorBinderViaProxy(mainProxy);
+            IBinder vendor = getVendorBinderViaProxy(mainProxy);
             String path = "aidl-proxy";
             if (vendor == null) {
                 int txGetVendor = resolveRequiredTransaction(INFC_STUB, "TRANSACTION_getNfcAdapterVendorInterface");
-                if (txGetVendor > 0) {
-                    vendor = getVendorBinderTransact(main, txGetVendor);
-                    path = "reflected-transaction";
-                } else if (isOplusHardware()) {
-                    // OplusNfcTool documents transaction 6 on its verified NXP SN220T
-                    // stack. The platform SDK Stub may not expose the OEM method.
-                    // Restrict this fallback to OPlus devices and VERIFY the returned
-                    // binder's descriptor before attempting any vendor operation.
-                    vendor = getVendorBinderTransact(main, 6);
-                    path = "oplus-nxp-vendor-tx6";
-                    if (vendor != null && !VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))) {
-                        return new Result(false, "GET_VENDOR_DESCRIPTOR",
-                                "OPlus transaction 6 did not return IVendorNfcAdapter; refusing vendor calls",
-                                safeDescriptor(vendor));
-                    }
-                } else {
-                    return new Result(false, "GET_VENDOR_CAPABILITY",
-                            "No reflected vendor transaction and device is not OPlus", null);
-                }
+                if (txGetVendor <= 0) return new Result(false, "GET_VENDOR_CAPABILITY", "No proxy method or reflected vendor transaction", null);
+                vendor = getVendorBinderTransact(main, txGetVendor);
+                path = "reflected-transaction";
             }
-            if (!alive(vendor)) return new Result(false, "GET_VENDOR_BINDER",
-                    "No vendor binder available via " + path, null);
+            if (!alive(vendor)) return new Result(false, "GET_VENDOR_BINDER", "Vendor binder unavailable", null);
 
             String vendorDescriptor = safeDescriptor(vendor);
             if (!VENDOR_DESCRIPTOR.equals(vendorDescriptor)) {
@@ -474,15 +450,8 @@ final class NfcProcessVendorController {
                         "enableNfcShareMode(" + enabled + ") via AIDL proxy", vendorDescriptor);
             }
 
-            // A controller name and Binder descriptor do not prove the entire
-            // AIDL transaction table. Do not assume txn 15 is share mode on
-            // every ColorOS revision; accept only the current Stub's value.
             int txShare = resolveRequiredTransaction(VENDOR_STUB, "TRANSACTION_enableNfcShareMode");
-            if (txShare <= 0) {
-                return new Result(false, "SHARE_MODE_CAPABILITY",
-                        "No callable or reflected share-mode method; unsafe raw transaction disabled",
-                        vendorDescriptor);
-            }
+            if (txShare <= 0) return new Result(false, "SHARE_MODE_CAPABILITY", "No proxy method or reflected share-mode transaction", vendorDescriptor);
             boolean accepted = transactShareMode(vendor, enabled, txShare);
             return new Result(accepted, accepted ? "TRIGGERED" : "SHARE_MODE",
                     "enableNfcShareMode(" + enabled + ") via " + path + "/reflected-tx=" + txShare,
