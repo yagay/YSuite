@@ -71,6 +71,9 @@ final class HookConfigStore {
         boolean active = Boolean.parseBoolean(values.get("simulation_enabled"));
         boolean diagnostics = Boolean.parseBoolean(values.get("diagnostic_logging_enabled"));
         String uid = values.get("uid");
+        String sak = values.get("sak");
+        String atqa = values.get("atqa");
+        boolean colorOsTypeAArmed = Boolean.parseBoolean(values.get("coloros_type_a_mode_armed"));
         long generation = NfcHookUtils.parseLong(values.get("command_generation"), 0L);
         long consumed = NfcHookUtils.parseLong(values.get("command_consumed_generation"), Long.MIN_VALUE);
         long handled = NfcHookUtils.parseLong(values.get("command_handled_generation"), Long.MIN_VALUE);
@@ -83,7 +86,7 @@ final class HookConfigStore {
             long rfEpoch = NfcHookUtils.parseLong(values.get("rf_controller_epoch"), 0L);
             controllerEpoch = rfEpoch > 0L ? rfEpoch : 1L;
         }
-        return new SimConfig(true, active, uid, diagnostics, generation, consumed, handled,
+        return new SimConfig(true, active, uid, sak, atqa, colorOsTypeAArmed, diagnostics, generation, consumed, handled,
                 action, status, commandPid, controllerEpoch);
     }
 
