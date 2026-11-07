@@ -792,8 +792,9 @@ public class NfcInjectionModule extends XposedModule {
      * HceAccessCard#doSetHceTypeAConfig(boolean,atqa,sak,uid),
      * NfcChipDeviceImpl#doSetHceTypeAConfig(boolean,atqa,sak,uid),
      * NfcFeatureFetcher#isSupportHceAccessCardByRegion().
-     * Observer callbacks MUST invoke the original exactly once and never alter
-     * arguments, results or exceptions. They only record execution evidence.
+     * Most callbacks are passive. Only an explicitly armed INTERCEPT profile
+     * can replace HCE Type-A arguments; it invokes the original exactly once
+     * and never fabricates the result or swallows the original exception.
      */
     private void installColorOsReadOnlyHooks(ClassLoader cl, int pid) {
         final int serviceHook = hookColorOsReadOnly(cl, "com.oplus.nfc.OplusNfcAdapterService",
@@ -844,7 +845,33 @@ public class NfcInjectionModule extends XposedModule {
                 // parameters. All other hooks remain read-only observers.
                 SimConfig intercepted = cachedConfig;
                 if ("hce".equals(key)) {
-                    lastColorOsHceCallAtMs = System.currentTimeMillis();
+                    long callAtMs = System.currentTimeMillis();
+                    lastColorOsHceCallAtMs = callAtMs;
+                    // The original OEM call may be a disable or may have a
+                    // different layout. Record only metadata, never UID bytes.
+                    Object[] seen = chain.getArgs().toArray();
+                    boolean enabled = seen.length > 0 && Boolean.TRUE.equals(seen[0]);
+                    String lengths = "count=" + seen.length
+                            + ",atqa=" + privateByteLength(seen, 1)
+                            + ",sak=" + privateByteLength(seen, 2)
+                            + ",uid=" + privateByteLength(seen, 3);
+                    boolean activeAtCall = intercepted.initialized &&
+                            intercepted.active && intercepted.useInterceptTypeA();
+                    long generationAtCall = intercepted.generation;
+                    try {
+                        colorOsObserveExecutor.execute(() -> {
+                            ContentValues event = baseHookState();
+                            event.put("coloros_hce_at_ms", callAtMs);
+                            event.put("coloros_hce_pid", Process.myPid());
+                            event.put("coloros_hce_enable", enabled);
+                            event.put("coloros_hce_arg_lengths", lengths);
+                            event.put("coloros_hce_intercept_armed_at_call", activeAtCall);
+                            event.put("coloros_hce_generation_at_call", generationAtCall);
+                            writeValuesWithRetry(event, 4, 75L);
+                        });
+                    } catch (Throwable ignored) {
+                        // Telemetry must never affect the OEM NFC execution.
+                    }
                 }
                 Object[] replacement = null;
                 String interceptSkip = "";
@@ -1030,6 +1057,12 @@ public class NfcInjectionModule extends XposedModule {
                     : "Interception armed, waiting for natural OEM call");
             writeValuesWithRetry(waiting, 8, 75L);
         });
+    }
+
+    /** Argument shape telemetry never reads or exports NFC identifiers. */
+    private static int privateByteLength(Object[] args, int index) {
+        return args != null && index >= 0 && index < args.length &&
+                args[index] instanceof byte[] ? ((byte[]) args[index]).length : -1;
     }
 
     private static boolean isColorOsTypeACallOnStack() {
