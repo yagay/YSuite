@@ -138,6 +138,41 @@ simulation from successful file creation. The user has explicitly requested
 these values in a publicly visible folder; note that NFC UID/card metadata
 in Downloads may be readable by other applications or backup tools.
 
+## Read-only HAL config loading check (on-demand)
+
+The independent `NATIVE` mode now includes the **"Inspect HAL config
+loading (read-only)"** button / **"检查 HAL 配置加载（只读）"**.
+It runs on a background worker and writes a dedicated
+`Download/YSuite/YNFC/YNFC-hal-config-probe_*.txt` report.
+
+This check does **not** restart the NFC service, patch libraries, redirect
+a file, call a vendor Binder interface, or send an NCI command.
+
+It samples the real `android.hardware.nfc2-service.nxp` process and other
+OPLUS NFC services, the libraries in `/proc/<pid>/maps`, NFC config paths
+visible in `/proc/<pid>/fd`, the SHA-256 of candidate configuration and
+`nfc_nci_nxp_snxxx_v2.so` files, plus bounded **counts only** of matching
+NFC initialization log keywords. No raw NFC packets or UID log contents
+are included.
+
+Evidence levels in the resulting report:
+
+- `ROOT_PROBE_UNAVAILABLE`: the command did not run with root credentials.
+- `NXP_HAL_PROCESS_NOT_OBSERVED`: the expected NXP service PID is missing
+  at sampling time. OPLUS service presence is not a substitute.
+- `SN220_CONFIG_OPEN_FD_OBSERVED`: the specific NXP HAL PID actually
+  had an SN220 config FD open during a sample. It may or may not have
+  consumed `NXP_CORE_CONF`; an open FD alone does not prove that.
+- `SN220_CONFIG_OPEN_NOT_OBSERVED`: the HAL is running but no matching
+  file descriptor was caught; the file may have been read and closed long
+  before this button was pressed.
+
+The target file and a matching HAL checksum merely establish candidates.
+`CNfcConfig::readNxpRFConfig()` and `CNfcConfig::getValue()` are **not yet
+hooked or traced**; the passive FD survey does not pretend otherwise.
+A native read interception implementation remains contingent on exact
+device ABI, SELinux scope and verified cleanup semantics.
+
 ## Current behavior
 
 - `NATIVE` is the initial preferred mode for installations without an explicit
