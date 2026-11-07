@@ -10,6 +10,8 @@ enum class StatusTone { OK, STOCK, IDLE, BUSY, WARNING, ERROR }
 data class RuntimeStatus(
     val appBuild: Int = 0,
     val hookBuild: Int = 0,
+    val hookImplementationRevision: Int = 0,
+    val hookImplementationPid: Int = 0,
     val currentPid: Int = 0,
     val runtimePid: Int = 0,
     val scopePid: Int = 0,
