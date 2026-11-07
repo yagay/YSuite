@@ -5,10 +5,14 @@
 ## 当前版本
 
 - 应用版本：`1.0.56`（versionCode `57`）
-- Hook 构建：`40`
+- Hook 构建：`46`
 - Provider 协议：`7`
 
 ## 主要能力
+
+- **唯一模拟路径：main 的 RF_CONFIG_WRITE Hook。** 不提供 VENDOR / INTERCEPT / NATIVE 模拟模式，卡片模拟时始终发送 RF 命令。
+- 通过已发现的 Java RF 刷新触发器，必要时使用 main 原有的 `enableNfcShareMode` 回退。刷新调用不代表 UID 已成功写入，只有匹配的原生 RF 结果才可判定成功。
+- 旧安装已激活其他后端时，先执行 STOP，再启动新的 RF 模拟；保留旧会话的停止恢复入口。NFC 进程的 Hook 更新需要显式重新加载 NFC 服务，不要求整机重启。
 
 - 读取并保存 4/7/10 字节 NFC UID。
 - APPLY、STOP 和恢复流程均绑定命令 generation、控制器 epoch 与 NFC 进程 PID。
@@ -47,7 +51,7 @@
 3. 重启 NFC 进程或手机，使新 Hook 构建被加载。
 4. 首次验证时执行一次 APPLY、STOP、再次 APPLY，并导出完整诊断。
 
-版本升级后不能只覆盖安装就判断 Hook 是否更新；诊断中的 Hook build 应为 `40`，Provider protocol 应为 `7`。
+版本升级后不能只覆盖安装就判断 Hook 是否更新；诊断中的 Hook build 应为 `46`，Provider protocol 应为 `7`。
 
 ## 自动检查
 
