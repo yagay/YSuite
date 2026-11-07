@@ -140,4 +140,8 @@
     <string name="ynfc_native_profile_desc">Tap Simulate to copy the active SN220 configuration into Download/YSuite/YNFC/original-SN220.conf, create modified-SN220.conf plus selected-nfc-a.json, and verify their hashes. Native NCI interception is not installed; no UID packet is transmitted.</string>
     <string name="ynfc_native_abi_unverified">Native NCI/HAL is not ready: exact firmware libraries and the UID writer ABI must be verified before any controller configuration. No UID was simulated or sent. Export a diagnostic report.</string>
     <string name="ynfc_switch_to_native">Choose native NCI investigation</string>
+    <string name="ynfc_hal_probe_button">Inspect HAL config loading (read-only)</string>
+    <string name="ynfc_hal_probe_running">Inspecting NFC HAL…</string>
+    <string name="ynfc_hal_probe_saved">HAL config evidence saved: %1$s</string>
+    <string name="ynfc_hal_probe_failed">HAL inspection failed: %1$s</string>
 </resources>
