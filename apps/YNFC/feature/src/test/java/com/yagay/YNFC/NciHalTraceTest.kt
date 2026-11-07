@@ -35,6 +35,51 @@ class NciHalTraceTest {
         assertFalse(report.contains("434343444B"))
     }
 
+    private fun earlierLine(epochSeconds: Long, millis: Int, tag: String, hex: String): String {
+        return "$epochSeconds." + millis.toString().padStart(3, '0') +
+            "  2347  8200 I $tag : len = " + (hex.length / 2) + " > " + hex
+    }
+
+    @Test fun preWindowRfDiscoveryIsRetainedInReadOnlyStateHint() {
+        val log = listOf(
+            earlierLine(1799999998L, 400, "NxpNciX", "21030100"),
+            earlierLine(1799999998L, 410, "NxpNciR", "41030100"),
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(952, "NxpNciR", "400203090133")
+        ).joinToString("\n")
+        val summary = NciHalTrace.summarize(log, commandMs)
+        assertTrue(summary.contains("OUTSIDE_WINDOW_BEFORE=2"))
+        assertTrue(summary.contains("PRE_UID_RF_DISCOVER_TX=1 RSP_OK=1"))
+        assertTrue(summary.contains("PRE_UID_RF_STATE_HINT=DISCOVERY_POSSIBLE_NOT_PROVEN"))
+        assertTrue(summary.contains("UID_PARAM_REJECTED_NCI_INVALID_PARAM"))
+        assertFalse(summary.contains("04A1B2C3"))
+    }
+
+    @Test fun preWindowRfDeactivationToIdleOverridesDiscoverHint() {
+        val log = listOf(
+            earlierLine(1799999998L, 200, "NxpNciX", "21030100"),
+            earlierLine(1799999998L, 210, "NxpNciR", "41030100"),
+            earlierLine(1799999998L, 300, "NxpNciX", "21060100"),
+            earlierLine(1799999998L, 310, "NxpNciR", "41060100"),
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(952, "NxpNciR", "400203090133")
+        ).joinToString("\n")
+        val summary = NciHalTrace.summarize(log, commandMs)
+        assertTrue(summary.contains("PRE_UID_RF_DEACTIVATE_TX=1 IDLE_RSP_OK=1"))
+        assertTrue(summary.contains("PRE_UID_RF_LAST_CONFIRMED_EVENT=RF_DEACTIVATE_TO_IDLE_RSP_OK"))
+        assertTrue(summary.contains("PRE_UID_RF_STATE_HINT=IDLE_POSSIBLE_NOT_PROVEN"))
+    }
+
+    @Test fun incompleteEarlierRfCommandCannotBeTreatedAsStateProof() {
+        val log = listOf(
+            earlierLine(1799999998L, 400, "NxpNciX", "21030100"),
+            line(950, "NxpNciX", "20020701330404A1B2C3")
+        ).joinToString("\n")
+        val summary = NciHalTrace.summarize(log, commandMs)
+        assertTrue(summary.contains("PRE_UID_RF_DISCOVER_TX=1 RSP_OK=0"))
+        assertTrue(summary.contains("PRE_UID_RF_STATE_HINT=UNKNOWN"))
+    }
+
     @Test fun detectsCoreConfigAndUidParameterWithoutReportingUidValue() {
         val log = line(950, "NxpNciX", "20020701330404A1B2C3") +
             "\n" + line(952, "NxpNciR", "4002020000")

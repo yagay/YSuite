@@ -102,6 +102,12 @@ internal object NciHalTrace {
         val uidLengths = uidTxFrames.mapNotNull { uidParameterLength(it.data) }
         val uidFirstTxDelta = uidTxFrames.map { it.epochMillis - commandEpochMillis }
             .filter { it >= 0L }.minOrNull()
+        // Do not discard the earlier NCI frames when assessing RF discovery.
+        // This remains only a hint derived from retained logcat, never proof of
+        // the NFCC's exact RF state at the moment of the UID write.
+        val uidWriteEpoch = uidTxFrames.filter { it.epochMillis >= commandEpochMillis }
+            .minOfOrNull { it.epochMillis } ?: commandEpochMillis
+        val rfHistory = summarizePreWriteRfHistory(frames, uidWriteEpoch)
 
         // Correlate CORE_SET_CONFIG responses with preceding TX commands in
         // log order. Never report a response from an unrelated command as the
@@ -153,6 +159,7 @@ internal object NciHalTrace {
             appendLine("RF_DEACTIVATE_TX=" + deactivate +
                 " RF_SET_LISTEN_MODE_ROUTING_TX=" + routing +
                 " RF_DISCOVER_TX=" + discover)
+            rfHistory.forEach { appendLine(it) }
             appendLine("CORE_SET_CONFIG_TX=" + coreTx.size)
             appendLine("LA_NFCID1_TAG_33_IN_CONFIG_TX=" + uidLengths.size)
             appendLine("LA_NFCID1_LENGTHS_ONLY=" + uidLengths.joinToString(",").ifBlank { "NONE" })
@@ -197,6 +204,86 @@ internal object NciHalTrace {
             appendLine("NOTE: A zero CORE_SET_CONFIG count is not proof none was sent if the command window has no retained TX records.")
             appendLine("NOTE: Logcat can omit native packets. Only a separate NFC reader can verify the transmitted UID.")
         }
+    }
+
+    /**
+     * Read-only evidence from *all* retained frames before the current UID TX,
+     * including those outside the narrow -1.5s APPLY window. Match a command
+     * with its response to avoid claiming an RF transition from a lone TX.
+     * A missing packet or later unlogged notification can invalidate any
+     * state inference; never use this hint to trigger an NFC command.
+     */
+    private fun summarizePreWriteRfHistory(frames: List<Frame>, writeAt: Long): List<String> {
+        if (writeAt <= 0L) return listOf("PRE_UID_RF_STATE_HINT=UNKNOWN_NO_COMMAND_TIME")
+        val history = frames.filter { it.epochMillis < writeAt }.sortedBy { it.epochMillis }
+        var discoverTx = 0
+        var discoverAck = 0
+        var deactivateTx = 0
+        var deactivateIdleAck = 0
+        var pendingDiscover = false
+        var pendingDeactivateMode: Int? = null
+        var lastEvent = "NONE"
+        var lastEventAt = 0L
+        val timeline = ArrayList<String>()
+        for (frame in history) {
+            if (frame.gid != 1) continue
+            val isCmd = frame.tx && frame.kind == 0x20
+            val isRsp = !frame.tx && frame.kind == 0x40
+            val status = frame.data.getOrNull(3)?.toInt()?.and(0xff)
+            when {
+                isCmd && frame.oid == 3 -> {
+                    discoverTx++
+                    pendingDiscover = true
+                }
+                isRsp && frame.oid == 3 && pendingDiscover -> {
+                    pendingDiscover = false
+                    if (status == 0) {
+                        discoverAck++
+                        lastEvent = "RF_DISCOVER_RSP_OK"
+                        lastEventAt = frame.epochMillis
+                        timeline.add(lastEvent + " delta_ms=" + (frame.epochMillis - writeAt))
+                    }
+                }
+                isCmd && frame.oid == 6 -> {
+                    deactivateTx++
+                    pendingDeactivateMode = frame.data.getOrNull(3)?.toInt()?.and(0xff)
+                }
+                isRsp && frame.oid == 6 && pendingDeactivateMode != null -> {
+                    val mode = pendingDeactivateMode
+                    pendingDeactivateMode = null
+                    if (status == 0) {
+                        lastEvent = if (mode == 0) "RF_DEACTIVATE_TO_IDLE_RSP_OK"
+                            else "RF_DEACTIVATE_NON_IDLE_RSP_OK"
+                        if (mode == 0) deactivateIdleAck++
+                        lastEventAt = frame.epochMillis
+                        timeline.add(lastEvent + " delta_ms=" + (frame.epochMillis - writeAt))
+                    }
+                }
+                !frame.tx && frame.kind == 0x60 && frame.oid == 5 -> {
+                    lastEvent = "RF_INTF_ACTIVATED_NTF"
+                    lastEventAt = frame.epochMillis
+                    timeline.add(lastEvent + " delta_ms=" + (frame.epochMillis - writeAt))
+                }
+            }
+        }
+        val stateHint = when (lastEvent) {
+            "RF_DISCOVER_RSP_OK" -> "DISCOVERY_POSSIBLE_NOT_PROVEN"
+            "RF_DEACTIVATE_TO_IDLE_RSP_OK" -> "IDLE_POSSIBLE_NOT_PROVEN"
+            "RF_INTF_ACTIVATED_NTF" -> "ACTIVE_POSSIBLE_NOT_PROVEN"
+            else -> "UNKNOWN"
+        }
+        return listOf(
+            "PRE_UID_RF_HISTORY_FRAMES=" + history.size,
+            "PRE_UID_RF_DISCOVER_TX=" + discoverTx + " RSP_OK=" + discoverAck,
+            "PRE_UID_RF_DEACTIVATE_TX=" + deactivateTx + " IDLE_RSP_OK=" + deactivateIdleAck,
+            "PRE_UID_RF_LAST_CONFIRMED_EVENT=" + lastEvent,
+            "PRE_UID_RF_LAST_EVENT_AGE_MS=" +
+                if (lastEventAt > 0L) (writeAt - lastEventAt).toString() else "NONE",
+            "PRE_UID_RF_STATE_HINT=" + stateHint,
+            "PRE_UID_RF_EVENT_TIMELINE_NO_PAYLOAD=" +
+                timeline.takeLast(6).joinToString("|").ifBlank { "NONE" },
+            "PRE_UID_RF_STATE_NOTE=Retained HAL packets can be incomplete; hint is not current hardware state proof"
+        )
     }
 
     /**

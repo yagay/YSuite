@@ -177,11 +177,15 @@ class DiagnosticsCollector(
         appendLine("hal_implementation_hash_status=" +
             halProbePrefs.getString("sha_match", "NOT_RUN"))
         appendLine("hal_config_interception=NOT_INSTALLED")
+        val ownNciStatus = snapshot["rf_status"].orEmpty()
         val ownNciRequested = snapshot["rf_source"] == "own-nci-0x33" &&
-            snapshot["rf_status"] == "OWN_NCI_UID_REQUESTED"
-        appendLine("nci_native_writer=" +
-            if (ownNciRequested) "JAVA_NATIVE_SET_NCI_CONFIG_0x33_INVOKED"
-            else "NO_CURRENT_OWN_NCI_REQUEST_EVIDENCE")
+            ownNciStatus in setOf("OWN_NCI_UID_REQUESTED", "OWN_NCI_UID_REJECTED")
+        appendLine("nci_native_writer=" + when {
+            ownNciRequested && ownNciStatus == "OWN_NCI_UID_REJECTED" ->
+                "JAVA_NATIVE_SET_NCI_CONFIG_0x33_INVOKED_BUT_REJECTED"
+            ownNciRequested -> "JAVA_NATIVE_SET_NCI_CONFIG_0x33_INVOKED"
+            else -> "NO_CURRENT_OWN_NCI_REQUEST_EVIDENCE"
+        })
         val activeCommandGeneration = snapshot["command_generation"]?.toLongOrNull() ?: 0L
         val cachedNciGeneration = nciTracePreferences.getLong("generation", 0L)
         val cachedNciSummary = nciTracePreferences.getString("summary", "").orEmpty()
