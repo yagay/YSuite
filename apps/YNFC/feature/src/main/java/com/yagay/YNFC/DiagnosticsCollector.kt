@@ -20,6 +20,32 @@ class DiagnosticsCollector(
 ) {
     private val packageName = context.packageName
     private val packageManager = context.applicationContext.packageManager
+    private val nciTracePreferences = context.applicationContext.getSharedPreferences(
+        "ynfc_nci_trace_readonly_v1", Context.MODE_PRIVATE
+    )
+
+    /**
+     * Capture only a sanitized NCI command summary immediately after an RF
+     * APPLY result. Waiting for the user to export a report can let Android's
+     * small logcat buffers evict the relevant TX/RX events. No raw packets,
+     * UIDs, config values, or new NFC operations are persisted here.
+     */
+    fun captureNativeNciAfterApply(generation: Long) {
+        if (generation <= 0L) return
+        val capturedAt = System.currentTimeMillis()
+        val raw = runRoot(
+            "logcat -b all -d -v epoch -t 2400 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 380",
+            10, 165_000
+        )
+        val summary = NciHalTrace.summarize(raw, generation)
+        nciTracePreferences.edit()
+            .putLong("generation", generation)
+            .putLong("captured_at_ms", capturedAt)
+            .putString("summary", summary)
+            .apply()
+        AppLogger.i("NCI_TRACE_SNAPSHOT commandGeneration=$generation capturedAt=$capturedAt " +
+            "summaryOnly=true")
+    }
 
     fun fetchLogs(source: LogSource): String {
         val pid = currentNfcPid()
@@ -120,6 +146,20 @@ class DiagnosticsCollector(
             logcat -b all -d -v threadtime -t 3000 2>/dev/null | grep -i -E 'NxpNciX|NxpNciR|CORE_SET_CONFIG|nfc_ncif_send|NfcAdaptation.*HalWrite' | tail -n 30 || true
         """.trimIndent(), 12, 45_000))
         appendLine("--- NATIVE NCI CORRELATION TO LAST UID COMMAND (READ ONLY) ---")
+        val priorCapturedGeneration = nciTracePreferences.getLong("generation", 0L)
+        val priorCapturedAt = nciTracePreferences.getLong("captured_at_ms", 0L)
+        if (priorCapturedGeneration > 0L) {
+            appendLine("EARLY_SNAPSHOT_COMMAND_GENERATION=$priorCapturedGeneration")
+            appendLine("EARLY_SNAPSHOT_CAPTURED_AT_MS=$priorCapturedAt")
+            if (priorCapturedGeneration == state.commandGeneration) {
+                appendLine("--- EARLY NCI SNAPSHOT (CAPTURED IMMEDIATELY AFTER APPLY) ---")
+                appendLine(nciTracePreferences.getString("summary", "NO_EARLY_SUMMARY"))
+            } else {
+                appendLine("EARLY_SNAPSHOT_STATUS=OTHER_GENERATION_NOT_CURRENT_UID_PROOF")
+            }
+        } else {
+            appendLine("EARLY_SNAPSHOT_STATUS=NOT_CAPTURED")
+        }
         appendLine(runCatching {
             val halPackets = runRoot(
                 "logcat -b all -d -v epoch -t 4200 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 400",
