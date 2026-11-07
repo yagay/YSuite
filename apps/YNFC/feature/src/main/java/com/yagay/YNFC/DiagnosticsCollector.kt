@@ -241,8 +241,8 @@ class DiagnosticsCollector(
             for root in /vendor/lib64 /vendor/lib64/hw /odm/lib64 /odm/lib64/hw; do
               for target in "${'$'}root"/nfc_nci_nxp_snxxx_v2.so; do
                 if [ -f "${'$'}target" ]; then
-                  echo "FOUND $target"
-                  sha256sum "${'$'}target" 2>/dev/null || echo "HASH_UNAVAILABLE $target"
+                  echo "FOUND ${'$'}target"
+                  sha256sum "${'$'}target" 2>/dev/null || echo "HASH_UNAVAILABLE ${'$'}target"
                   ls -l "${'$'}target" 2>/dev/null || true
                 fi
               done
@@ -250,11 +250,11 @@ class DiagnosticsCollector(
             echo '[SN220 config candidates: presence and SHA-256 only]'
             for conf in /data/vendor/nfc/libnfc-mtp-SN220.conf /vendor/etc/libnfc-mtp-SN220.conf; do
               if [ -f "${'$'}conf" ]; then
-                echo "CONFIG_FOUND $conf"
+                echo "CONFIG_FOUND ${'$'}conf"
                 sha256sum "${'$'}conf" 2>/dev/null || true
                 for key in NXP_CORE_CONF NXP_SET_CONFIG_ALWAYS; do
-                  if grep -Eq "^[[:space:]]*$key[[:space:]]*=" "${'$'}conf" 2>/dev/null; then
-                    echo "CONFIG_KEY_PRESENT $conf $key"
+                  if grep -Eq "^[[:space:]]*${'$'}key[[:space:]]*=" "${'$'}conf" 2>/dev/null; then
+                    echo "CONFIG_KEY_PRESENT ${'$'}conf ${'$'}key"
                   fi
                 done
               fi
