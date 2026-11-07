@@ -299,7 +299,11 @@ internal object NciHalTrace {
             if (cut <= 0) null else line.substring(0, cut) to line.substring(cut + 1)
         }.toMap()
         val delta = properties["LA_NFCID1_FIRST_TX_DELTA_MS"]?.toLongOrNull() ?: return false
-        return delta in 0L..1_000L &&
+        // RF deactivation may complete asynchronously on some NXP stacks.
+        // Use the same bounded APPLY interval as summarize(), not the old
+        // 1-second direct-write assumption. Generation and exact invalid
+        // parameter checks still prevent unrelated responses being promoted.
+        return delta in 0L..AFTER_MS &&
             properties["CORE_SET_CONFIG_TX"] == "1" &&
             properties["LA_NFCID1_TAG_33_IN_CONFIG_TX"] == "1" &&
             properties["CORE_SET_CONFIG_RSP_MATCHED"] == "1" &&

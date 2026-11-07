@@ -151,6 +151,19 @@ class NciHalTraceTest {
         assertFalse(report.contains("04A1B2C3"))
     }
 
+    @Test fun delayedAfterRfPauseUidRejectionStillUpdatesState() {
+        // RF_STOP/RSP may take more than the former 1-second direct-write gate.
+        val raw = listOf(
+            earlierLine(1800000000L, 890, "NxpNciX", "21060100"),
+            earlierLine(1800000001L, 150, "NxpNciR", "41060100"),
+            earlierLine(1800000002L, 100, "NxpNciX", "20020701330404A1B2C3"),
+            earlierLine(1800000002L, 102, "NxpNciR", "400203090133")
+        ).joinToString("\n")
+        val summary = NciHalTrace.summarize(raw, commandMs)
+        assertTrue(summary.contains("LA_NFCID1_FIRST_TX_DELTA_MS=1263"))
+        assertTrue(NciHalTrace.isOwnUidParameterRejected(summary))
+    }
+
     @Test fun unrelatedOlderPacketsDoNotHideCurrentUidRejection() {
         val log = listOf(
             line(100, "NxpNciX", "21060100"),
