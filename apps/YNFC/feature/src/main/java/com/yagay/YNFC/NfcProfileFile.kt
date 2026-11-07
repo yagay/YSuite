@@ -51,8 +51,8 @@ internal object NfcProfileFile {
 
     /** Pure serialization used for JVM unit tests and file creation. */
     fun encodeCard(card: CardModel): ByteArray {
-        val name = card.name.trim()
-        require(name.isNotEmpty() && name.length <= 48) { "Card name must be 1–48 characters" }
+        val name = card.name.trim().ifEmpty { "NFC-A" }
+        require(name.length <= 48) { "Card name must be at most 48 characters" }
         val uid = normalizedHex(card.uid, 4, 7, 10)
         val atqa = normalizedHex(card.atqa, 2)
         val sak = normalizedHex(card.sak, 1)
@@ -65,7 +65,7 @@ internal object NfcProfileFile {
         }
         val bytes = obj.toString().toByteArray(StandardCharsets.UTF_8)
         require(bytes.size <= MAX_FILE_BYTES) { "Generated profile file is too large" }
-        // Re-use the importer for a single validation contract in both paths.
+        // Re-use the private reader for the same validation contract.
         readProfile(ByteArrayInputStream(bytes))
         return bytes
     }
@@ -95,7 +95,7 @@ internal object NfcProfileFile {
             ?: throw IllegalArgumentException("Missing ATQA"), 2)
         val sak = normalizedHex(obj.get("sak")?.asString
             ?: throw IllegalArgumentException("Missing SAK"), 1)
-        val name = obj.get("name")?.asString?.trim().orEmpty().ifBlank { "Imported NFC-A" }
+        val name = obj.get("name")?.asString?.trim().orEmpty().ifBlank { "NFC-A" }
         require(name.isNotEmpty() && name.length <= 48) { "Profile name must be 1–48 characters" }
         return CardModel(name, uid, sak, atqa)
     }
