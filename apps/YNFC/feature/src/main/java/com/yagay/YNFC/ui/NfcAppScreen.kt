@@ -90,8 +90,14 @@ fun NfcAppScreen(
     var logsEnabled by remember { mutableStateOf(initialLogsEnabled) }
     var expandedUid by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
+    var previewRunningUid by remember { mutableStateOf<String?>(null) }
+    var previewFeedbackUid by remember { mutableStateOf<String?>(null) }
+    var previewFeedbackMessage by remember { mutableStateOf<String?>(null) }
     val logListState = rememberLazyListState()
     val applyUidText = stringResource(R.string.ynfc_apply_uid, "%s")
+    val nativePreviewAction = stringResource(R.string.ynfc_native_preview_action)
+    val nativePreviewPreparing = stringResource(R.string.ynfc_native_preview_preparing)
+    val nativePreviewPreparingShort = stringResource(R.string.ynfc_native_preview_preparing_short)
     val restoreRfText = stringResource(R.string.ynfc_restore_stock_rf)
 
     LaunchedEffect(selectedSource, logsEnabled) {
@@ -304,8 +310,24 @@ fun NfcAppScreen(
                             expandedUid = if (expandedUid?.equals(card.uid, true) == true) null else card.uid
                         },
                         onSimulate = {
-                            operationMessage = applyUidText.replace("%s", card.uid)
-                            onSimulate(card) { operationMessage = it }
+                            val isPreview = nativeNciEnabled
+                            if (isPreview) {
+                                if (previewRunningUid != null) return@CardItem
+                                previewRunningUid = card.uid
+                                previewFeedbackUid = card.uid
+                                previewFeedbackMessage = nativePreviewPreparing
+                                operationMessage = nativePreviewPreparing
+                            } else {
+                                operationMessage = applyUidText.replace("%s", card.uid)
+                            }
+                            onSimulate(card) { result ->
+                                operationMessage = result
+                                if (isPreview) {
+                                    previewRunningUid = null
+                                    previewFeedbackUid = card.uid
+                                    previewFeedbackMessage = result
+                                }
+                            }
                         },
                         onStop = {
                             operationMessage = restoreRfText
@@ -315,6 +337,14 @@ fun NfcAppScreen(
                             onDeleteCard(card, active)
                             if (expandedUid?.equals(card.uid, true) == true) expandedUid = null
                         },
+                        simulateLabel = if (nativeNciEnabled) {
+                            if (previewRunningUid == card.uid) nativePreviewPreparingShort
+                            else nativePreviewAction
+                        } else null,
+                        simulateBusy = previewRunningUid != null,
+                        operationHint = if (nativeNciEnabled &&
+                            previewFeedbackUid?.equals(card.uid, true) == true
+                        ) previewFeedbackMessage else null,
                     )
                 }
             }
