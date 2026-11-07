@@ -1193,6 +1193,14 @@ public class NfcInjectionModule extends XposedModule {
                 }
             }
 
+            // Legacy active sessions retain their original backend only until STOP.
+            // Never rewrite RF payloads for an older non-RF session. The current
+            // Provider forces every new APPLY to RF, so this is migration safety
+            // rather than an alternative simulation mode.
+            if (cfg.useVendorTypeA() || cfg.useInterceptTypeA() || cfg.useNativeNci()) {
+                return chain.proceed();
+            }
+
             // A terminal failed APPLY is not a pending request. If a later OEM
             // RF write happens naturally, it must not silently apply a UID
             // while the UI still reports FAILED; only a new APPLY generation
