@@ -18,6 +18,7 @@ final class SimConfig {
     final int commandPid;
 
     boolean useVendorTypeA() { return "VENDOR".equals(backend); }
+    boolean useInterceptTypeA() { return "INTERCEPT".equals(backend); }
 
     SimConfig(boolean initialized, boolean active, String uid, String sak, String atqa,
               String backend, boolean diagnostics, long generation,
@@ -28,7 +29,8 @@ final class SimConfig {
         this.uid = uid;
         this.sak = sak;
         this.atqa = atqa;
-        this.backend = "VENDOR".equals(backend) ? "VENDOR" : "RF";
+        this.backend = "VENDOR".equals(backend) ? "VENDOR" :
+                ("INTERCEPT".equals(backend) ? "INTERCEPT" : "RF");
         this.diagnostics = diagnostics;
         this.generation = generation;
         this.consumedGeneration = consumedGeneration;
