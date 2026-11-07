@@ -68,6 +68,16 @@ internal object NfcSharedConfigManager {
                     appendLine("target_uid_length_bytes=" + prepared.uid.length / 2)
                     appendLine("requested_atqa=" + prepared.atqa)
                     appendLine("requested_sak=" + prepared.sak)
+                    appendLine("stock_la_bit_frame_sdd=" +
+                        preview.stockLaBitFrameSdd?.toString(16)?.uppercase()?.padStart(2, '0').orEmpty())
+                    appendLine("stock_la_platform_config=" +
+                        preview.stockLaPlatformConfig?.toString(16)?.uppercase()?.padStart(2, '0').orEmpty())
+                    appendLine("stock_la_sel_info=" +
+                        preview.stockLaSelInfo?.toString(16)?.uppercase()?.padStart(2, '0').orEmpty())
+                    appendLine("sel_info_matches_requested_sak=" +
+                        (preview.stockLaSelInfo == prepared.sak.toIntOrNull(16)))
+                    appendLine("atqa_rf_verification=NOT_PERFORMED")
+                    appendLine("sak_rf_verification=NOT_PERFORMED")
                     appendLine("applied_fields_to_preview=NFCID1_ONLY")
                     appendLine("NOTE: ATQA and SAK were NOT rewritten. A UID-only preview cannot emulate arbitrary card protocols.")
                     appendLine("The system config and HAL were not modified.")
