@@ -174,23 +174,23 @@ class DiagnosticsCollector(
         appendLine("--- NFC NATIVE REPLACEMENT TARGET INVENTORY (READ ONLY) ---")
         appendLine(runRoot("""
             echo '[NFC Java process PID]'
-            nfc_pid=$(pidof com.android.nfc 2>/dev/null | awk '{print $1}')
-            echo "pid=${nfc_pid:-NOT_FOUND}"
-            if [ -n "$nfc_pid" ]; then
+            nfc_pid=${'$'}(pidof com.android.nfc 2>/dev/null | awk '{print ${'$'}1}')
+            echo "pid=${'$'}{nfc_pid:-NOT_FOUND}"
+            if [ -n "${'$'}nfc_pid" ]; then
               echo '[NFC Java process executable]'
-              readlink /proc/"$nfc_pid"/exe 2>/dev/null || true
+              readlink /proc/"${'$'}nfc_pid"/exe 2>/dev/null || true
               echo '[NFC Java process loaded NFC libraries]'
-              grep -iE '/.*(libnfc|nfc.*\\.so)' /proc/"$nfc_pid"/maps 2>/dev/null | awk '{print $6}' | sort -u | head -n 30 || true
+              grep -iE '/.*(libnfc|nfc.*\.so)' /proc/"${'$'}nfc_pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 30 || true
             fi
             echo '[Native NXP HAL executable paths]'
             for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
-              p=$(pidof "$name" 2>/dev/null | awk '{print $1}')
-              echo "$name pid=${p:-NOT_FOUND}"
-              if [ -n "$p" ]; then readlink /proc/"$p"/exe 2>/dev/null || true; fi
+              p=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              echo "${'$'}name pid=${'$'}{p:-NOT_FOUND}"
+              if [ -n "${'$'}p" ]; then readlink /proc/"${'$'}p"/exe 2>/dev/null || true; fi
             done
             echo '[Known system NFC libraries]'
             for lib in /system/lib64/libnfc-nci.so /system/lib64/libnfc_nci_jni.so /system/lib64/libnfc_vendor_extn.so; do
-              [ -f "$lib" ] && ls -l "$lib" 2>/dev/null || true
+              [ -f "${'$'}lib" ] && ls -l "${'$'}lib" 2>/dev/null || true
             done
         """.trimIndent(), 10, 18_000))
         appendLine("NOTE: Native HAL replacement requires exact firmware ABI verification; no native hook was installed.")
