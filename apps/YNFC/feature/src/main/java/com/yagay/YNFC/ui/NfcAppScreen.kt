@@ -62,6 +62,7 @@ fun NfcAppScreen(
     fileInterceptEnabled: Boolean,
     onFileInterceptEnabledChange: (Boolean) -> Unit,
     onImportProfile: () -> Unit,
+    onReloadFileIntercept: ((String) -> Unit) -> Unit,
     initialLogsEnabled: Boolean,
     diagnosticsCollector: DiagnosticsCollector,
     readRuntimeStatus: () -> RuntimeStatus,
@@ -180,6 +181,19 @@ fun NfcAppScreen(
                         enabled = !status.simulationEnabled,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    if (fileInterceptEnabled && status.simulationEnabled &&
+                        status.currentPid > 0 && status.hookInstalled &&
+                        status.hookPid == status.currentPid &&
+                        status.hookBuild == BuildConfig.HOOK_BUILD
+                    ) {
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_intercept_reload_button),
+                            onClick = {
+                                onReloadFileIntercept { operationMessage = it }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
             item {
