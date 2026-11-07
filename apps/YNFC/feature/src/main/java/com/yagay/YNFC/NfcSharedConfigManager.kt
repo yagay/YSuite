@@ -156,48 +156,4 @@ internal object NfcSharedConfigManager {
         }
     }
 }
-}(stat -c %s "${'$'}src" 2>/dev/null)
-            case "${'$'}size" in ''|*[!0-9]*) echo 'YNFC_SN220_SIZE_UNKNOWN'; exit 6;; esac
-            if [ "${'$'}size" -lt 1 ] || [ "${'$'}size" -gt $MAX_INPUT_BYTES ]; then
-              echo 'YNFC_SN220_SIZE_INVALID'; exit 7
-            fi
-            printf '$BASE64_START\n'
-            base64 "${'$'}src" | tr -d '\r\n'
-            printf '\n$BASE64_END\n'
-        """.trimIndent()
-        val output = rootShell.run(script, 15, 790_000, showToast = false)
-        val pattern = Regex(
-            """(?s)""" + BASE64_START +
-                """\s+([A-Za-z0-9+/=\r\n]+?)\s+""" + BASE64_END
-        )
-        val match = pattern.find(output)
-            ?: throw IOException("Cannot read active SN220 config through Root: " +
-                output.takeLast(180).trim())
-        val encoded = match.groupValues[1].replace(Regex("""\s+"""), "")
-        val bytes = Base64.decode(encoded, Base64.DEFAULT)
-        if (bytes.isEmpty() || bytes.size > MAX_INPUT_BYTES) {
-            throw IOException("Invalid SN220 configuration length")
-        }
-        return bytes
-    }
 
-    fun diagnostics(context: Context): String {
-        val prefs = context.applicationContext.getSharedPreferences(
-            SNAPSHOT_PREFS, Context.MODE_PRIVATE
-        )
-        return buildString {
-            appendLine("--- YNFC SHARED CONFIG EXPORT ---")
-            appendLine("folder=" + NfcPublicDownloads.RELATIVE_PATH)
-            appendLine("status=" + prefs.getString("status", "NOT_PREPARED"))
-            appendLine("stock_source=" + prefs.getString("source", "NOT_CAPTURED"))
-            appendLine("stock_sha256=" + prefs.getString("stock_sha256", "NOT_CAPTURED"))
-            appendLine("modified_sha256=" + prefs.getString("modified_sha256", "NOT_CAPTURED"))
-            appendLine("stock_bytes=" + prefs.getInt("stock_bytes", 0))
-            appendLine("preview_bytes=" + prefs.getInt("preview_bytes", 0))
-            appendLine("prepared_at_ms=" + prefs.getLong("prepared_at_ms", 0L))
-            appendLine("error=" + prefs.getString("error", ""))
-            appendLine("native_hal_download_readable=NOT_VERIFIED")
-            appendLine("native_config_interception=NOT_INSTALLED")
-        }
-    }
-}
