@@ -14,7 +14,7 @@ import java.io.IOException
 internal object NfcPublicDownloads {
     const val RELATIVE_PATH = "Download/YSuite/YNFC/"
     private val validFileName = Regex("""[A-Za-z0-9][A-Za-z0-9._-]{0,127}""")
-    private const val MAX_BYTES = 1024 * 1024
+    private const val MAX_BYTES = 8 * 1024 * 1024
     private val collection get() = MediaStore.Downloads.EXTERNAL_CONTENT_URI
 
     fun write(context: Context, name: String, bytes: ByteArray, mime: String): String {
