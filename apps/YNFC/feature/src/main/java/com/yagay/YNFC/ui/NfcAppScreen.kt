@@ -79,12 +79,14 @@ fun NfcAppScreen(
     onDeleteCard: (CardModel, Boolean) -> Unit,
     onReloadNfcHook: ((String) -> Unit) -> Unit,
     onExportLogs: (() -> Unit) -> Unit,
+    onRunHalProbe: ((String) -> Unit) -> Unit,
 ) {
     val runtimeViewModel: RuntimeStatusViewModel = viewModel()
     val status by runtimeViewModel.status.collectAsState()
     val logLines = remember { mutableStateListOf<String>() }
     var selectedSource by remember { mutableStateOf(LogSource.STATUS) }
     var diagnosticRunning by remember { mutableStateOf(false) }
+    var halProbeRunning by remember { mutableStateOf(false) }
     var logsEnabled by remember { mutableStateOf(initialLogsEnabled) }
     var expandedUid by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
@@ -234,6 +236,26 @@ fun NfcAppScreen(
                             stringResource(R.string.ynfc_profile_auto_desc)
                         },
                     ) {
+                        if (nativeNciEnabled) {
+                            YSecondaryButton(
+                                text = if (halProbeRunning) {
+                                    stringResource(R.string.ynfc_hal_probe_running)
+                                } else {
+                                    stringResource(R.string.ynfc_hal_probe_button)
+                                },
+                                onClick = {
+                                    if (!halProbeRunning) {
+                                        halProbeRunning = true
+                                        onRunHalProbe { result ->
+                                            halProbeRunning = false
+                                            operationMessage = result
+                                        }
+                                    }
+                                },
+                                enabled = !halProbeRunning,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                         if (fileInterceptEnabled && status.simulationEnabled &&
                             status.currentPid > 0 && status.hookInstalled &&
                             status.hookPid == status.currentPid &&
