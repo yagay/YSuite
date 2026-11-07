@@ -128,5 +128,5 @@
     <string name="ynfc_profile_imported">NFC-A 配置已导入，已选择拦截模式。点击保存卡片的“模拟”按钮以启用拦截。</string>
     <string name="ynfc_profile_import_failed">配置导入失败：%1$s</string>
     <string name="ynfc_intercept_call_accepted">ColorOS HCE 方法使用了导入参数并返回成功，但实际射频 UID 未验证，请使用外部 NFC 读卡器确认。</string>
-    <string name="ynfc_intercept_call_waiting">启用拦截后未发生 ColorOS Type-A 配置调用，UID 尚未被替换。</string>
+    <string name="ynfc_intercept_call_waiting">尚未观察到 ColorOS Type-A 配置调用，UID 目前未替换；文件拦截保持启用，直到你手动停止。</string>
 </resources>
