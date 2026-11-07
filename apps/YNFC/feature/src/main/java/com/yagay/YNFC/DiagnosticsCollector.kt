@@ -140,6 +140,12 @@ class DiagnosticsCollector(
         appendLine("intercept_preload_at_ms=${snapshot["coloros_intercept_preload_at_ms"] ?: "NOT_REPORTED"}")
         appendLine("intercept_last_hce_before_apply=${snapshot["coloros_intercept_last_hce_before_apply"] ?: "NOT_REPORTED"}")
         appendLine("intercept_last_hce_at_ms=${snapshot["coloros_intercept_last_hce_at_ms"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_pid=${snapshot["coloros_hce_pid"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_at_ms=${snapshot["coloros_hce_at_ms"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_enable=${snapshot["coloros_hce_enable"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_argument_lengths=${snapshot["coloros_hce_arg_lengths"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_armed_at_call=${snapshot["coloros_hce_intercept_armed_at_call"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_config_generation=${snapshot["coloros_hce_generation_at_call"] ?: "NOT_REPORTED"}")
         appendLine("intercept_skip_reason=${snapshot["coloros_intercept_skip_reason"] ?: "NOT_REPORTED"}")
         appendLine("intercept_skip_pid=${snapshot["coloros_intercept_skip_pid"] ?: "NOT_REPORTED"}")
         val hceAt = snapshot["coloros_observe_hce_at_ms"]?.toLongOrNull() ?: 0L
