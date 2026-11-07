@@ -61,6 +61,8 @@ fun NfcAppScreen(
     onVendorTypeAEnabledChange: (Boolean) -> Unit,
     fileInterceptEnabled: Boolean,
     onFileInterceptEnabledChange: (Boolean) -> Unit,
+    nativeNciEnabled: Boolean,
+    onNativeNciEnabledChange: (Boolean) -> Unit,
     onReloadFileIntercept: ((String) -> Unit) -> Unit,
     initialLogsEnabled: Boolean,
     diagnosticsCollector: DiagnosticsCollector,
@@ -137,15 +139,15 @@ fun NfcAppScreen(
                     }
                 }
             }
-            if (!fileInterceptEnabled && !vendorTypeAEnabled) {
+            if (!nativeNciEnabled && !fileInterceptEnabled && !vendorTypeAEnabled) {
                 item {
                     YSection(
                         title = stringResource(R.string.ynfc_rf_legacy_mode_title),
                         subtitle = stringResource(R.string.ynfc_rf_legacy_mode_desc),
                     ) {
                         YSecondaryButton(
-                            text = stringResource(R.string.ynfc_switch_to_intercept),
-                            onClick = { onFileInterceptEnabledChange(true) },
+                            text = stringResource(R.string.ynfc_switch_to_native),
+                            onClick = { onNativeNciEnabledChange(true) },
                             enabled = !status.simulationEnabled,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -182,6 +184,20 @@ fun NfcAppScreen(
             }
             item {
                 YSwitchItem(
+                    title = stringResource(R.string.ynfc_native_nci_mode),
+                    subtitle = if (status.simulationEnabled) {
+                        stringResource(R.string.ynfc_vendor_type_a_stop_first)
+                    } else {
+                        stringResource(R.string.ynfc_native_nci_desc)
+                    },
+                    checked = nativeNciEnabled,
+                    onCheckedChange = { requested ->
+                        if (!status.simulationEnabled) onNativeNciEnabledChange(requested)
+                    },
+                )
+            }
+            item {
+                YSwitchItem(
                     title = stringResource(R.string.ynfc_vendor_type_a_mode),
                     subtitle = if (status.simulationEnabled) {
                         stringResource(R.string.ynfc_vendor_type_a_stop_first)
@@ -208,13 +224,17 @@ fun NfcAppScreen(
                     },
                 )
             }
-            if (fileInterceptEnabled) {
+            if (fileInterceptEnabled || nativeNciEnabled) {
                 item {
                     YSection(
                         title = stringResource(R.string.ynfc_profile_auto_title),
-                        subtitle = stringResource(R.string.ynfc_profile_auto_desc),
+                        subtitle = if (nativeNciEnabled) {
+                            stringResource(R.string.ynfc_native_profile_desc)
+                        } else {
+                            stringResource(R.string.ynfc_profile_auto_desc)
+                        },
                     ) {
-                        if (status.simulationEnabled &&
+                        if (fileInterceptEnabled && status.simulationEnabled &&
                             status.currentPid > 0 && status.hookInstalled &&
                             status.hookPid == status.currentPid &&
                             status.hookBuild == BuildConfig.HOOK_BUILD
