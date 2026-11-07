@@ -87,6 +87,9 @@ public class NfcInjectionModule extends XposedModule {
     private volatile boolean fullTriggerDiscoveryDone;
     private volatile String activeCodec = "";
     private volatile SimConfig cachedConfig = SimConfig.uninitialized();
+    // A natural ColorOS HCE call may precede the command bridge's startup
+    // processing. Preserve its monotonic observation time for causal diagnosis.
+    private volatile long lastColorOsHceCallAtMs;
     private volatile ContentObserver commandObserver;
     private volatile ContentObserver pollingGuardObserver;
     private final NfcControlPolicy pollingPolicy = new NfcControlPolicy();
@@ -674,16 +677,29 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
 
-        // Read-only inventory differentiates the old NXP changeRfParamsByConfig
-        // from today's NativeNfcManager#setNciConfig. Historical replay
-        // snapshots from a previous PID are not usable RF evidence.
-        inspectUidEntryPoints(cl, pid);
-
-        // Install passive observers on the exact methods present in ColorOS 17's
-        // NFC Service APK. Never invoke Type-A configuration or vendor NCI commands.
-        // The separate read-only region preflight invokes only pure OEM getters.
-        inspectColorOsRegionSupport(cl, pid);
+        // The incoming process may already have an active INTERCEPT command
+        // when the user explicitly reloads the NFC service. Preload its durable
+        // Provider snapshot BEFORE installing the HCE interception hook and
+        // before expensive capability/region discovery. The old order only
+        // initialized cachedConfig at the end of startCommandBridge(), too late
+        // for ColorOS's natural startup HCE configuration call.
+        SimConfig startupConfig = readConfig();
+        if (startupConfig.initialized) {
+            cachedConfig = startupConfig;
+            ContentValues preload = baseHookState();
+            preload.put("coloros_intercept_preload_pid", pid);
+            preload.put("coloros_intercept_preload_at_ms", System.currentTimeMillis());
+            preload.put("coloros_intercept_preload_generation", startupConfig.generation);
+            preload.put("coloros_intercept_preload_active",
+                    startupConfig.active && startupConfig.useInterceptTypeA());
+            writeValuesWithRetry(preload, 6, 75L);
+        }
         installColorOsReadOnlyHooks(cl, pid);
+
+        // Run capability discovery only after the HCE interceptor is installed.
+        // This avoids missing a natural Type-A call while discovery is running.
+        inspectUidEntryPoints(cl, pid);
+        inspectColorOsRegionSupport(cl, pid);
 
         // Vendor capability discovery is informational; the user-selected RF
         // backend continues to own only the UID (NCI LA_NFCID1) mutation.
@@ -827,6 +843,9 @@ public class NfcInjectionModule extends XposedModule {
                 // Only the HCE implementation entrypoint is allowed to replace
                 // parameters. All other hooks remain read-only observers.
                 SimConfig intercepted = cachedConfig;
+                if ("hce".equals(key)) {
+                    lastColorOsHceCallAtMs = System.currentTimeMillis();
+                }
                 Object[] replacement = null;
                 String interceptSkip = "";
                 if ("hce".equals(key) && intercepted.initialized && intercepted.active
@@ -1001,7 +1020,14 @@ public class NfcInjectionModule extends XposedModule {
             waiting.put("rf_generation", cfg.generation);
             waiting.put("rf_verification", "NOT_OBSERVED");
             waiting.put("full_diag_stage", "INTERCEPT_ARMED_NO_CALL");
-            waiting.put("full_diag_summary", "Interception armed, waiting for natural OEM call");
+            long lastHceAt = lastColorOsHceCallAtMs;
+            boolean beforeApply = lastHceAt > 0L && lastHceAt < cfg.generation;
+            waiting.put("coloros_intercept_last_hce_before_apply", beforeApply);
+            waiting.put("coloros_intercept_last_hce_at_ms", lastHceAt);
+            waiting.put("full_diag_summary", beforeApply
+                    ? "ColorOS HCE was called before APPLY; no Type-A call after arm. "
+                        + "Use the explicit NFC-service reload while interception is active."
+                    : "Interception armed, waiting for natural OEM call");
             writeValuesWithRetry(waiting, 8, 75L);
         });
     }
