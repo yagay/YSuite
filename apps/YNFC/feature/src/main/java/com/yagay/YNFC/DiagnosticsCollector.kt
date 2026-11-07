@@ -233,17 +233,17 @@ class DiagnosticsCollector(
         appendLine(runRoot("""
             echo '[Installed NFC firmware SHA-256 checksums]'
             for lib in /system/lib64/libnfc-nci.so /system/lib64/libnfc_nci_jni.so /system/lib64/libnfc_vendor_extn.so /odm/bin/hw/android.hardware.nfc2-service.nxp /odm/bin/hw/vendor.oplus.hardware.nfc_aidl-service; do
-              if [ -f "$lib" ]; then
-                sha256sum "$lib" 2>/dev/null || echo "HASH_UNAVAILABLE $lib"
-              else echo "NOT_FOUND $lib"; fi
+              if [ -f "${'$'}lib" ]; then
+                sha256sum "${'$'}lib" 2>/dev/null || echo "HASH_UNAVAILABLE ${'$'}lib"
+              else echo "NOT_FOUND ${'$'}lib"; fi
             done
             echo '[HAL loaded libraries: paths only]'
             for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
-              pid=$(pidof "$name" 2>/dev/null | awk '{print $1}')
-              if [ -n "$pid" ]; then
-                echo "service=$name pid=$pid"
-                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"$pid"/maps 2>/dev/null | awk '{print $6}' | sort -u | head -n 35 || true
-              else echo "service=$name pid=NOT_FOUND"; fi
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
             done
         """.trimIndent(), 15, 21_000))
         appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
