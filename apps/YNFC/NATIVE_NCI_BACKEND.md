@@ -104,11 +104,14 @@ It **never silently falls back** to those implementations.
 ## Download/YSuite/YNFC/ automatic snapshots
 
 On selected-card Simulate, file preparation happens *before* the NFC Hook
-readiness check. A stale/missing Hook therefore does not prevent safe file
-generation, but it still prevents publishing an APPLY command.
+readiness check. New `NATIVE` requests are strictly **preview only** and
+never publish APPLY because there is no native HAL writer. This prevents
+a generated `.conf` from falsely setting `simulation_enabled=true`.
+Existing legacy pending/failed commands can still be STOPped explicitly.
 
 Files saved using the Android MediaStore Downloads API (no storage picker or
-broad storage permission):
+broad storage permission). Each NATIVE run uses an immutable, unique
+`Download/YSuite/YNFC/snapshots/<timestamp>-<random>/` directory:
 
 - `selected-nfc-a.json` – automatically generated UID / ATQA / SAK profile;
   application-private copy remains the canonical input sent to ConfigProvider.
@@ -119,15 +122,24 @@ broad storage permission):
   NCI CORE_SET_CONFIG packet. The preview updates only the existing, uniquely
   identified zero-length `LA_NFCID1` (`0x33 00`) parameter and the NCI
   payload-length count. All other configuration keys remain unchanged.
-- `config-status.txt` – PREPARING, FAILED, PROFILE_EXPORTED or
-  PREVIEW_ONLY_NATIVE_WRITE_DISABLED, including source/hash notes and a
-  warning when older preview files should not be trusted.
+- `snapshot-manifest.txt` – written **last inside that snapshot** with the
+  source/modified SHA-256, snapshot ID, target UID length, requested ATQA/SAK,
+  and stock `0x30/0x31/0x32` parameters. The manifest explicitly states
+  only NFCID1 is altered, not the other card-level parameters.
+- `Download/YSuite/YNFC/config-status.txt` – top-level current pointer,
+  written *after* a complete snapshot and its manifest. It reports PREPARING,
+  FAILED, PROFILE_EXPORTED or PREVIEW_ONLY_NATIVE_WRITE_DISABLED. Older
+  flat-folder configuration files from earlier builds are no longer current.
 - `YNFC-diagnostic_*.txt` – exported program diagnostics under the same folder.
 
 The parser refuses an absent or duplicate `NXP_CORE_CONF`, malformed NCI
 lengths or TLVs, non-empty stock `LA_NFCID1`, invalid UID sizes, oversized
-inputs and non-lossless text decoding. Source and modified SHA-256 are recorded
-in the status file and diagnostic report. Failure blocks new APPLY commands.
+inputs and non-lossless text decoding. A rooted source read is accepted only
+if the shell exits normally and its before/after SHA-256 values both match
+the captured bytes; MediaStore files are read back and verified. A failed
+snapshot cannot be marked committed. Source and modified hashes are recorded
+in the manifest and diagnostic report. Neither success nor failure in NATIVE
+publishes an APPLY command.
 
 **Important:** MediaStore files are convenient exports, **not** the HAL
 runtime configuration. The NFC HAL process generally cannot open shared
@@ -166,6 +178,8 @@ Evidence levels in the resulting report:
 - `SN220_CONFIG_OPEN_NOT_OBSERVED`: the HAL is running but no matching
   file descriptor was caught; the file may have been read and closed long
   before this button was pressed.
+- `PROBE_INCOMPLETE`: root was available but the script did not reach its
+  final marker or normal exit. This is not evidence that no config was read.
 
 The target file and a matching HAL checksum merely establish candidates.
 `CNfcConfig::readNxpRFConfig()` and `CNfcConfig::getValue()` are **not yet
@@ -177,9 +191,10 @@ device ABI, SELinux scope and verified cleanup semantics.
 
 - `NATIVE` is the initial preferred mode for installations without an explicit
   saved backend choice; existing user selections remain unchanged.
-- On APPLY, YNFC automatically generates and validates the private NFC-A file.
-- The Hook returns `FAILED / NATIVE_HAL_ABI_UNVERIFIED` without submitting any
-  NCI packet or modifying the NFC controller.
+- On a new NATIVE Simulate request, YNFC generates a validated, versioned
+  offline snapshot and reports PREVIEW_ONLY_NATIVE_WRITE_DISABLED. No APPLY
+  command is published. Historical pending commands from older releases may
+  still yield Hook FAILED / NATIVE_HAL_ABI_UNVERIFIED until explicitly stopped.
 - STOP after no write returns `NO_OVERRIDE` without restarting Android.
 - Debug export records SHA-256 hashes for actual `libnfc-*.so` / HAL
   executables and loaded NFC library paths, plus NCI packet timing evidence.
