@@ -133,6 +133,11 @@
     <string name="ynfc_intercept_old_hook_title">NFC 服务仍在运行旧版 Hook 代码</string>
     <string name="ynfc_intercept_hook_reload_required">请先停止当前模拟，再手动重新加载 NFC 服务以启用最新的文件拦截 Hook。无需重启手机。</string>
     <string name="ynfc_rf_legacy_mode_title">目前选中的是旧 RF 模式</string>
-    <string name="ynfc_rf_legacy_mode_desc">旧 RF 模式不会自动生成 NFC-A 配置文件，也不会运行 ColorOS 文件拦截。请切换到文件拦截再测试。</string>
+    <string name="ynfc_rf_legacy_mode_desc">旧 RF 模式不提供独立的原生 UID 写入入口。请切换原生 NCI 分析以收集本机固件证据。</string>
     <string name="ynfc_switch_to_intercept">切换到文件拦截</string>
+    <string name="ynfc_native_nci_mode">独立 NFC NCI/HAL（固件分析）</string>
+    <string name="ynfc_native_nci_desc">自动生成 NFC-A 配置，针对 NXP HAL 进行独立诊断，不依赖 ColorOS 钱包。当前尚未验证本机固件的 UID 写入 ABI，暂时禁止原生写入。</string>
+    <string name="ynfc_native_profile_desc">选择保存的卡片时自动建立 UID/ATQA/SAK 私有 JSON 文件。目前尚未实现安全的原生 NCI UID 写入；点击“模拟”只执行前置检查，不发送 UID 配置命令。</string>
+    <string name="ynfc_native_abi_unverified">原生 NCI/HAL 尚未就绪：需要验证本机固件库和 UID 写入接口后才允许配置控制器。本次没有模拟或发送 UID；请导出诊断文件。</string>
+    <string name="ynfc_switch_to_native">切换到原生 NCI 分析</string>
 </resources>
