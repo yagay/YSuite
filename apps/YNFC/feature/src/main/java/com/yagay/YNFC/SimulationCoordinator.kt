@@ -9,7 +9,8 @@ internal class SimulationCoordinator(
     private val configClient: ConfigClient,
     private val runtimeRepository: RuntimeStatusRepository,
     private val nfcSystemService: NfcSystemService,
-    private val expectedHookBuild: Int
+    private val expectedHookBuild: Int,
+    private val createProfile: ((CardModel) -> CardModel)? = null
 ) : AutoCloseable {
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -31,13 +32,30 @@ internal class SimulationCoordinator(
                 onDone(ready, YLocale.text(R.string.ynfc_sim_hook_not_ready))
                 return@execute
             }
-            val generation = configClient.publishCommand(enabled = true, card = card, backend = backend)
+            // File mode is fully automatic: validate, atomically write, and
+            // read back the private profile on this serial IO worker BEFORE
+            // publishing any APPLY command. A file error cannot arm the Hook.
+            val selectedCard = if (backend == "INTERCEPT") {
+                val prepared = runCatching {
+                    val generator = createProfile
+                        ?: throw IllegalStateException("Automatic profile generator unavailable")
+                    generator(card)
+                }
+                if (prepared.isFailure) {
+                    AppLogger.e("INTERCEPT: automatic NFC-A profile generation failed",
+                        prepared.exceptionOrNull()!!)
+                    onDone(ready, YLocale.text(R.string.ynfc_profile_auto_failed))
+                    return@execute
+                }
+                prepared.getOrThrow()
+            } else card
+            val generation = configClient.publishCommand(enabled = true, card = selectedCard, backend = backend)
             if (generation <= 0L) {
                 onDone(runtimeRepository.read(includeRootPid = true),
                     YLocale.text(R.string.ynfc_sim_command_superseded))
                 return@execute
             }
-            AppLogger.i("SIMULATION: serial COMMAND APPLY generation=$generation uid=${card.uid} backend=$backend")
+            AppLogger.i("SIMULATION: serial COMMAND APPLY generation=$generation uid=${selectedCard.uid} backend=$backend")
             var state = runtimeRepository.read(includeRootPid = true)
             if (!hookReady(state)) {
                 // APK installation must never restart NFC implicitly. An already
@@ -51,13 +69,13 @@ internal class SimulationCoordinator(
             }
 
             if (hookReady(state)) {
-                state = waitForCommandCompletion(generation, card.uid, apply = true, timeoutMs = 12_000)
+                state = waitForCommandCompletion(generation, selectedCard.uid, apply = true, timeoutMs = 12_000)
             }
             val message = when {
                 state.commandGeneration != generation -> YLocale.text(R.string.ynfc_sim_command_superseded)
                 !hookReady(state) -> YLocale.text(R.string.ynfc_sim_hook_not_ready)
-                SimulationResultPolicy.isApplySuccess(state, generation, card.uid) ->
-                    YLocale.text(R.string.ynfc_sim_apply_success, card.uid)
+                SimulationResultPolicy.isApplySuccess(state, generation, selectedCard.uid) ->
+                    YLocale.text(R.string.ynfc_sim_apply_success, selectedCard.uid)
                 state.commandStatus == "VENDOR_API_ACCEPTED" ->
                     YLocale.text(R.string.ynfc_vendor_api_accepted)
                 state.commandStatus == "INTERCEPT_CALL_ACCEPTED" ->
