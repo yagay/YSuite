@@ -38,8 +38,8 @@ class HalConfigReadProbeTest {
 
     @Test fun otherServiceFdDoesNotCountAsNxpConfigOpen() {
         val report = HalConfigReadProbe.summarize(
-            "PROBE_STARTED\\nPROBE_UID=0\\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\\n" +
-            "CONFIG_FD_OBSERVED=vendor.oplus.hardware.nfc_aidl-service/110/1 PATH=/data/vendor/nfc/libnfc-mtp-SN220.conf\\nPROBE_FINISHED"
+            "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\n" +
+            "CONFIG_FD_OBSERVED=vendor.oplus.hardware.nfc_aidl-service/110/1 PATH=/data/vendor/nfc/libnfc-mtp-SN220.conf\nPROBE_FINISHED"
         )
         assertTrue(report.contains("result=SN220_CONFIG_OPEN_NOT_OBSERVED"))
         assertTrue(report.contains("sn220_nxp_hal_config_fds_observed=0"))
