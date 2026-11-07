@@ -61,7 +61,9 @@ class MainActivity : YComposeActivity() {
         diagnosticExporter = DiagnosticExporter(this, diagnosticsCollector)
         simulationCoordinator = SimulationCoordinator(
             configClient, runtimeRepository, nfcSystemService, EXPECTED_HOOK_BUILD
-        ) { card -> NfcProfileFile.createForCard(applicationContext, card) }
+        ) { card, backend ->
+            NfcSharedConfigManager.prepare(applicationContext, rootShell, card, backend)
+        }
         savedCardsState = cardRepository.load()
         val provider = readProviderMap()
         pollingDisabled = provider[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
