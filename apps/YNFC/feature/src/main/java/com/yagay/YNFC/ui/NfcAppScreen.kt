@@ -59,6 +59,9 @@ fun NfcAppScreen(
     pollingDisabled: Boolean,
     vendorTypeAEnabled: Boolean,
     onVendorTypeAEnabledChange: (Boolean) -> Unit,
+    fileInterceptEnabled: Boolean,
+    onFileInterceptEnabledChange: (Boolean) -> Unit,
+    onImportProfile: () -> Unit,
     initialLogsEnabled: Boolean,
     diagnosticsCollector: DiagnosticsCollector,
     readRuntimeStatus: () -> RuntimeStatus,
@@ -151,6 +154,33 @@ fun NfcAppScreen(
                         if (!status.simulationEnabled) onVendorTypeAEnabledChange(requested)
                     },
                 )
+            }
+            item {
+                YSwitchItem(
+                    title = stringResource(R.string.ynfc_file_intercept_mode),
+                    subtitle = if (status.simulationEnabled) {
+                        stringResource(R.string.ynfc_vendor_type_a_stop_first)
+                    } else {
+                        stringResource(R.string.ynfc_file_intercept_desc)
+                    },
+                    checked = fileInterceptEnabled,
+                    onCheckedChange = { requested ->
+                        if (!status.simulationEnabled) onFileInterceptEnabledChange(requested)
+                    },
+                )
+            }
+            item {
+                YSection(
+                    title = stringResource(R.string.ynfc_profile_import_title),
+                    subtitle = stringResource(R.string.ynfc_profile_import_desc),
+                ) {
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_profile_import_button),
+                        onClick = onImportProfile,
+                        enabled = !status.simulationEnabled,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
             item {
                 ReadCardPanel(
