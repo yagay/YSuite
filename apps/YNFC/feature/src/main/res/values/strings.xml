@@ -129,4 +129,7 @@
     <string name="ynfc_profile_import_failed">Profile import failed: %1$s</string>
     <string name="ynfc_intercept_call_accepted">ColorOS HCE method used the imported parameters and returned success. The actual RF UID is still unverified; check with an external NFC reader.</string>
     <string name="ynfc_intercept_call_waiting">No ColorOS Type-A call observed yet. File interception remains armed until you stop it; the UID has not been verified or replaced so far.</string>
+    <string name="ynfc_intercept_reload_button">Reload NFC service to test interception</string>
+    <string name="ynfc_intercept_reload_complete">NFC service reloaded. Interception remains armed; check for new HCE calls and verify with an external NFC reader.</string>
+    <string name="ynfc_intercept_reload_not_armed">File interception is not armed. Import a profile and select Intercept before reloading NFC.</string>
 </resources>
