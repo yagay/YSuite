@@ -144,7 +144,7 @@
     <string name="ynfc_hal_probe_running">Inspecting NFC HAL…</string>
     <string name="ynfc_hal_probe_saved">HAL config evidence saved: %1$s</string>
     <string name="ynfc_hal_probe_failed">HAL inspection failed: %1$s</string>
-    <string name="ynfc_native_preview_only">SN220 preview exported. Native HAL interception is not installed; no simulation command was sent.</string>
+    <string name="ynfc_native_preview_only">SN220 snapshot saved under Download/YSuite/YNFC/snapshots/. Preview only: NFC UID emulation was NOT started.</string>
     <string name="ynfc_native_preview_action">Generate SN220 config</string>
     <string name="ynfc_native_preview_preparing">Generating a verified SN220 snapshot (preview only; no NFC emulation)…</string>
     <string name="ynfc_native_preview_preparing_short">Generating…</string>
