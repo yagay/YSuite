@@ -64,6 +64,10 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             status.commandGeneration,
             status.commandPid,
         )
+        status.commandStatus == "INTERCEPT_CALL_ACCEPTED" ->
+            stringResource(R.string.ynfc_intercept_call_accepted)
+        status.commandStatus == "INTERCEPT_ARMED_NO_CALL" ->
+            stringResource(R.string.ynfc_intercept_call_waiting)
         else -> stringResource(R.string.ynfc_cmd_idle)
     }
 
@@ -84,6 +88,14 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             commandFailed -> {
                 simulationTone = StatusTone.ERROR
                 simulationDetail = stringResource(R.string.ynfc_sim_failed, status.commandStatus)
+            }
+            status.commandStatus == "INTERCEPT_CALL_ACCEPTED" -> {
+                simulationTone = StatusTone.WARNING
+                simulationDetail = stringResource(R.string.ynfc_intercept_call_accepted)
+            }
+            status.commandStatus == "INTERCEPT_ARMED_NO_CALL" -> {
+                simulationTone = StatusTone.WARNING
+                simulationDetail = stringResource(R.string.ynfc_intercept_call_waiting)
             }
             status.rfStatus.startsWith("STALE") -> {
                 simulationTone = StatusTone.WARNING
