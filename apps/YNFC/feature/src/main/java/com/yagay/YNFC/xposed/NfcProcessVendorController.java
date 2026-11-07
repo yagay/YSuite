@@ -18,6 +18,10 @@ final class NfcProcessVendorController {
     private static final String VENDOR_NAME = "vendor";
     private static final String VENDOR_DESCRIPTOR = "com.vendor.nfc.IVendorNfcAdapter";
     private static final String VENDOR_STUB = "com.vendor.nfc.IVendorNfcAdapter$Stub";
+    // ColorOS 17 exposes a separate OEM AIDL service alongside the older vendor path.
+    private static final String OPLUS_SERVICE_NAME = "oplus_nfc_service";
+    private static final String OPLUS_DESCRIPTOR = "com.oplus.nfc.IVendorNfcAdapter";
+    private static final String OPLUS_STUB = "com.oplus.nfc.IVendorNfcAdapter$Stub";
     private static final int STARTUP_RETRY_COUNT = 30;
     private static final long STARTUP_RETRY_DELAY_MS = 100L;
     private static final String VENDOR_CLIENT = "com.vendor.nfc.VendorNfcAdapter";
@@ -49,12 +53,23 @@ final class NfcProcessVendorController {
      */
     Result probeTypeA() {
         try {
+            StringBuilder trace = new StringBuilder();
+            IBinder oplus = findVerifiedOplusBinder(trace);
+            if (oplus != null) {
+                Object local = oplus.queryLocalInterface(OPLUS_DESCRIPTOR);
+                Object proxy = asInterface(OPLUS_STUB, oplus);
+                if (hasTypeAApi(local) || hasTypeAApi(proxy)) {
+                    return new Result(true, "TYPE_A_OPLUS_AIDL_PRESENT",
+                            "ColorOS native Type-A method found; controller/reader unverified; " + trace,
+                            OPLUS_DESCRIPTOR);
+                }
+                appendTrace(trace, "oplus-stub-not-callable");
+            }
             IBinder main = serviceManagerBinder();
             if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
                 return new Result(false, "TYPE_A_NFC_UNAVAILABLE",
                         "NFC service absent or descriptor mismatch", null);
             }
-            StringBuilder trace = new StringBuilder();
             IBinder vendor = findVerifiedVendorBinder(main, trace);
             if (vendor == null) {
                 Object wrapper = getOplusVendorClient(trace);
@@ -108,17 +123,32 @@ final class NfcProcessVendorController {
                     "Explicit ATQA(2), SAK(1), UID(4/7/10) required", null);
         }
         try {
+            StringBuilder trace = new StringBuilder();
+            Object[] args = new Object[]{enabled, atqa.clone(), sak.clone(), uid.clone()};
+            Class<?>[] types = new Class<?>[]{boolean.class, byte[].class, byte[].class, byte[].class};
+            IBinder oplus = findVerifiedOplusBinder(trace);
+            if (oplus != null) {
+                Object local = oplus.queryLocalInterface(OPLUS_DESCRIPTOR);
+                Object proxy = asInterface(OPLUS_STUB, oplus);
+                Boolean accepted = invokeBooleanMethod(local, "setHceTypeAConfig", types, args);
+                if (accepted == null)
+                    accepted = invokeBooleanMethod(proxy, "setHceTypeAConfig", types, args);
+                if (accepted != null) {
+                    return new Result(accepted,
+                            accepted ? "TYPE_A_API_ACCEPTED" : "TYPE_A_REJECTED",
+                            (accepted ? "ColorOS Type-A method accepted; external reader verification required; "
+                                    : "ColorOS Type-A method rejected; ") + trace,
+                            OPLUS_DESCRIPTOR);
+                }
+                appendTrace(trace, "oplus-type-a-method-unavailable");
+            }
             IBinder main = serviceManagerBinder();
             if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
                 return new Result(false, "TYPE_A_NO_NFC", "NFC service unavailable", null);
             }
-            StringBuilder trace = new StringBuilder();
             IBinder vendor = findVerifiedVendorBinder(main, trace);
             Object local = vendor == null ? null : vendor.queryLocalInterface(VENDOR_DESCRIPTOR);
             Object proxy = asInterface(VENDOR_STUB, vendor);
-            Object[] args = new Object[]{enabled, atqa == null ? null : atqa.clone(),
-                    sak == null ? null : sak.clone(), uid == null ? null : uid.clone()};
-            Class<?>[] types = new Class<?>[]{boolean.class, byte[].class, byte[].class, byte[].class};
             Boolean accepted = invokeBooleanMethod(local, "setHceTypeAConfig", types, args);
             if (accepted == null) accepted = invokeBooleanMethod(proxy, "setHceTypeAConfig", types, args);
             if (accepted == null) {
@@ -155,6 +185,27 @@ final class NfcProcessVendorController {
      * Shared vendor discovery for Type-A probe and execution. Never trust an
      * OEM transaction unless the returned interface descriptor is exact.
      */
+    /** Non-blocking OEM service discovery; never guesses a transaction number. */
+    private static IBinder findVerifiedOplusBinder(StringBuilder trace) {
+        try {
+            Class<?> sm = Class.forName("android.os.ServiceManager");
+            Method check = sm.getDeclaredMethod("checkService", String.class);
+            check.setAccessible(true);
+            Object found = check.invoke(null, OPLUS_SERVICE_NAME);
+            if (!(found instanceof IBinder)) {
+                appendTrace(trace, "oplus_nfc_service=not-visible");
+                return null;
+            }
+            IBinder binder = (IBinder) found;
+            String descriptor = safeDescriptor(binder);
+            appendTrace(trace, "oplus_nfc_service-descriptor=" + descriptor);
+            return alive(binder) && OPLUS_DESCRIPTOR.equals(descriptor) ? binder : null;
+        } catch (Throwable error) {
+            appendTrace(trace, "oplus_nfc_service-probe-error=" + error.getClass().getSimpleName());
+            return null;
+        }
+    }
+
     private static IBinder findVerifiedVendorBinder(IBinder main, StringBuilder trace) throws Exception {
         if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
             appendTrace(trace, "main=NFC_BINDER_UNAVAILABLE");
@@ -226,6 +277,12 @@ final class NfcProcessVendorController {
     private static Class<?> loadVendorClass(String name) {
         try { return Class.forName(name); }
         catch (Throwable ignored) { }
+        // The OPlus AIDL Stub is contained in the NFC APK's own ClassLoader.
+        android.app.Application nfcApp = NfcHookUtils.currentApplication();
+        if (nfcApp != null) {
+            try { return Class.forName(name, false, nfcApp.getClassLoader()); }
+            catch (Throwable ignored) { }
+        }
         ClassLoader thread = Thread.currentThread().getContextClassLoader();
         if (thread != null) {
             try { return Class.forName(name, false, thread); }
