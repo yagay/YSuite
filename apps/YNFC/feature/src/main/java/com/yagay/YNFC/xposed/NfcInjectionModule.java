@@ -1161,6 +1161,12 @@ public class NfcInjectionModule extends XposedModule {
                 observeUidWriter(target, pid, -1, 0, "NO_SINGLE_BYTE_ARRAY", "");
                 return chain.proceed();
             }
+            // On new firmware setNciConfig consumes a *single parameter value*,
+            // not a CORE_SET_CONFIG frame. It must never enter RawNciCodec:
+            // the direct UID writer below owns the 0x33 argument composition.
+            if ("setNciConfig".equals(target.methodName)) {
+                return chain.proceed();
+            }
             byte[] original = (byte[]) args[payloadArg];
             int payloadScore = payloadEngine.inspectScore(original);
             // Distinguish a complete CORE_SET_CONFIG command from TLV-only
