@@ -203,7 +203,7 @@ public class NfcInjectionModule extends XposedModule {
             enable.setAccessible(true);
             hook(enable).intercept(chain -> {
                 if (!HookConfigStore.isPassive()) {
-                    reassertOwnUidBeforeNaturalDiscovery(chain.getThisObject());
+                    reassertOwnUidBeforeNaturalDiscovery(chain.getThisObject(), chain.getArg(0));
                 }
                 return chain.proceed();
             });
@@ -214,7 +214,7 @@ public class NfcInjectionModule extends XposedModule {
         }
     }
 
-    private void reassertOwnUidBeforeNaturalDiscovery(Object host) {
+    private void reassertOwnUidBeforeNaturalDiscovery(Object host, Object discoveryParams) {
         SimConfig cfg = cachedConfig;
         if (host == null || !cfg.initialized || !cfg.active || cfg.useVendorTypeA()
                 || cfg.useInterceptTypeA() || cfg.useNativeNci()
@@ -223,6 +223,16 @@ public class NfcInjectionModule extends XposedModule {
                 || completedGeneration != cfg.generation
                 || completedPid != Process.myPid()) return;
 
+        // The OEM switches Listen OFF and back ON as part of its field-detect
+        // routine. Never reassert while host routing is off or in reader mode;
+        // a write then consumes the throttle window for the later Listen-ON
+        // transition and may interfere with payment/secure-element routing.
+        final String gate = OwnUidDiscoveryPolicy.classify(discoveryParams);
+        if (!"HOST_LISTEN_ELIGIBLE".equals(gate)) {
+            if (cfg.diagnostics) Log.i(TAG, "OWN_NCI_DISCOVERY_REASSERT_SKIP generation="
+                    + cfg.generation + " reason=" + gate + " pid=" + Process.myPid());
+            return;
+        }
         byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
         if (uid == null) return;
         final long now = android.os.SystemClock.elapsedRealtime();
@@ -236,7 +246,9 @@ public class NfcInjectionModule extends XposedModule {
             if (!cfg.initialized || !cfg.active || cfg.useVendorTypeA() ||
                     cfg.useInterceptTypeA() || cfg.useNativeNci() ||
                     completedGeneration != cfg.generation ||
-                    completedPid != Process.myPid() || controllerInvalid) return;
+                    completedPid != Process.myPid() || controllerInvalid ||
+                    !"HOST_LISTEN_ELIGIBLE".equals(OwnUidDiscoveryPolicy.classify(discoveryParams)))
+                return;
             final long started = android.os.SystemClock.elapsedRealtime();
             if (lastOwnUidSetConfigGeneration == cfg.generation &&
                     started - lastOwnUidSetConfigAtElapsed < OWN_UID_REASSERT_MIN_INTERVAL_MS) return;
@@ -254,7 +266,7 @@ public class NfcInjectionModule extends XposedModule {
             lastOwnUidSetConfigGeneration = cfg.generation;
             setter.invoke(host, 0x33, uid.clone(), uid.length, true);
             Log.i(TAG, "OWN_NCI_DISCOVERY_REASSERT_REQUEST generation=" + cfg.generation
-                    + " pid=" + Process.myPid() + " elapsedMs="
+                    + " pid=" + Process.myPid() + " gate=HOST_LISTEN_ELIGIBLE elapsedMs="
                     + (android.os.SystemClock.elapsedRealtime() - started)
                     + " nativeVoid=true ack=NOT_VERIFIED");
         } catch (Throwable failure) {

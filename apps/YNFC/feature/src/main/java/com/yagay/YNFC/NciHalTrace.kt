@@ -114,13 +114,15 @@ internal object NciHalTrace {
         // ACK for a UID request. NCI status is not over-the-air UID proof.
         val responseStatuses = ArrayList<Int>()
         val rejectedParamLists = ArrayList<String>()
-        var pendingConfig = 0
+        val uidResponseStatuses = ArrayList<Int>()
+        val uidRejectedParamLists = ArrayList<String>()
+        val pendingConfig = ArrayDeque<Boolean>()
         for (frame in window) {
             if (frame.tx && frame.kind == 0x20 && frame.gid == 0 && frame.oid == 2) {
-                pendingConfig++
+                pendingConfig.addLast(uidParameterLength(frame.data) != null)
             } else if (!frame.tx && frame.kind == 0x40 &&
-                frame.gid == 0 && frame.oid == 2 && pendingConfig > 0) {
-                pendingConfig--
+                frame.gid == 0 && frame.oid == 2 && pendingConfig.isNotEmpty()) {
+                val isUidWrite = pendingConfig.removeFirst()
                 val status = if (frame.data.size >= 4) frame.data[3].toInt() and 0xff else -1
                 responseStatuses.add(status)
                 val invalidIds = if (status == 0x09 && frame.data.size >= 5) {
@@ -133,6 +135,10 @@ internal object NciHalTrace {
                     } else "UNKNOWN"
                 } else "NONE"
                 rejectedParamLists.add(invalidIds)
+                if (isUidWrite) {
+                    uidResponseStatuses.add(status)
+                    uidRejectedParamLists.add(invalidIds)
+                }
             }
         }
         // Scan later retained packets too: a late export may no longer
@@ -222,6 +228,18 @@ internal object NciHalTrace {
             appendLine("LA_NFCID1_TAG_33_IN_CONFIG_TX=" + uidLengths.size)
             appendLine("LA_NFCID1_LENGTHS_ONLY=" + uidLengths.joinToString(",").ifBlank { "NONE" })
             appendLine("LA_NFCID1_FIRST_TX_DELTA_MS=" + (uidFirstTxDelta?.toString() ?: "NONE"))
+            appendLine("LA_NFCID1_RSP_MATCHED=" + uidResponseStatuses.size)
+            appendLine("LA_NFCID1_RSP_STATUS=" +
+                uidResponseStatuses.joinToString(",") { status ->
+                    when {
+                        status == 0 -> "0x00_ACCEPTED"
+                        status > 0 -> "0x" + status.toString(16).padStart(2, '0').uppercase() +
+                            "_REJECTED"
+                        else -> "MALFORMED"
+                    }
+                }.ifBlank { "NO_MATCHING_RESPONSE_IN_LOG" })
+            appendLine("LA_NFCID1_RSP_INVALID_PARAM_IDS=" +
+                uidRejectedParamLists.joinToString(";").ifBlank { "NONE" })
             appendLine("CORE_SET_CONFIG_RSP_MATCHED=" + responseStatuses.size)
             appendLine("CORE_SET_CONFIG_RSP_ACCEPTED=" + configAccepted)
             appendLine("CORE_SET_CONFIG_RSP_REJECTED=" + configRejected)
@@ -247,7 +265,9 @@ internal object NciHalTrace {
                 window.isEmpty() && beforeWindow == frames.size && frames.isNotEmpty() ->
                     "ONLY_PRE_WINDOW_HAL_FRAMES_NO_CURRENT_WINDOW_EVIDENCE"
                 window.isEmpty() -> "NO_HAL_FRAMES_IN_COMMAND_WINDOW_OR_BUFFER_TRUNCATED"
-                uidLengths.isNotEmpty() && responseStatuses.contains(0x09) ->
+                uidLengths.isNotEmpty() &&
+                    uidResponseStatuses.contains(0x09) &&
+                    uidRejectedParamLists.any { it == "0x33" } ->
                     "UID_PARAM_REJECTED_NCI_INVALID_PARAM"
                 uidLengths.isNotEmpty() -> "UID_PARAM_SENT_NOT_RF_VERIFIED"
                 coreTx.isNotEmpty() -> "CORE_CONFIG_SENT_NO_PARSEABLE_UID_PARAM"
@@ -362,11 +382,10 @@ internal object NciHalTrace {
         // 1-second direct-write assumption. Generation and exact invalid
         // parameter checks still prevent unrelated responses being promoted.
         return delta in 0L..AFTER_MS &&
-            properties["CORE_SET_CONFIG_TX"] == "1" &&
             properties["LA_NFCID1_TAG_33_IN_CONFIG_TX"] == "1" &&
-            properties["CORE_SET_CONFIG_RSP_MATCHED"] == "1" &&
-            properties["CORE_SET_CONFIG_RSP_STATUS"] == "0x09_REJECTED" &&
-            properties["CORE_SET_CONFIG_RSP_INVALID_PARAM_IDS"] == "0x33"
+            properties["LA_NFCID1_RSP_MATCHED"] == "1" &&
+            properties["LA_NFCID1_RSP_STATUS"] == "0x09_REJECTED" &&
+            properties["LA_NFCID1_RSP_INVALID_PARAM_IDS"] == "0x33"
     }
 
     /** Return length only, never expose an incidental card identifier. */

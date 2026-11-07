@@ -271,6 +271,35 @@ class NciHalTraceTest {
         assertTrue(report.contains("POST_APPLY_UID_CONFIG_INTERPRETATION=NO_VISIBLE_NFCID1_WRITE_NOT_PROOF_OF_NO_RESET"))
     }
 
+    @Test fun uidAcknowledgementIsNotInflatedByUnrelatedSetConfig() {
+        val log = listOf(
+            line(925, "NxpNciX", "20020401800101"),
+            line(926, "NxpNciR", "4002020000"),
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(951, "NxpNciR", "40020100"),
+            line(970, "NxpNciX", "20020100"),
+            line(971, "NxpNciR", "40020105")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(log, commandMs)
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_MATCHED=3"))
+        assertTrue(report.contains("LA_NFCID1_RSP_MATCHED=1"))
+        assertTrue(report.contains("LA_NFCID1_RSP_STATUS=0x00_ACCEPTED"))
+        assertFalse(NciHalTrace.isOwnUidParameterRejected(report))
+    }
+
+    @Test fun unrelatedNciInvalidParamCannotBeMisattributedToUid() {
+        val log = listOf(
+            line(925, "NxpNciX", "20020401800101"),
+            line(926, "NxpNciR", "400203090133"),
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(951, "NxpNciR", "40020100")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(log, commandMs)
+        assertTrue(report.contains("CORE_SET_CONFIG_RSP_STATUS=0x09_REJECTED,0x00_ACCEPTED"))
+        assertTrue(report.contains("LA_NFCID1_RSP_STATUS=0x00_ACCEPTED"))
+        assertFalse(NciHalTrace.isOwnUidParameterRejected(report))
+    }
+
     @Test fun emptyLogIsNotTreatedAsHardwareFailureProof() {
         val report = NciHalTrace.summarize("", commandMs)
         assertTrue(report.contains("SNAPSHOT_VALID_FRAMES=0"))

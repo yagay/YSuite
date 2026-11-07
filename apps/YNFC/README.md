@@ -88,3 +88,20 @@ GitHub Actions 会构建 APK、运行 JVM 单元测试，并校验：
   in a safe non-transaction test before relying on it. No automatic HAL patch,
   NFC service restart, wallet AID hook, or transaction interception is introduced
   by the read-only diagnostic change.
+
+## 2026-11-07 follow-up: discovery gating and accurate NCI acknowledgement
+
+A diagnostic captured initial 4-byte LA_NFCID1 configuration accepted by the
+NFCC, but during OEM Extended Field Detect Mode the prior reassertion fired
+also on an observed Listen-Disabled route. A subsequent 850ms throttle could
+then skip a useful later Listen-Enabled phase. The reassertion is now
+fail-closed unless the verified NFC discovery parameter contract reports host
+routing enabled and reader mode disabled. Every skip can be logged while
+diagnostic logging is enabled. This does not prove OEM-specific Listen masking,
+so over-the-air verification is still required.
+
+Only the matching LA_NFCID1 CORE_SET_CONFIG response is now reported as
+`nci_config_response`; unrelated SET_CONFIG responses appear separately.
+Do not treat unrelated 0x00 successes or a rejected empty-param command as
+an NFCID1 result. No new HAL native hook, wallet AID changes, or automatic
+service restart are introduced.
