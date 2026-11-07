@@ -241,3 +241,26 @@ explicit service-only reload action (after STOP). The stable
 device reboot, extra RF Discovery hook, or UID write was introduced.
 For future hot code changes the implementation freshness marker
 must be advanced, independently of the stable protocol number.
+
+## 2026-11-07: single NFC OFF/ON restore after OEM initialization settles
+
+Device diagnostic with Hook impl 4/4 proves automatic lifecycle
+restoration was requested but at just **53 ms** after native READY.
+NCI response for that lifecycle write was not retained. This is a
+potential race with later OPlus RF routing or configuration; it is
+not proof of an overwrite or a rejected write.
+
+Impl 5 waits **1800 ms after native controller READY** (only after
+one genuine OFF/ON or process restart) before the existing one-shot
+disableDiscovery -> setNciConfig(0x33) -> applyRouting(true) sequence.
+The wait is bounded, guarded by the active command and controller
+epoch, and interrupted by STOP, a new card selection, or a reset.
+No retry, polling loop, Discovery hook, HAL patch or service restart
+is introduced.
+
+New diagnostic fields: own_nci_lifecycle_ready_at,
+own_nci_lifecycle_invalid_at, own_nci_lifecycle_ready_age_ms.
+The exported diagnostic separately correlates read-only logcat NCI
+frames to own_nci_lifecycle_at. It must not infer a successful
+on-air UID simply from NCI acceptance; an external reader is needed.
+The stable HOOK_BUILD stays 46; implementation marker is now 5.

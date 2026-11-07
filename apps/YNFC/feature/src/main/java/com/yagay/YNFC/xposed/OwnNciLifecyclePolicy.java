@@ -8,6 +8,15 @@ package com.yagay.YNFC.xposed;
 final class OwnNciLifecyclePolicy {
     private OwnNciLifecyclePolicy() { }
 
+    // One bounded restoration delay, never a Discovery restart or a loop.
+    static final long OEM_INIT_SETTLE_MS = 1_800L;
+
+    static long remainingSettleMs(long readyAtMs, long nowMs) {
+        if (readyAtMs <= 0L) return 0L;
+        long elapsed = nowMs - readyAtMs;
+        return Math.max(0L, OEM_INIT_SETTLE_MS - Math.max(0L, elapsed));
+    }
+
     static boolean sameDesiredCommand(SimConfig expected, SimConfig current) {
         return expected != null && current != null &&
                 expected.initialized && current.initialized &&

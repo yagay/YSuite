@@ -446,7 +446,24 @@ class DiagnosticsCollector(
                 "logcat -b all -d -v epoch -t 4200 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 400",
                 12, 150_000
             )
-            NciHalTrace.summarize(halPackets, state.commandGeneration)
+            val commandSummary = NciHalTrace.summarize(halPackets, state.commandGeneration)
+            val lifecycleAt = snapshot["own_nci_lifecycle_at"]?.toLongOrNull() ?: 0L
+            val lifecycleGeneration = snapshot["own_nci_lifecycle_generation"]?.toLongOrNull() ?: 0L
+            if (lifecycleAt > 0L && lifecycleGeneration == state.commandGeneration) {
+                buildString {
+                    appendLine(commandSummary)
+                    appendLine("--- NCI CORRELATION TO LAST LIFECYCLE UID RECOVERY (READ ONLY) ---")
+                    appendLine("LIFECYCLE_RECOVERY_EVENT_AT_MS=$lifecycleAt")
+                    appendLine("LIFECYCLE_RECOVERY_STAGE=" +
+                        snapshot["own_nci_lifecycle_stage"].orEmpty())
+                    appendLine("LIFECYCLE_READY_AGE_MS=" +
+                        snapshot["own_nci_lifecycle_ready_age_ms"].orEmpty())
+                    appendLine(NciHalTrace.summarize(halPackets, lifecycleAt))
+                    appendLine("NOTE: missing NCI frames may have been evicted from logcat.")
+                }
+            } else {
+                commandSummary + "\nLIFECYCLE_NCI_CORRELATION=NO_CURRENT_RECOVERY_EVENT"
+            }
         }.getOrElse { "NCI analysis unavailable: " + it.javaClass.simpleName })
         appendLine("UID_CONFIG_PATH_NOTE: No UID write or HAL configuration was attempted by diagnostic collection.")
         if (snapshot["polling_guard_detail"].orEmpty().contains("java_poll_mask_not_zero_0xffffffff")) {

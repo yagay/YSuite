@@ -14,6 +14,14 @@ public class OwnNciLifecyclePolicyTest {
         return new HookConfigStore.OwnNciRfEvidence(source, rfEpoch, pid);
     }
 
+    @Test public void lifecycleWaitsForOemInitializeToSettle() {
+        assertEquals(1800L, OwnNciLifecyclePolicy.remainingSettleMs(1000L, 1000L));
+        assertEquals(1747L, OwnNciLifecyclePolicy.remainingSettleMs(1000L, 1053L));
+        assertEquals(0L, OwnNciLifecyclePolicy.remainingSettleMs(1000L, 2800L));
+        assertEquals(0L, OwnNciLifecyclePolicy.remainingSettleMs(1000L, 3800L));
+        assertEquals(0L, OwnNciLifecyclePolicy.remainingSettleMs(0L, 3800L));
+    }
+
     @Test public void reapplyOnceAfterOffOnWithSameNfcPid() {
         SimConfig s = state(true, "APPLY", "UNVERIFIED", 10, 10, 202);
         assertTrue(OwnNciLifecyclePolicy.shouldRecover(s,

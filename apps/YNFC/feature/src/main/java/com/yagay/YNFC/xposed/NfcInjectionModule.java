@@ -1885,6 +1885,20 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
 
+        // NFC Java READY can precede OPlus' final RF/listen routing setup.
+        // The previous device trace showed recovery 53 ms after READY.
+        // Wait once for OEM initialization to settle without manipulating
+        // Discovery or starting a retry task.
+        persistOwnNciLifecycleStage(expected, "WAITING_FOR_OEM_INIT_SETTLE", reason);
+        while (true) {
+            long remaining = OwnNciLifecyclePolicy.remainingSettleMs(
+                    lastControllerReadyAt, System.currentTimeMillis());
+            if (remaining <= 0L) break;
+            if (lastControllerInvalidAt != invalidAt || controllerInvalid ||
+                    !OwnNciLifecyclePolicy.sameDesiredCommand(expected, readConfig())) return;
+            sleep(Math.min(remaining, 200L));
+        }
+
         // The serial NFC command executor is shared with manual APPLY/STOP.
         // A newly published STOP or switched card supersedes this operation.
         commandExecutor.execute(() -> {
@@ -1907,6 +1921,7 @@ public class NfcInjectionModule extends XposedModule {
             persistOwnNciLifecycleStage(live, "ONE_SHOT_ATTEMPT", reason);
             Log.i(TAG, "OWN_NCI_LIFECYCLE_ONCE generation=" + live.generation +
                     " epoch=" + live.controllerEpoch + " invalidAt=" + invalidAt +
+                    " readyAgeMs=" + (System.currentTimeMillis() - lastControllerReadyAt) +
                     " pid=" + pid + " reason=" + reason);
             if (!tryOwnNciUidWrite(live, true)) {
                 persistOwnNciLifecycleStage(live, "WRITER_NOT_READY_NO_RETRY", reason);
@@ -1937,7 +1952,12 @@ public class NfcInjectionModule extends XposedModule {
         v.put("own_nci_lifecycle_generation", cfg.generation);
         v.put("own_nci_lifecycle_epoch", cfg.controllerEpoch);
         v.put("own_nci_lifecycle_pid", Process.myPid());
-        v.put("own_nci_lifecycle_at", System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        v.put("own_nci_lifecycle_at", now);
+        v.put("own_nci_lifecycle_ready_at", lastControllerReadyAt);
+        v.put("own_nci_lifecycle_invalid_at", lastControllerInvalidAt);
+        v.put("own_nci_lifecycle_ready_age_ms",
+                lastControllerReadyAt > 0 ? Math.max(0L, now - lastControllerReadyAt) : -1L);
         writeValuesWithRetry(v, 4, 75L);
     }
 
