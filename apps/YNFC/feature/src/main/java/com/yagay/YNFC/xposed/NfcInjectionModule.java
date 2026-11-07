@@ -996,6 +996,59 @@ public class NfcInjectionModule extends XposedModule {
     }
 
     /**
+     * The standalone native backend currently has no validated ABI for this
+     * SN220T firmware. Refuse to write any NCI packet, load substitute .so,
+     * or fall back to the OEM wallet/RF hooks. A file profile is *input data*
+     * only, not a guarantee of hardware UID programmability.
+     */
+    private void runNativeNciCommand(SimConfig cfg) {
+        if (!cfg.active) {
+            if (noUidWriteToRestore()) {
+                completeNoOverrideStop(cfg,
+                        "Native NCI backend performed no controller write; NFC reload not required");
+            } else {
+                requestControllerRestart(cfg,
+                        "A previous backend attempted a controller write; stock lifecycle recovery required");
+            }
+            return;
+        }
+        String stage = "NATIVE_HAL_ABI_UNVERIFIED";
+        String detail = "Independent NXP SN220T native NCI/HAL writer not installed: "
+                + "device-specific native library ABI and controller support have not been verified. "
+                + "The generated JSON file alone does not configure NFCID1. "
+                + "No NCI packet was sent; ColorOS HCE and RF backends were not invoked.";
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_action", "APPLY");
+        v.put("command_status", "FAILED");
+        v.put("command_detail", detail);
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", "FAILED");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", stage);
+        v.put("rf_accepted", false);
+        v.put("rf_status", stage);
+        v.put("rf_uid", "");
+        v.put("rf_source", "native-nci-abi-preflight");
+        v.put("rf_pid", Process.myPid());
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_error", detail);
+        v.put("rf_verification", "NOT_ATTEMPTED");
+        v.put("native_probe_stage", stage);
+        v.put("native_probe_pid", Process.myPid());
+        v.put("native_probe_no_controller_write", true);
+        v.put("full_diag_stage", stage);
+        v.put("full_diag_summary", detail);
+        writeValuesWithRetry(v, 20, 100L);
+        completedGeneration = cfg.generation;
+        completedPid = Process.myPid();
+        Log.i(TAG, "NATIVE_NCI_PREFLIGHT generation=" + cfg.generation + " " + stage
+                + " - no HAL/NCI call attempted");
+    }
+
+    /**
      * INTERCEPT never calls the privileged Vendor API or triggers applyRouting.
      * It only arms an in-process replacement for the next natural OEM HCE call.
      */
@@ -1180,9 +1233,11 @@ public class NfcInjectionModule extends XposedModule {
                 }
             }
 
-            // Vendor Type-A owns its controller writes. Never mutate RF_CONFIG_WRITE
-            // on the same command generation or during Vendor stop/recovery.
-            if (cfg.useVendorTypeA()) return chain.proceed();
+            // RF writer interception is strictly owned by RF mode. The native
+            // investigation backend and ColorOS experimental backends must
+            // NEVER inherit RF payload mutation or replay as a fallback.
+            if (cfg.useVendorTypeA() || cfg.useInterceptTypeA() || cfg.useNativeNci())
+                return chain.proceed();
 
             // A terminal failed APPLY is not a pending request. If a later OEM
             // RF write happens naturally, it must not silently apply a UID
@@ -2005,6 +2060,10 @@ public class NfcInjectionModule extends XposedModule {
         Log.i(TAG, "COMMAND " + action + " reason=" + reason + " generation=" + cfg.generation + " uid=" + cfg.uid + " pid=" + pid +
                 " restoreMode=" + restoreMode);
 
+        if (cfg.useNativeNci()) {
+            runNativeNciCommand(cfg);
+            return;
+        }
         if (cfg.useVendorTypeA()) {
             runVendorTypeACommand(cfg, reason);
             return;
