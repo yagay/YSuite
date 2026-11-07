@@ -7,6 +7,7 @@ class HalConfigReadProbeTest {
     @Test fun reportsVisibleConfigFdWithoutClaimingNfcid1WasWritten() {
         val shell = listOf(
             "PROBE_STARTED",
+            "PROBE_UID=0",
             "HAL_PROCESS=android.hardware.nfc2-service.nxp PID=2366",
             "HAL_LOADED_LIB=/vendor/lib64/nfc_nci_nxp_snxxx_v2.so",
             "CONFIG_FD_OBSERVED=android.hardware.nfc2-service.nxp/2366/1 PATH=/data/vendor/nfc/libnfc-mtp-SN220.conf",
@@ -22,7 +23,7 @@ class HalConfigReadProbeTest {
 
     @Test fun noOpenFdCannotProveFileWasNeverRead() {
         val report = HalConfigReadProbe.summarize(
-            "PROBE_STARTED\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\nPROBE_FINISHED"
+            "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\nPROBE_FINISHED"
         )
         assertTrue(report.contains("result=SN220_CONFIG_OPEN_NOT_OBSERVED"))
         assertTrue(report.contains("it may have been closed during earlier initialization"))
@@ -30,9 +31,18 @@ class HalConfigReadProbeTest {
 
     @Test fun differentNfcServiceCannotMasqueradeAsNxpHal() {
         val report = HalConfigReadProbe.summarize(
-            "PROBE_STARTED\nHAL_PROCESS=vendor.oplus.hardware.nfc_aidl-service PID=100\nPROBE_FINISHED"
+            "PROBE_STARTED\nPROBE_UID=0\nHAL_PROCESS=vendor.oplus.hardware.nfc_aidl-service PID=100\nPROBE_FINISHED"
         )
         assertTrue(report.contains("result=NXP_HAL_PROCESS_NOT_OBSERVED"))
+    }
+
+    @Test fun otherServiceFdDoesNotCountAsNxpConfigOpen() {
+        val report = HalConfigReadProbe.summarize(
+            "PROBE_STARTED\\nPROBE_UID=0\\nHAL_PROCESS=android.hardware.nfc2-service.nxp PID=100\\n" +
+            "CONFIG_FD_OBSERVED=vendor.oplus.hardware.nfc_aidl-service/110/1 PATH=/data/vendor/nfc/libnfc-mtp-SN220.conf\\nPROBE_FINISHED"
+        )
+        assertTrue(report.contains("result=SN220_CONFIG_OPEN_NOT_OBSERVED"))
+        assertTrue(report.contains("sn220_nxp_hal_config_fds_observed=0"))
     }
 
     @Test fun rootFailureReportedExplicitly() {
