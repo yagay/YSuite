@@ -89,4 +89,8 @@
     <string name="ynfc_stop">停止</string>
     <string name="ynfc_simulate">模拟</string>
     <string name="ynfc_delete">删除</string>
+    <string name="ynfc_coloros_oem_ack">ColorOS 已接受 UID %1$s 的 NFC-A 参数；请使用另一台 NFC 读卡器核对实际 UID。</string>
+    <string name="ynfc_coloros_oem_stop_failed">ColorOS 原生 NFC-A 模式关闭失败，尚未确认恢复原厂 RF。</string>
+    <string name="ynfc_coloros_oem_command">ColorOS 原生 NFC-A 参数已接受，等待外部读卡器验证（gen=%1$d）。</string>
+    <string name="ynfc_coloros_oem_status">ColorOS 已提交 NFC-A 参数，UID %1$s；需要外部读卡器验证。</string>
 </resources>

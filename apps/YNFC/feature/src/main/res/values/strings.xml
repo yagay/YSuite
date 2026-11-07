@@ -89,4 +89,8 @@
     <string name="ynfc_stop">Stop</string>
     <string name="ynfc_simulate">Emulate</string>
     <string name="ynfc_delete">Delete</string>
+    <string name="ynfc_coloros_oem_ack">ColorOS accepted Type-A parameters for UID %1$s; verify the actual UID with another NFC reader.</string>
+    <string name="ynfc_coloros_oem_stop_failed">ColorOS could not disable its native NFC-A mode. Stock RF restoration is not confirmed.</string>
+    <string name="ynfc_coloros_oem_command">ColorOS Type-A configuration accepted; external reader verification pending (gen=%1$d).</string>
+    <string name="ynfc_coloros_oem_status">ColorOS NFC-A parameters submitted for UID %1$s. Reader verification required.</string>
 </resources>
