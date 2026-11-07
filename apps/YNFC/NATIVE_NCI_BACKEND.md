@@ -101,6 +101,43 @@ The `NATIVE` mode is independent of `INTERCEPT` (OEM HCE), `VENDOR`
 (privileged ColorOS API), and legacy `RF` (Java NCI hook).
 It **never silently falls back** to those implementations.
 
+## Download/YSuite/YNFC/ automatic snapshots
+
+On selected-card Simulate, file preparation happens *before* the NFC Hook
+readiness check. A stale/missing Hook therefore does not prevent safe file
+generation, but it still prevents publishing an APPLY command.
+
+Files saved using the Android MediaStore Downloads API (no storage picker or
+broad storage permission):
+
+- `selected-nfc-a.json` – automatically generated UID / ATQA / SAK profile;
+  application-private copy remains the canonical input sent to ConfigProvider.
+- `original-SN220.conf` – raw bytes copied with Root from the exact source
+  `/data/vendor/nfc/libnfc-mtp-SN220.conf`, never from a guessed ODM revision.
+- `modified-SN220.conf` – **offline preview only**, copied from that exact
+  source. The standalone `NXP_CORE_CONF` is strictly parsed as a complete
+  NCI CORE_SET_CONFIG packet. The preview updates only the existing, uniquely
+  identified zero-length `LA_NFCID1` (`0x33 00`) parameter and the NCI
+  payload-length count. All other configuration keys remain unchanged.
+- `config-status.txt` – PREPARING, FAILED, PROFILE_EXPORTED or
+  PREVIEW_ONLY_NATIVE_WRITE_DISABLED, including source/hash notes and a
+  warning when older preview files should not be trusted.
+- `YNFC-diagnostic_*.txt` – exported program diagnostics under the same folder.
+
+The parser refuses an absent or duplicate `NXP_CORE_CONF`, malformed NCI
+lengths or TLVs, non-empty stock `LA_NFCID1`, invalid UID sizes, oversized
+inputs and non-lossless text decoding. Source and modified SHA-256 are recorded
+in the status file and diagnostic report. Failure blocks new APPLY commands.
+
+**Important:** MediaStore files are convenient exports, **not** the HAL
+runtime configuration. The NFC HAL process generally cannot open shared
+Downloads without appropriate SELinux authorization. No HAL hook is currently
+installed; YNFC does not modify `/data/vendor/nfc`, mount/replace a config
+file, send new native NCI commands or reboot the phone. Do not infer UID
+simulation from successful file creation. The user has explicitly requested
+these values in a publicly visible folder; note that NFC UID/card metadata
+in Downloads may be readable by other applications or backup tools.
+
 ## Current behavior
 
 - `NATIVE` is the initial preferred mode for installations without an explicit
