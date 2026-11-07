@@ -103,6 +103,15 @@ internal class SimulationCoordinator(
                 onDone(state, YLocale.text(R.string.ynfc_sim_stop_no_override))
                 return@execute
             }
+            if (state.commandGeneration == generation && state.handledGeneration == generation &&
+                state.commandStatus == "FAILED" &&
+                state.fullDiagStage == "TYPE_A_DISABLE_REJECTED") {
+                // The OEM service did not disable persistent Type-A mode. Restarting the
+                // NFC process is not sufficient proof of stock restoration.
+                AppLogger.i("SIMULATION: ColorOS Type-A disable rejected; refuse false stock confirmation")
+                onDone(state, YLocale.text(R.string.ynfc_type_a_disable_failed))
+                return@execute
+            }
             if (SimulationResultPolicy.isStopSuccess(state, generation)) {
                 AppLogger.i("SIMULATION: STOP verified stock without restart generation=$generation")
                 onDone(state, YLocale.text(R.string.ynfc_sim_stop_lifecycle_restored))
