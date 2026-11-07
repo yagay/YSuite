@@ -21,6 +21,10 @@ internal object NfcSharedConfigManager {
         val appContext = context.applicationContext
         val prefs = appContext.getSharedPreferences(SNAPSHOT_PREFS, Context.MODE_PRIVATE)
         prefs.edit().putString("status", "PREPARING")
+            .putString("error", "")
+            .putString("source", "")
+            .putString("stock_sha256", "")
+            .putString("modified_sha256", "")
             .putLong("prepared_at_ms", System.currentTimeMillis()).apply()
         return try {
             // The private profile remains the canonical command input.
@@ -32,6 +36,7 @@ internal object NfcSharedConfigManager {
             )
 
             if (backend == "NATIVE") {
+                publishStatus(appContext, "PREPARING", "SN220 source snapshot and validation in progress")
                 val original = readStockSn220(rootShell)
                 val preview = Sn220ConfigPreview.preview(original, prepared.uid)
                 NfcPublicDownloads.write(
@@ -67,18 +72,37 @@ internal object NfcSharedConfigManager {
                 AppLogger.i("SN220_PROFILE exported native offline preview " +
                     "stockSha=" + preview.originalHash + " previewSha=" + preview.modifiedHash)
             } else {
+                publishStatus(appContext, "PROFILE_EXPORTED",
+                    "Only the selected JSON was exported. Previous SN220 previews are not active.")
                 prefs.edit().putString("status", "PROFILE_EXPORTED")
                     .putString("folder", NfcPublicDownloads.RELATIVE_PATH).apply()
                 AppLogger.i("NFC_PROFILE saved JSON to " + NfcPublicDownloads.RELATIVE_PATH)
             }
             prepared
         } catch (e: Exception) {
+            val safeError = e.javaClass.simpleName + ": " + (e.message ?: "unknown").take(200)
             prefs.edit().putString("status", "FAILED")
-                .putString("error", e.javaClass.simpleName + ": " + (e.message ?: "unknown").take(200))
+                .putString("error", safeError)
                 .apply()
+            runCatching {
+                publishStatus(appContext, "FAILED",
+                    "The current preparation failed; do not use any older exported SN220 preview. " +
+                        safeError)
+            }
             AppLogger.e("SN220_PROFILE preparation failed (no native command published)", e)
             throw e
         }
+    }
+
+    private fun publishStatus(context: Context, status: String, detail: String) {
+        val message = "status=" + status + "\n" +
+            "folder=" + NfcPublicDownloads.RELATIVE_PATH + "\n" +
+            "detail=" + detail + "\n" +
+            "native_hal_download_readable=NOT_VERIFIED\n" +
+            "native_config_interception=NOT_INSTALLED\n"
+        NfcPublicDownloads.write(
+            context, "config-status.txt", message.toByteArray(StandardCharsets.UTF_8), "text/plain"
+        )
     }
 
     private fun readStockSn220(rootShell: RootShell): ByteArray {
