@@ -198,3 +198,27 @@ backend: it would require the next HAL initialization to apply another UID.
 In particular, a zero-length 0x33 soft restore must not be treated as a
 successful stock restoration without a matching NCI response and actual
 reader verification.
+
+## Modern NFCID1 one-shot restoration after OFF/ON and boot
+
+The current SN220T `setNciConfig(0x33)` call returns `void`, so a
+manually submitted command remains terminal `UNVERIFIED`, not `SUCCESS`.
+The older lifecycle recovery was only eligible for legacy `SUCCESS`
+commands. The new bridge accepts just a selected, terminal
+`UNVERIFIED` RF `APPLY` whose prior RF source was `own-nci-0x33`,
+where a real NFC controller invalidation occurred and the RF epoch or PID
+has become stale.
+
+The bridge waits for Android NFC to become enabled after initialization
+and, on the serialized command executor, performs **one** existing
+`disableDiscovery -> setNciConfig(0x33) -> applyRouting(true)` write
+per controller invalidation. A newer manual STOP or card switch cancels
+a queued recovery. Native throws, missing writer and rejected writes are
+never auto-retried in that epoch. Normal Discovery/EFDM callbacks have
+no effect, and no NFC process reboot or HAL injection is introduced.
+
+The diagnostic snapshot includes `own_nci_lifecycle_stage`, `reason`,
+`generation`, `epoch`, `pid`, and `at`. A lifecycle request only proves
+Java dispatched an NCI command; it does not certify NFCC acceptance or
+the on-air UID. Testing on real SN220T after NFC OFF/ON and device reboot
+is required; this change has not been hardware-validated yet.

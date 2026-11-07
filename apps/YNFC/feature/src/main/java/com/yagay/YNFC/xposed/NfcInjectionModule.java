@@ -117,6 +117,10 @@ public class NfcInjectionModule extends XposedModule {
     // Natural startup writes are still rewritten, while controller-ready exact replay is
     // the deterministic proof point for OFF -> ON recovery.
     private volatile boolean recoveryWriteArmed;
+    // Most recent real controller invalidation that received an NFCID1 write.
+    // A natural RF_DISCOVER cycle must never trigger another one.
+    private volatile long ownNciLastWriteInvalidAt;
+    private volatile long ownNciLastWriteGeneration = Long.MIN_VALUE;
     private volatile String earlyHookFingerprint = "";
     private volatile long lastTriggeredGeneration = Long.MIN_VALUE;
     private volatile long completedGeneration = Long.MIN_VALUE;
@@ -1730,6 +1734,13 @@ public class NfcInjectionModule extends XposedModule {
             return;
         }
         int pid = Process.myPid();
+        if (cfg.active && "UNVERIFIED".equals(cfg.commandStatus)) {
+            // The modern native setNciConfig(0x33) method returns void:
+            // its previously submitted request is UNVERIFIED, not SUCCESS.
+            // Do not run legacy multi-retry RF/share-mode fallback here.
+            runOwnNciLifecycleRecovery(cfg, reason);
+            return;
+        }
         if (!cfg.initialized || !cfg.active || cfg.uid == null || cfg.generation <= 0L ||
                 cfg.handledGeneration != cfg.generation || !"SUCCESS".equals(cfg.commandStatus)) return;
         String uidHex = normalizeUid(cfg.uid);
@@ -1846,6 +1857,90 @@ public class NfcInjectionModule extends XposedModule {
         }
     }
 
+    /**
+     * A true controller OFF -> ON or service-process restart clears the
+     * transient NFC-A identity. Queue exactly ONE existing single-shot
+     * pause -> setNciConfig(0x33) -> resume sequence per invalidation edge.
+     * No extra NFC service restart, RF discovery hook or retry timer.
+     */
+    private void runOwnNciLifecycleRecovery(SimConfig expected, String reason) {
+        final int pid = Process.myPid();
+        final long invalidAt = lastControllerInvalidAt;
+        HookConfigStore.OwnNciRfEvidence stored = configStore.readOwnNciRfEvidence();
+        if (!OwnNciLifecyclePolicy.shouldRecover(expected, stored, pid,
+                invalidAt, ownNciLastWriteInvalidAt, ownNciLastWriteGeneration)) return;
+
+        // The native initialize() READY signal can precede isNfcEnabled().
+        // Wait for the regular system initialization; do not toggle NFC.
+        boolean ready = false;
+        for (int attempt = 0; attempt < 16; attempt++) {
+            if (!OwnNciLifecyclePolicy.sameDesiredCommand(expected, readConfig())) return;
+            if (isOwnNciServiceEnabled()) { ready = true; break; }
+            sleep(250L);
+        }
+        if (!ready) {
+            persistOwnNciLifecycleStage(expected, "WAITING_FOR_NFC_ON", reason);
+            Log.i(TAG, "OWN_NCI_LIFECYCLE_SKIP reason=NFC_NOT_ON generation="
+                    + expected.generation + " pid=" + pid);
+            return;
+        }
+
+        // The serial NFC command executor is shared with manual APPLY/STOP.
+        // A newly published STOP or switched card supersedes this operation.
+        commandExecutor.execute(() -> {
+            SimConfig live = readConfig();
+            HookConfigStore.OwnNciRfEvidence current = configStore.readOwnNciRfEvidence();
+            if (!OwnNciLifecyclePolicy.sameDesiredCommand(expected, live) ||
+                    !OwnNciLifecyclePolicy.shouldRecover(live, current, pid,
+                            invalidAt, ownNciLastWriteInvalidAt, ownNciLastWriteGeneration) ||
+                    lastControllerInvalidAt != invalidAt || controllerInvalid ||
+                    !isOwnNciServiceEnabled()) return;
+            synchronized (this) {
+                if (lastControllerInvalidAt != invalidAt ||
+                        (ownNciLastWriteGeneration == live.generation &&
+                         ownNciLastWriteInvalidAt >= invalidAt)) return;
+                // A native exception may occur after the NFCC was changed.
+                // Mark before the attempt to rule out automatic retries.
+                ownNciLastWriteGeneration = live.generation;
+                ownNciLastWriteInvalidAt = invalidAt;
+            }
+            persistOwnNciLifecycleStage(live, "ONE_SHOT_ATTEMPT", reason);
+            Log.i(TAG, "OWN_NCI_LIFECYCLE_ONCE generation=" + live.generation +
+                    " epoch=" + live.controllerEpoch + " invalidAt=" + invalidAt +
+                    " pid=" + pid + " reason=" + reason);
+            if (!tryOwnNciUidWrite(live, true)) {
+                persistOwnNciLifecycleStage(live, "WRITER_NOT_READY_NO_RETRY", reason);
+                Log.w(TAG, "OWN_NCI_LIFECYCLE_SKIP reason=WRITER_NOT_READY_NO_RETRY");
+            }
+        });
+    }
+
+    private boolean isOwnNciServiceEnabled() {
+        try {
+            if (nfcClassLoader == null) return false;
+            Class<?> cls = Class.forName("com.android.nfc.NfcService", false, nfcClassLoader);
+            Method instance = cls.getDeclaredMethod("getInstance");
+            instance.setAccessible(true);
+            Object service = instance.invoke(null);
+            return service != null &&
+                    Boolean.TRUE.equals(cls.getMethod("isNfcEnabled").invoke(service));
+        } catch (Throwable absent) {
+            return false;
+        }
+    }
+
+    private void persistOwnNciLifecycleStage(SimConfig cfg, String stage, String reason) {
+        ContentValues v = new ContentValues();
+        v.put("state_generation", cfg.generation);
+        v.put("own_nci_lifecycle_stage", stage);
+        v.put("own_nci_lifecycle_reason", reason);
+        v.put("own_nci_lifecycle_generation", cfg.generation);
+        v.put("own_nci_lifecycle_epoch", cfg.controllerEpoch);
+        v.put("own_nci_lifecycle_pid", Process.myPid());
+        v.put("own_nci_lifecycle_at", System.currentTimeMillis());
+        writeValuesWithRetry(v, 4, 75L);
+    }
+
     private boolean awaitLateReplayAvailability(long generation, int pid) {
         long end = System.currentTimeMillis() + LIFECYCLE_FINAL_REPLAY_GRACE_MS;
         while (System.currentTimeMillis() < end) {
@@ -1952,6 +2047,12 @@ public class NfcInjectionModule extends XposedModule {
             completedGeneration = cfg.generation;
             completedPid = pid;
             lastTriggeredGeneration = cfg.generation;
+            // READY may fire before the Provider and its observer become
+            // available on boot. One startup backup closes that gap.
+            if ("startup".equals(reason) && cfg.active &&
+                    "UNVERIFIED".equals(cfg.commandStatus)) {
+                scheduleLifecycleRecovery("process_startup");
+            }
             if ("SUCCESS".equals(cfg.commandStatus) && cfg.active) {
                 if (!isLifecycleVerified(cfg.generation, pid, cfg.uid)) {
                     boolean suppressSelfRetry = "provider_change".equals(reason) &&
@@ -2034,6 +2135,10 @@ public class NfcInjectionModule extends XposedModule {
      * Because JNI returns void, dispatch is NEVER counted as verified RF success.
      */
     private boolean tryOwnNciUidWrite(SimConfig cfg) {
+        return tryOwnNciUidWrite(cfg, false);
+    }
+
+    private boolean tryOwnNciUidWrite(SimConfig cfg, boolean lifecycleRecovery) {
         if (!cfg.initialized || !cfg.active || cfg.useVendorTypeA()
                 || cfg.useInterceptTypeA() || cfg.useNativeNci()) return false;
         if (nfcClassLoader == null) return false;
@@ -2082,6 +2187,21 @@ public class NfcInjectionModule extends XposedModule {
             stopDiscovery.invoke(host);
             Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_RETURN generation=" + cfg.generation);
             setter.invoke(host, 0x33, uid.clone(), uid.length, true);
+            synchronized (this) {
+                ownNciLastWriteGeneration = cfg.generation;
+                ownNciLastWriteInvalidAt = Math.max(
+                        ownNciLastWriteInvalidAt, lastControllerInvalidAt);
+            }
+            if (lifecycleRecovery) {
+                // JNI is void; keep the original user command UNVERIFIED.
+                // Never forge RF success or mutate a terminal generation.
+                persistOwnNciLifecycleStage(cfg, "WRITE_REQUESTED_RF_UNVERIFIED",
+                        "controller_reinitialized");
+                Log.i(TAG, "OWN_NCI_LIFECYCLE_WRITE_REQUESTED generation="
+                        + cfg.generation + " epoch=" + cfg.controllerEpoch
+                        + " uidBytes=" + uid.length + " pid=" + Process.myPid());
+                return true;
+            }
             ContentValues v = baseHookState();
             v.put("state_generation", cfg.generation);
             v.put("command_consumed_generation", cfg.generation);
@@ -2116,10 +2236,15 @@ public class NfcInjectionModule extends XposedModule {
             Throwable cause = err.getCause() == null ? err : err.getCause();
             Log.e(TAG, "OWN_NCI_UID_EXCEPTION generation=" + cfg.generation, cause);
             if (invoked) {
-                failRfTriggerCommand(cfg, new NfcProcessVendorController.Result(false,
-                        "OWN_NCI_NATIVE_EXCEPTION",
-                        cause.getClass().getSimpleName() + ": " + cause.getMessage()
-                        + "; recover NFC controller via STOP", null));
+                if (lifecycleRecovery) {
+                    persistOwnNciLifecycleStage(cfg, "WRITE_FAILED_NO_RETRY",
+                            cause.getClass().getSimpleName());
+                } else {
+                    failRfTriggerCommand(cfg, new NfcProcessVendorController.Result(false,
+                            "OWN_NCI_NATIVE_EXCEPTION",
+                            cause.getClass().getSimpleName() + ": " + cause.getMessage()
+                            + "; recover NFC controller via STOP", null));
+                }
                 return true;
             }
             return false;
