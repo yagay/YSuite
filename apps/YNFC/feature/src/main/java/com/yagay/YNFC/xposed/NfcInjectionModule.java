@@ -66,6 +66,9 @@ public class NfcInjectionModule extends XposedModule {
     private final ExecutorService pollingExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "YNFC-PollingGuard"));
     private final ExecutorService lifecycleExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "NfcUIDSim-Lifecycle"));
     private final ExecutorService earlyReplayExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "NfcUIDSim-EarlyReplay"));
+    // Read-only ColorOS inspection runs on a separate daemon, never on a Binder/NCI thread.
+    private final ExecutorService colorOsObserveExecutor = Executors.newSingleThreadExecutor(
+            r -> daemon(r, "YNFC-ColorOS-Observe"));
     private final HookDiscoveryEngine discoveryEngine = new HookDiscoveryEngine();
     private final RfPayloadEngine payloadEngine = new RfPayloadEngine();
     private final HookProfileStore profileStore = new HookProfileStore();
@@ -676,6 +679,12 @@ public class NfcInjectionModule extends XposedModule {
         // snapshots from a previous PID are not usable RF evidence.
         inspectUidEntryPoints(cl, pid);
 
+        // Install passive observers on the exact methods present in ColorOS 17's
+        // NFC Service APK. Never invoke Type-A configuration or vendor NCI commands.
+        // The separate read-only region preflight invokes only pure OEM getters.
+        inspectColorOsRegionSupport(cl, pid);
+        installColorOsReadOnlyHooks(cl, pid);
+
         // Vendor capability discovery is informational; the user-selected RF
         // backend continues to own only the UID (NCI LA_NFCID1) mutation.
         NfcProcessVendorController.Result typeA = vendorController.probeTypeA();
@@ -759,6 +768,157 @@ public class NfcInjectionModule extends XposedModule {
                 learningMode ? "RF_CONFIG_WRITE learning mode; highest-score target owns mutation" : "RF_CONFIG_WRITE verified profile ready",
                 activeTarget == null ? null : activeTarget.fingerprint());
         startCommandBridge(app, pid);
+    }
+
+    /**
+     * ColorOS 17 NFC Service 17.0.0.260114.apk exposes these methods:
+     * OplusNfcAdapterService#setHceTypeAConfig(boolean,atqa,sak,uid),
+     * HceAccessCard#doSetHceTypeAConfig(boolean,atqa,sak,uid),
+     * NfcChipDeviceImpl#doSetHceTypeAConfig(boolean,atqa,sak,uid),
+     * NfcFeatureFetcher#isSupportHceAccessCardByRegion().
+     * Observer callbacks MUST invoke the original exactly once and never alter
+     * arguments, results or exceptions. They only record execution evidence.
+     */
+    private void installColorOsReadOnlyHooks(ClassLoader cl, int pid) {
+        int installed = 0;
+        installed += hookColorOsReadOnly(cl, "com.oplus.nfc.OplusNfcAdapterService",
+                "setHceTypeAConfig", "service",
+                boolean.class, byte[].class, byte[].class, byte[].class);
+        installed += hookColorOsReadOnly(cl, "com.oplus.nfc.hceaccesscard.HceAccessCard",
+                "doSetHceTypeAConfig", "hce",
+                boolean.class, byte[].class, byte[].class, byte[].class);
+        installed += hookColorOsReadOnly(cl, "com.oplus.nfc.common.NfcChipDeviceImpl",
+                "doSetHceTypeAConfig", "chip",
+                boolean.class, byte[].class, byte[].class, byte[].class);
+        installed += hookColorOsReadOnly(cl, "com.oplus.nfc.NfcFeatureFetcher",
+                "isSupportHceAccessCardByRegion", "region");
+        // The NCI vendor sender is a general-purpose Android API. Observe it
+        // only when called *from* HceAccessCard's Type-A method on this thread.
+        installed += hookColorOsReadOnly(cl, "android.nfc.NfcAdapter",
+                "sendVendorNciMessage", "nci",
+                int.class, int.class, int.class, byte[].class);
+        final int count = installed;
+        colorOsObserveExecutor.execute(() -> {
+            ContentValues v = baseHookState();
+            v.put("coloros_observe_pid", pid);
+            v.put("coloros_observe_hook_count", count);
+            v.put("coloros_observe_status", count > 0 ? "READ_ONLY_HOOKS_INSTALLED" : "METHODS_UNAVAILABLE");
+            v.put("coloros_observe_note", "No Type-A commands were initiated by the observer; "
+                    + "absence of a callback is not proof of absent native HAL traffic");
+            writeValuesWithRetry(v, 5, 75L);
+        });
+    }
+
+    private int hookColorOsReadOnly(ClassLoader cl, String className, String methodName,
+                                    String key, Class<?>... parameters) {
+        try {
+            Class<?> cls = Class.forName(className, false, cl);
+            Method method = cls.getDeclaredMethod(methodName, parameters);
+            method.setAccessible(true);
+            hook(method).intercept(chain -> {
+                // A native vendor message can serve several OEM functions.
+                // Do not attribute an unrelated message to Type-A configuration.
+                boolean relevant = !"nci".equals(key) || isColorOsTypeACallOnStack();
+                if (!relevant || HookConfigStore.isPassive()) return chain.proceed();
+                Object outcome = null;
+                Throwable failure = null;
+                try {
+                    outcome = chain.proceed();
+                    return outcome;
+                } catch (Throwable error) {
+                    failure = error;
+                    throw error;
+                } finally {
+                    final String result = failure == null
+                            ? readOnlyResult(outcome) : "THREW_" + failure.getClass().getSimpleName();
+                    final boolean success = failure == null;
+                    // Do not record raw UID/ATQA/SAK, NCI payload, or arbitrary OEM bytes.
+                    // Queued writes are non-blocking and cannot change the Binder result.
+                    try {
+                        colorOsObserveExecutor.execute(() ->
+                                persistColorOsReadOnlyEvent(key, result, success));
+                    } catch (Throwable ignored) {
+                        // Failed telemetry must never affect the NFC service.
+                    }
+                }
+            });
+            Log.i(TAG, "COLOROS_READ_ONLY_HOOK installed=" + className + "#" + methodName);
+            return 1;
+        } catch (Throwable error) {
+            Log.i(TAG, "COLOROS_READ_ONLY_HOOK unavailable=" + className + "#" + methodName
+                    + " reason=" + error.getClass().getSimpleName());
+            return 0;
+        }
+    }
+
+    private static boolean isColorOsTypeACallOnStack() {
+        for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
+            if ("com.oplus.nfc.hceaccesscard.HceAccessCard".equals(frame.getClassName())
+                    && "doSetHceTypeAConfig".equals(frame.getMethodName())) return true;
+        }
+        return false;
+    }
+
+    private static String readOnlyResult(Object value) {
+        if (value instanceof Boolean) return (Boolean) value ? "TRUE" : "FALSE";
+        if (value instanceof Integer) return "INT_" + value;
+        if (value == null) return "VOID_OR_NULL";
+        // Never serialize arbitrary object.toString() into diagnostics.
+        return "RETURNED_" + value.getClass().getSimpleName();
+    }
+
+    private void persistColorOsReadOnlyEvent(String key, String result, boolean completed) {
+        ContentValues v = baseHookState();
+        v.put("coloros_observe_" + key + "_pid", Process.myPid());
+        v.put("coloros_observe_" + key + "_at_ms", System.currentTimeMillis());
+        v.put("coloros_observe_" + key + "_result", result);
+        v.put("coloros_observe_" + key + "_completed", completed);
+        writeValuesWithRetry(v, 4, 75L);
+    }
+
+    /**
+     * Read-only availability inspection. The OEM region getter and Android
+     * read-only system property are invoked, but NO Type-A configuration,
+     * permission grant, routing change or NFC restart is performed.
+     * A region getter's boolean is a policy hint, not an RF UID proof.
+     */
+    private void inspectColorOsRegionSupport(ClassLoader cl, int pid) {
+        String cn = "UNAVAILABLE";
+        String supported = "UNAVAILABLE";
+        String property = "UNAVAILABLE";
+        try {
+            Class<?> cls = Class.forName("com.oplus.nfc.util.NfcRegionUtils", false, cl);
+            Method getter = cls.getDeclaredMethod("isRegionCN");
+            getter.setAccessible(true);
+            cn = readOnlyResult(getter.invoke(null));
+        } catch (Throwable error) {
+            cn = "ERROR_" + error.getClass().getSimpleName();
+        }
+        try {
+            Class<?> cls = Class.forName("android.os.SystemProperties");
+            Method getter = cls.getDeclaredMethod("getBoolean", String.class, boolean.class);
+            getter.setAccessible(true);
+            property = readOnlyResult(getter.invoke(null, "ro.oplus.nfc.hce_accesscard", false));
+        } catch (Throwable error) {
+            property = "ERROR_" + error.getClass().getSimpleName();
+        }
+        try {
+            Class<?> cls = Class.forName("com.oplus.nfc.NfcFeatureFetcher", false, cl);
+            Method getter = cls.getDeclaredMethod("isSupportHceAccessCardByRegion");
+            getter.setAccessible(true);
+            supported = readOnlyResult(getter.invoke(null));
+        } catch (Throwable error) {
+            supported = "ERROR_" + error.getClass().getSimpleName();
+        }
+        ContentValues v = baseHookState();
+        v.put("coloros_region_probe_pid", pid);
+        v.put("coloros_region_cn", cn);
+        v.put("coloros_region_hce_property", property);
+        v.put("coloros_region_support", supported);
+        v.put("coloros_region_source", "OEM getters only; no Type-A command invoked");
+        writeValuesWithRetry(v, 5, 75L);
+        Log.i(TAG, "COLOROS_REGION_READ_ONLY pid=" + pid
+                + " cn=" + cn + " property=" + property + " support=" + supported);
     }
 
     private void installRfHook(ClassLoader cl, int pid, HookTarget target) throws Exception {
