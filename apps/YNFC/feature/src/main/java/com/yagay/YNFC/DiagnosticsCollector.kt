@@ -85,6 +85,21 @@ class DiagnosticsCollector(
         appendLine("writer_score=${snapshot["rf_uid_writer_payload_score"] ?: "0"}")
         appendLine("writer_observed_at=${snapshot["rf_uid_writer_observed_at"] ?: "0"}")
         appendLine("NOTE: A writer invocation or a native return is not proof of the UID seen by an external reader.")
+        // No UID writer callback was observed in this firmware's Java NFC
+        // service. A compact HAL inventory helps distinguish an OEM-native
+        // NFC control path from an inactive Java hook. Read-only: no NFC
+        // toggle, Binder transaction, controller write or service restart.
+        appendLine("--- NFC HAL / NATIVE PATH INVENTORY (READ ONLY) ---")
+        appendLine(runRoot("""
+            echo '[HAL processes]'
+            ps -A 2>/dev/null | grep -i -E 'android.hardware.nfc|vendor.oplus.hardware.nfc|nfc-hal|nfc-service' | head -n 16 || true
+            echo '[HAL service registrations]'
+            service list 2>/dev/null | grep -i -E 'nfc|nxp' | head -n 24 || true
+            echo '[NFC properties]'
+            getprop 2>/dev/null | grep -i -E 'nfc|nxp|st21|st54|sn100|sn220' | head -n 35 || true
+            echo '[NFC library filenames]'
+            ls -1 /vendor/lib64/*nfc* /vendor/lib64/hw/*nfc* /system/lib64/*nfc* 2>/dev/null | head -n 36 || true
+        """.trimIndent(), 10, 18_000))
         appendLine("--- SAVED CARD PARAMETERS ---")
         runCatching { cardRepository.load() }.getOrDefault(emptyList()).forEach { card ->
             appendLine("card uid=${card.uid} sak=${card.sak} atqa=${card.atqa}")
@@ -115,7 +130,7 @@ class DiagnosticsCollector(
         })
         appendLine("--- ROOT LOGCAT NFC/LSPOSED/COLOROS ---")
         appendLine(runRoot("""
-            logcat -b all -d -t 2200 -v threadtime 2>/dev/null | grep -i -E 'YNFC|NfcUIDSim|VENDOR_TYPE_A|NfcService|NxpNfc|STNfc|NfcAdaptation|RFPROBE|NFCID1|LSPosed|NfcHal|com.android.nfc' | tail -n 1400 || true
+            logcat -b all -d -t 2200 -v threadtime 2>/dev/null | grep -i -E 'YNFC|NfcUIDSim|VENDOR_TYPE_A|NfcService|NxpNfc|STNfc|NfcAdaptation|RFPROBE|NFCID1|NfcHal|com.android.nfc|LSPosed.*(YNFC|NfcUIDSim|com.yagay.YSuite)' | tail -n 800 || true
         """.trimIndent(), 12, 700_000))
         appendLine("--- EXPORT COMPLETE ---")
     }
