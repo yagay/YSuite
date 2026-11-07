@@ -19,6 +19,8 @@ final class SimConfig {
 
     boolean useVendorTypeA() { return "VENDOR".equals(backend); }
     boolean useInterceptTypeA() { return "INTERCEPT".equals(backend); }
+    /** Native NFC/NCI uses an independent backend, never an OEM wallet/HCE fallback. */
+    boolean useNativeNci() { return "NATIVE".equals(backend); }
 
     SimConfig(boolean initialized, boolean active, String uid, String sak, String atqa,
               String backend, boolean diagnostics, long generation,
@@ -30,7 +32,8 @@ final class SimConfig {
         this.sak = sak;
         this.atqa = atqa;
         this.backend = "VENDOR".equals(backend) ? "VENDOR" :
-                ("INTERCEPT".equals(backend) ? "INTERCEPT" : "RF");
+                ("INTERCEPT".equals(backend) ? "INTERCEPT" :
+                ("NATIVE".equals(backend) ? "NATIVE" : "RF"));
         this.diagnostics = diagnostics;
         this.generation = generation;
         this.consumedGeneration = consumedGeneration;
