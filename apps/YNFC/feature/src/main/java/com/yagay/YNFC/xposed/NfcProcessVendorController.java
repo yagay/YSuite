@@ -1,6 +1,8 @@
 package com.yagay.YNFC.xposed;
 
 import android.os.Build;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.IBinder;
 import java.util.Locale;
 import android.os.Parcel;
@@ -22,6 +24,8 @@ final class NfcProcessVendorController {
     private static final String OPLUS_SERVICE_NAME = "oplus_nfc_service";
     private static final String OPLUS_DESCRIPTOR = "com.oplus.nfc.IVendorNfcAdapter";
     private static final String OPLUS_STUB = "com.oplus.nfc.IVendorNfcAdapter$Stub";
+    // Confirmed in NFC Service 17: setHceTypeAConfig enforces this OEM permission.
+    private static final String OPLUS_NFC_ACCESS_PERMISSION = "com.oplus.permission.safe.NFC";
     private static final int STARTUP_RETRY_COUNT = 30;
     private static final long STARTUP_RETRY_DELAY_MS = 100L;
     private static final String VENDOR_CLIENT = "com.vendor.nfc.VendorNfcAdapter";
@@ -54,11 +58,18 @@ final class NfcProcessVendorController {
     Result probeTypeA() {
         try {
             StringBuilder trace = new StringBuilder();
+            Boolean oplusPermission = checkOplusNfcAccessPermission(trace);
             IBinder oplus = findVerifiedOplusBinder(trace);
             if (oplus != null) {
                 Object local = oplus.queryLocalInterface(OPLUS_DESCRIPTOR);
                 Object proxy = asInterface(OPLUS_STUB, oplus);
                 if (hasTypeAApi(local) || hasTypeAApi(proxy)) {
+                    if (Boolean.FALSE.equals(oplusPermission)) {
+                        return new Result(false, "TYPE_A_PERMISSION_DENIED",
+                                "ColorOS Type-A AIDL method exists, but NFC process lacks "
+                                        + OPLUS_NFC_ACCESS_PERMISSION + "; " + trace,
+                                OPLUS_DESCRIPTOR);
+                    }
                     return new Result(true, "TYPE_A_OPLUS_AIDL_PRESENT",
                             "ColorOS native Type-A method found; controller/reader unverified; " + trace,
                             OPLUS_DESCRIPTOR);
@@ -136,6 +147,13 @@ final class NfcProcessVendorController {
             Class<?>[] types = new Class<?>[]{boolean.class, byte[].class, byte[].class, byte[].class};
             IBinder oplus = findVerifiedOplusBinder(trace);
             if (oplus != null) {
+                Boolean oplusPermission = checkOplusNfcAccessPermission(trace);
+                if (Boolean.FALSE.equals(oplusPermission)) {
+                    return new Result(false, "TYPE_A_PERMISSION_DENIED",
+                            "ColorOS enforces " + OPLUS_NFC_ACCESS_PERMISSION
+                                    + " before Type-A config; NFC process has no grant; " + trace,
+                            OPLUS_DESCRIPTOR);
+                }
                 Object local = oplus.queryLocalInterface(OPLUS_DESCRIPTOR);
                 Object proxy = asInterface(OPLUS_STUB, oplus);
                 Boolean accepted = invokeBooleanMethod(local, "setHceTypeAConfig", types, args);
@@ -195,6 +213,24 @@ final class NfcProcessVendorController {
      * Shared vendor discovery for Type-A probe and execution. Never trust an
      * OEM transaction unless the returned interface descriptor is exact.
      */
+    /** Read-only permission preflight; never grants or bypasses OEM permissions. */
+    private static Boolean checkOplusNfcAccessPermission(StringBuilder trace) {
+        Context context = NfcHookUtils.currentContext();
+        if (context == null) {
+            appendTrace(trace, "oplus-safe-nfc-permission=context-unavailable");
+            return null;
+        }
+        try {
+            boolean granted = context.checkSelfPermission(OPLUS_NFC_ACCESS_PERMISSION)
+                    == PackageManager.PERMISSION_GRANTED;
+            appendTrace(trace, "oplus-safe-nfc-permission=" + (granted ? "GRANTED" : "DENIED"));
+            return granted;
+        } catch (Throwable error) {
+            appendTrace(trace, "oplus-safe-nfc-permission=" + error.getClass().getSimpleName());
+            return null;
+        }
+    }
+
     /**
      * A read-only ColorOS service lookup. Both Android ServiceManager APIs are
      * consulted because some firmware exposes checkService but not getService
