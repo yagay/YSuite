@@ -65,6 +65,7 @@
     <string name="ynfc_sim_command_superseded">模拟请求被更新的命令替代</string>
     <string name="ynfc_sim_apply_failure">模拟失败 · %1$s：%2$s</string>
     <string name="ynfc_sim_waiting_rf">模拟请求已发送 · 等待 RF UID 确认</string>
+    <string name="ynfc_wallet_payment_warning">YNFC UID 模拟开启期间，钱包 NFC 刷卡及安全元件支付可能受影响。付款前请先停止模拟，确认 NFC 已恢复原厂状态。</string>
     <string name="ynfc_own_nci_unverified">已使用原生 NCI 0x33 直接请求自定义 NFC-A UID。接口没有成功回执，请用外部读卡器核实实际 UID；停止模拟时恢复 NFC 服务。</string>
     <string name="ynfc_sim_stop_lifecycle_restored">模拟已停止 · 原厂 RF 已由 NFC 进程恢复</string>
     <string name="ynfc_sim_stop_superseded">停止请求已被更新的命令替代</string>

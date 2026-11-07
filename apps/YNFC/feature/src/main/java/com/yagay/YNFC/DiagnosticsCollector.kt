@@ -177,6 +177,8 @@ class DiagnosticsCollector(
         appendLine("hal_implementation_hash_status=" +
             halProbePrefs.getString("sha_match", "NOT_RUN"))
         appendLine("hal_config_interception=NOT_INSTALLED")
+        appendLine("hal_native_nci_hook=NOT_INSTALLED_READ_ONLY_LOGCAT_OBSERVER")
+        appendLine("wallet_protection=UID_WRITES_ONLY_ON_EXPLICIT_YNFC_SIMULATION; STOP_AND_RESTORE_BEFORE_CONTACTLESS_PAYMENT")
         val ownNciStatus = snapshot["rf_status"].orEmpty()
         val ownNciRequested = snapshot["rf_source"] == "own-nci-0x33" &&
             ownNciStatus in setOf("OWN_NCI_UID_REQUESTED", "OWN_NCI_UID_REJECTED")

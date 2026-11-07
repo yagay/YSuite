@@ -143,14 +143,21 @@ internal object NciHalTrace {
         } else emptyList()
         val laterPending = ArrayDeque<Boolean>()
         var laterUidTx = 0
+        var laterUidEmptyTx = 0
+        var laterUidFixedLengthTx = 0
         var laterUidAccepted = 0
         var laterUidRejected = 0
         var laterUidOther = 0
         for (frame in afterApply) {
             if (frame.tx && frame.kind == 0x20 && frame.gid == 0 && frame.oid == 2) {
-                val isUid = uidParameterLength(frame.data) != null
+                val uidLen = uidParameterLength(frame.data)
+                val isUid = uidLen != null
                 laterPending.addLast(isUid)
-                if (isUid) laterUidTx++
+                if (isUid) {
+                    laterUidTx++
+                    if (uidLen == 0) laterUidEmptyTx++
+                    else if (uidLen in listOf(4, 7, 10)) laterUidFixedLengthTx++
+                }
             } else if (!frame.tx && frame.kind == 0x40 && frame.gid == 0 && frame.oid == 2 &&
                 laterPending.isNotEmpty()) {
                 if (laterPending.removeFirst()) {
@@ -187,7 +194,11 @@ internal object NciHalTrace {
                 " RF_SET_LISTEN_MODE_ROUTING_TX=" + routing +
                 " RF_DISCOVER_TX=" + discover)
             rfHistory.forEach { appendLine(it) }
+            appendLine("HAL_OBSERVATION_SOURCE=EXISTING_NXP_LOGCAT_ONLY")
+            appendLine("HAL_NATIVE_WRITE_HOOK=NOT_INSTALLED")
             appendLine("POST_APPLY_NCI_33_TX=" + laterUidTx)
+            appendLine("POST_APPLY_NCI_33_ZERO_LENGTH_TX=" + laterUidEmptyTx)
+            appendLine("POST_APPLY_NCI_33_FIXED_LENGTH_TX=" + laterUidFixedLengthTx)
             appendLine("POST_APPLY_NCI_33_RSP_ACCEPTED=" + laterUidAccepted +
                 " REJECTED_INVALID_PARAM=" + laterUidRejected + " OTHER=" + laterUidOther)
             appendLine("POST_APPLY_RF_DEACTIVATE_TX=" + afterApply.count {
@@ -195,6 +206,18 @@ internal object NciHalTrace {
             } + " RF_DISCOVER_TX=" + afterApply.count {
                 it.tx && it.kind == 0x20 && it.gid == 1 && it.oid == 3
             })
+            appendLine("POST_APPLY_RF_LISTEN_ROUTING_TX=" + afterApply.count {
+                it.tx && it.kind == 0x20 && it.gid == 1 && it.oid == 1
+            } + " RF_INTF_ACTIVATED_NTF=" + afterApply.count {
+                !it.tx && it.kind == 0x60 && it.gid == 1 && it.oid == 5
+            })
+            appendLine("POST_APPLY_UID_CONFIG_INTERPRETATION=" + when {
+                laterUidEmptyTx > 0 -> "EMPTY_NFCID1_CONFIG_OBSERVED_POSSIBLE_RESET"
+                laterUidFixedLengthTx > 0 -> "NONEMPTY_NFCID1_CONFIG_OBSERVED_RF_UNVERIFIED"
+                afterApply.isNotEmpty() -> "NO_VISIBLE_NFCID1_WRITE_NOT_PROOF_OF_NO_RESET"
+                else -> "NO_POST_WINDOW_PACKETS"
+            })
+            appendLine("WALLET_RISK_NOTE=RF_UID_OVERRIDE_IS_GLOBAL_WHILE_ACTIVE; NCI logs do not identify payment transactions or prove secure-element routing")
             appendLine("CORE_SET_CONFIG_TX=" + coreTx.size)
             appendLine("LA_NFCID1_TAG_33_IN_CONFIG_TX=" + uidLengths.size)
             appendLine("LA_NFCID1_LENGTHS_ONLY=" + uidLengths.joinToString(",").ifBlank { "NONE" })

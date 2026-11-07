@@ -84,6 +84,7 @@ fun NfcAppScreen(
     val logListState = rememberLazyListState()
     val applyUidText = stringResource(R.string.ynfc_apply_uid, "%s")
     val restoreRfText = stringResource(R.string.ynfc_restore_stock_rf)
+    val walletWarningText = stringResource(R.string.ynfc_wallet_payment_warning)
 
     LaunchedEffect(selectedSource, logsEnabled) {
         logLines.clear()
@@ -168,8 +169,9 @@ fun NfcAppScreen(
                             expandedUid = if (expandedUid?.equals(card.uid, true) == true) null else card.uid
                         },
                         onSimulate = {
-                            operationMessage = applyUidText.replace("%s", card.uid)
-                            onSimulate(card) { operationMessage = it }
+                            operationMessage = applyUidText.replace("%s", card.uid) +
+                                "\n" + walletWarningText
+                            onSimulate(card) { operationMessage = it + "\n" + walletWarningText }
                         },
                         onStop = {
                             operationMessage = restoreRfText

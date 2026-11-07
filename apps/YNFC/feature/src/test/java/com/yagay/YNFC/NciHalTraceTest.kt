@@ -241,6 +241,36 @@ class NciHalTraceTest {
         assertFalse(report.contains("04A1B2C3"))
     }
 
+    @Test fun laterEmptyUidConfigIsFlaggedAsPossibleResetNotPaymentProof() {
+        val raw = listOf(
+            earlierLine(1800000010L, 100, "NxpNciX", "200203013300"),
+            earlierLine(1800000010L, 101, "NxpNciR", "40020100"),
+            earlierLine(1800000010L, 110, "NxpNciX", "21030100"),
+            earlierLine(1800000010L, 111, "NxpNciR", "41030100")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(raw, commandMs)
+        assertTrue(report.contains("POST_APPLY_NCI_33_TX=1"))
+        assertTrue(report.contains("POST_APPLY_NCI_33_ZERO_LENGTH_TX=1"))
+        assertTrue(report.contains("POST_APPLY_NCI_33_FIXED_LENGTH_TX=0"))
+        assertTrue(report.contains("POST_APPLY_UID_CONFIG_INTERPRETATION=EMPTY_NFCID1_CONFIG_OBSERVED_POSSIBLE_RESET"))
+        assertTrue(report.contains("HAL_NATIVE_WRITE_HOOK=NOT_INSTALLED"))
+        assertFalse(report.contains("PAYMENT_TRANSACTION_DETECTED"))
+    }
+
+    @Test fun laterDiscoveryAndRoutingAreNotFalselyReportedAsUidReset() {
+        val raw = listOf(
+            earlierLine(1800000010L, 100, "NxpNciX", "21010100"),
+            earlierLine(1800000010L, 101, "NxpNciR", "41010100"),
+            earlierLine(1800000010L, 110, "NxpNciX", "21030100"),
+            earlierLine(1800000010L, 111, "NxpNciR", "41030100"),
+            earlierLine(1800000010L, 112, "NxpNciR", "6105020100")
+        ).joinToString("\n")
+        val report = NciHalTrace.summarize(raw, commandMs)
+        assertTrue(report.contains("POST_APPLY_NCI_33_TX=0"))
+        assertTrue(report.contains("POST_APPLY_RF_LISTEN_ROUTING_TX=1 RF_INTF_ACTIVATED_NTF=1"))
+        assertTrue(report.contains("POST_APPLY_UID_CONFIG_INTERPRETATION=NO_VISIBLE_NFCID1_WRITE_NOT_PROOF_OF_NO_RESET"))
+    }
+
     @Test fun emptyLogIsNotTreatedAsHardwareFailureProof() {
         val report = NciHalTrace.summarize("", commandMs)
         assertTrue(report.contains("SNAPSHOT_VALID_FRAMES=0"))

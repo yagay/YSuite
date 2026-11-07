@@ -69,3 +69,22 @@ GitHub Actions 会构建 APK、运行 JVM 单元测试，并校验：
 ## 新版系统的自定义 UID 写入（需设备验证）
 
 新系统已移除 NxpNativeNfcManager.changeRfParamsByConfig(byte[])；新增 NativeNfcManager.setNciConfig(int,byte[],int,boolean)。RF 模式直接获取 NfcService 的 DeviceHost，并仅发送自己构造的 LA_NFCID1 (0x33) 参数；从不调用系统 emulateNfcATag()，也没有新的模拟后端菜单。该方法返回 void：状态 UNVERIFIED 表示请求已下发而非实际射频验证成功。停止后采用 NFC 服务恢复，不要求整机重启。
+
+## Wallet / payment coexistence and HAL observation (test branch)
+
+- Native NXP HAL writer replacement is **not installed**. We only analyze existing
+  `NxpNciX`/`NxpNciR` logcat. This path does not change routing, AIDs,
+  RF discovery, payment APDUs, or the secure element.
+- The NCI diagnostic distinguishes a post-APPLY `LA_NFCID1=33 00` request
+  from a 4/7/10-byte NFCID1 request, and records later discovery, routing,
+  and RF activation counts **without persisting raw packets or UID bytes**.
+  Counts cannot identify wallet transactions or prove the UID seen over RF.
+- YNFC's existing active UID emulation is different: its controller-wide
+  `setNciConfig(0x33)` and discovery reassertion **can interfere with**
+  HCE or secure-element wallet tap transactions, even though payment AIDs
+  and APDUs are not modified. Simultaneous wallet compatibility is not proven.
+- When using Google Wallet or any off-host/eSE payment, **STOP YNFC first**.
+  Wait for the existing stock NFC recovery; if not confirmed, verify the wallet
+  in a safe non-transaction test before relying on it. No automatic HAL patch,
+  NFC service restart, wallet AID hook, or transaction interception is introduced
+  by the read-only diagnostic change.

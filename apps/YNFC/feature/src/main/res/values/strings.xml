@@ -65,6 +65,7 @@
     <string name="ynfc_sim_command_superseded">Emulation request was replaced by a newer command</string>
     <string name="ynfc_sim_apply_failure">Emulation failed · %1$s: %2$s</string>
     <string name="ynfc_sim_waiting_rf">Emulation request sent · waiting for RF UID confirmation</string>
+    <string name="ynfc_wallet_payment_warning">While YNFC UID emulation is active, contactless wallet and secure-element NFC payments may be affected. Stop emulation and allow stock NFC to recover before paying.</string>
     <string name="ynfc_own_nci_unverified">Custom NFC-A UID requested directly via native NCI 0x33. This interface provides no success acknowledgement. Verify the actual UID with an external reader; STOP restores the NFC service.</string>
     <string name="ynfc_sim_stop_lifecycle_restored">Emulation stopped · stock RF restored by the NFC process</string>
     <string name="ynfc_sim_stop_superseded">Stop request was replaced by a newer command</string>
