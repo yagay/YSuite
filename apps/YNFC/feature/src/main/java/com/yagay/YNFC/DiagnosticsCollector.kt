@@ -91,6 +91,32 @@ class DiagnosticsCollector(
         AppLogger.i("NCI_TRACE_DELAYED commandGeneration=$generation capturedAt=$capturedAt summaryOnly=true")
     }
 
+    /**
+     * Passive snapshot for a controller-reset UID restore. The old snapshot
+     * mechanism only captured manual APPLY, and could not distinguish its
+     * 0x00 ACK from a later lifecycle write. No payload is persisted.
+     */
+    fun captureNativeNciAfterLifecycle(generation: Long, eventAtMs: Long, delayed: Boolean) {
+        if (generation <= 0L || eventAtMs <= 0L ||
+            !runtimeRepository.isCurrentCommandGeneration(generation)) return
+        val capturedAt = System.currentTimeMillis()
+        val raw = runRoot(
+            "logcat -b all -d -v epoch -t 3200 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 420",
+            10, 165_000
+        )
+        val summary = NciHalTrace.summarize(raw, eventAtMs)
+        if (!runtimeRepository.isCurrentCommandGeneration(generation)) return
+        val prefix = if (delayed) "lifecycle_late_" else "lifecycle_early_"
+        nciTracePreferences.edit()
+            .putLong(prefix + "generation", generation)
+            .putLong(prefix + "event_at_ms", eventAtMs)
+            .putLong(prefix + "captured_at_ms", capturedAt)
+            .putString(prefix + "summary", summary)
+            .apply()
+        AppLogger.i("NCI_LIFECYCLE_TRACE generation=$generation eventAt=$eventAtMs " +
+            "capturedAt=$capturedAt delayed=$delayed summaryOnly=true")
+    }
+
     private val halProbePrefs = appContext.getSharedPreferences(
         "ynfc_hal_probe_readonly_v1", Context.MODE_PRIVATE
     )
@@ -458,6 +484,25 @@ class DiagnosticsCollector(
                         snapshot["own_nci_lifecycle_stage"].orEmpty())
                     appendLine("LIFECYCLE_READY_AGE_MS=" +
                         snapshot["own_nci_lifecycle_ready_age_ms"].orEmpty())
+                    val cachedEarlyEvent =
+                        nciTracePreferences.getLong("lifecycle_early_event_at_ms", 0L)
+                    val cachedLateEvent =
+                        nciTracePreferences.getLong("lifecycle_late_event_at_ms", 0L)
+                    if (cachedEarlyEvent == lifecycleAt &&
+                        nciTracePreferences.getLong("lifecycle_early_generation", 0L) ==
+                            state.commandGeneration) {
+                        appendLine("--- EARLY LIFECYCLE NCI SNAPSHOT ---")
+                        appendLine(nciTracePreferences.getString(
+                            "lifecycle_early_summary", "NO_EARLY_LIFECYCLE_SUMMARY"))
+                    }
+                    if (cachedLateEvent == lifecycleAt &&
+                        nciTracePreferences.getLong("lifecycle_late_generation", 0L) ==
+                            state.commandGeneration) {
+                        appendLine("--- DELAYED LIFECYCLE NCI SNAPSHOT ---")
+                        appendLine(nciTracePreferences.getString(
+                            "lifecycle_late_summary", "NO_DELAYED_LIFECYCLE_SUMMARY"))
+                    }
+                    appendLine("--- LIFECYCLE NCI FRAMES RETAINED AT EXPORT ---")
                     appendLine(NciHalTrace.summarize(halPackets, lifecycleAt))
                     appendLine("NOTE: missing NCI frames may have been evicted from logcat.")
                 }

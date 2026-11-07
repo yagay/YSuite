@@ -264,3 +264,16 @@ The exported diagnostic separately correlates read-only logcat NCI
 frames to own_nci_lifecycle_at. It must not infer a successful
 on-air UID simply from NCI acceptance; an external reader is needed.
 The stable HOOK_BUILD stays 46; implementation marker is now 5.
+
+### Passive lifecycle NCI capture when YNFC is open
+
+While the app is open with diagnostic-log refresh enabled, its
+read-only Provider status observation detects
+`WRITE_REQUESTED_RF_UNVERIFIED` and captures a sanitized
+NXP logcat summary immediately and again after 1200 ms. Cache entries
+are keyed by both command generation and exact lifecycle event time,
+so manual APPLY's earlier 0x00 ACK cannot be confused with a restore.
+The export prints both cached snapshots and the currently retained
+logcat frames. Nothing here sends NCI packets or restarts Discovery.
+If the app was not open/diagnostics disabled during NFC restart,
+early cached snapshots may be unavailable.

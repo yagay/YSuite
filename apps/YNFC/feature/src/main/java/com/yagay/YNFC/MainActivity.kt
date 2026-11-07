@@ -30,6 +30,7 @@ class MainActivity : YComposeActivity() {
     private lateinit var diagnosticExporter: DiagnosticExporter
     private lateinit var simulationCoordinator: SimulationCoordinator
     private val nciTraceCaptureExecutor = Executors.newSingleThreadExecutor()
+    @Volatile private var lastLifecycleCaptureScheduledAt = 0L
     private var scannedCardState by mutableStateOf<CardModel?>(null)
     private var savedCardsState by mutableStateOf<List<CardModel>>(emptyList())
     private var readModeEnabled by mutableStateOf(false)
@@ -208,8 +209,39 @@ class MainActivity : YComposeActivity() {
 
     private fun readProviderMap(): Map<String, String> = runtimeRepository.readProviderMap()
 
-    private fun readRuntimeStatus(includeRootPid: Boolean = false): RuntimeStatus =
-        runtimeRepository.read(includeRootPid)
+    private fun readRuntimeStatus(includeRootPid: Boolean = false): RuntimeStatus {
+        val status = runtimeRepository.read(includeRootPid)
+        scheduleLifecycleTraceIfNew()
+        return status
+    }
+
+    /**
+     * UI diagnostic refresh observes the Provider's read-only lifecycle
+     * request. Capture NXP NCI frames while logcat still retains them.
+     * Never invokes the NFC service, changes routing, or retries the write.
+     */
+    private fun scheduleLifecycleTraceIfNew() {
+        val values = runtimeRepository.readProviderMap()
+        val eventAt = values["own_nci_lifecycle_at"]?.toLongOrNull() ?: 0L
+        val generation = values["own_nci_lifecycle_generation"]?.toLongOrNull() ?: 0L
+        val stage = values["own_nci_lifecycle_stage"].orEmpty()
+        if (stage != "WRITE_REQUESTED_RF_UNVERIFIED" ||
+            eventAt <= 0L || generation <= 0L ||
+            System.currentTimeMillis() - eventAt !in 0L..20_000L) return
+        synchronized(this) {
+            if (eventAt <= lastLifecycleCaptureScheduledAt) return
+            lastLifecycleCaptureScheduledAt = eventAt
+        }
+        runCatching {
+            nciTraceCaptureExecutor.execute {
+                runCatching {
+                    diagnosticsCollector.captureNativeNciAfterLifecycle(generation, eventAt, false)
+                    Thread.sleep(1_200L)
+                    diagnosticsCollector.captureNativeNciAfterLifecycle(generation, eventAt, true)
+                }.onFailure { AppLogger.e("NCI_LIFECYCLE_TRACE failed", it) }
+            }
+        }.onFailure { AppLogger.e("NCI_LIFECYCLE_TRACE unavailable", it) }
+    }
 
     private fun buildStatusSummary(s: RuntimeStatus): String =
         RuntimeText.statusSummary(s, EXPECTED_HOOK_BUILD, readModeEnabled)
