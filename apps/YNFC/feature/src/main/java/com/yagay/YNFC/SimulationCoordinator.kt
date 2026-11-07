@@ -87,8 +87,19 @@ internal class SimulationCoordinator(
             AppLogger.i("SIMULATION: serial COMMAND STOP generation=$generation")
             var state = waitForCommandCompletion(generation, null, apply = false, timeoutMs = 6_000)
 
-            if (SimulationResultPolicy.isStopNoOverride(state, generation)) {
-                AppLogger.i("SIMULATION: STOP no UID override; NFC process kept alive generation=$generation")
+            // STOP_NO_OVERRIDE is an explicit terminal acknowledgement from
+            // the injected Hook: nothing was written to the controller. This
+            // must never escalate to a process restart because of a stale
+            // lifecycle *display* marker (REVERIFY_PENDING) or delayed RF
+            // telemetry. The strict policy still checks full proof where
+            // available; neither branch claims stock RF was independently read.
+            val confirmedNoWrite = SimulationResultPolicy.isStopNoOverride(state, generation)
+            val terminalNoOverride = state.commandGeneration == generation &&
+                state.handledGeneration == generation &&
+                state.commandAction == "STOP" && state.commandStatus == "NO_OVERRIDE"
+            if (confirmedNoWrite || terminalNoOverride) {
+                AppLogger.i("SIMULATION: STOP no UID write; skip NFC restart generation=$generation " +
+                    "proofComplete=$confirmedNoWrite operation=${state.operationState}")
                 onDone(state, YLocale.text(R.string.ynfc_sim_stop_no_override))
                 return@execute
             }
