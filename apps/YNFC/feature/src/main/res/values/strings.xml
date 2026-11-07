@@ -130,4 +130,9 @@
     <string name="ynfc_profile_auto_title">Automatic NFC-A profile</string>
     <string name="ynfc_profile_auto_desc">No import required. Tap Simulate on a saved card: YNFC validates its UID/ATQA/SAK, creates a private JSON file, and arms the existing ColorOS interceptor.</string>
     <string name="ynfc_profile_auto_failed">Unable to create or validate the automatic NFC-A profile. Interception was not started; check the diagnostic log.</string>
+    <string name="ynfc_intercept_old_hook_title">NFC service is running older Hook code</string>
+    <string name="ynfc_intercept_hook_reload_required">Stop any running simulation, then manually reload only the NFC service to activate the latest file interception Hook. No phone reboot is needed.</string>
+    <string name="ynfc_rf_legacy_mode_title">Legacy RF mode selected</string>
+    <string name="ynfc_rf_legacy_mode_desc">Legacy RF does not create an NFC-A profile file or run the ColorOS interceptor. Choose file interception to test the new path.</string>
+    <string name="ynfc_switch_to_intercept">Select file interception</string>
 </resources>
