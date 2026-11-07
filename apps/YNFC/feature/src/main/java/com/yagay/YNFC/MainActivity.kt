@@ -223,6 +223,7 @@ class MainActivity : YComposeActivity() {
                 }
             },
             onExportLogs = ::saveDiagnosticWithoutSharing,
+            onRunHalProbe = ::saveHalConfigProbe,
         )
     }
 
@@ -272,6 +273,21 @@ class MainActivity : YComposeActivity() {
 
     private fun buildStatusSummary(s: RuntimeStatus): String =
         RuntimeText.statusSummary(s, EXPECTED_HOOK_BUILD, readModeEnabled)
+
+    private fun saveHalConfigProbe(onDone: (String) -> Unit) {
+        diagnosticExporter.exportHalConfigReadProbe { result ->
+            runOnUiThread {
+                val message = result.fold(
+                    onSuccess = { file -> getString(R.string.ynfc_hal_probe_saved, file) },
+                    onFailure = { error ->
+                        getString(R.string.ynfc_hal_probe_failed,
+                            error.message ?: error.javaClass.simpleName)
+                    },
+                )
+                onDone(message)
+            }
+        }
+    }
 
     private fun saveDiagnosticWithoutSharing(onDone: () -> Unit) {
         stopReadMode("diagnostic_save")
