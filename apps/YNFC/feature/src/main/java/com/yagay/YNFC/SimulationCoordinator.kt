@@ -95,10 +95,7 @@ internal class SimulationCoordinator(
             // telemetry. The strict policy still checks full proof where
             // available; neither branch claims stock RF was independently read.
             val confirmedNoWrite = SimulationResultPolicy.isStopNoOverride(state, generation)
-            val terminalNoOverride = state.commandGeneration == generation &&
-                state.handledGeneration == generation &&
-                state.commandAction == "STOP" && state.commandStatus == "NO_OVERRIDE"
-            if (confirmedNoWrite || terminalNoOverride) {
+            if (confirmedNoWrite) {
                 AppLogger.i("SIMULATION: STOP no UID write; skip NFC restart generation=$generation " +
                     "proofComplete=$confirmedNoWrite operation=${state.operationState}")
                 onDone(state, YLocale.text(R.string.ynfc_sim_stop_no_override))
