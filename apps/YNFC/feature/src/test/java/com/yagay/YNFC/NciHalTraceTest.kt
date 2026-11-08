@@ -107,6 +107,30 @@ class NciHalTraceTest {
         assertFalse(report.contains("04A1B2C3"))
     }
 
+    @Test fun acceptanceRequiresMatchedUidTxAndExactAcknowledgement() {
+        val accepted = listOf(
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(951, "NxpNciR", "40020100")
+        ).joinToString("\n")
+        assertTrue(NciHalTrace.isOwnUidParameterAccepted(
+            NciHalTrace.summarize(accepted, commandMs)))
+        val unrelatedResponse = line(951, "NxpNciR", "40020100")
+        assertFalse(NciHalTrace.isOwnUidParameterAccepted(
+            NciHalTrace.summarize(unrelatedResponse, commandMs)))
+        val rejected = listOf(
+            line(950, "NxpNciX", "20020701330404A1B2C3"),
+            line(951, "NxpNciR", "400203090133")
+        ).joinToString("\n")
+        assertFalse(NciHalTrace.isOwnUidParameterAccepted(
+            NciHalTrace.summarize(rejected, commandMs)))
+        val old = listOf(
+            line(100, "NxpNciX", "20020701330404A1B2C3"),
+            line(101, "NxpNciR", "40020100")
+        ).joinToString("\n")
+        assertFalse(NciHalTrace.isOwnUidParameterAccepted(
+            NciHalTrace.summarize(old, commandMs)))
+    }
+
     @Test fun acceptedNciResponseIsNotConfusedWithRfUidVerification() {
         val log = listOf(
             line(950, "NxpNciX", "20020701330404A1B2C3"),
