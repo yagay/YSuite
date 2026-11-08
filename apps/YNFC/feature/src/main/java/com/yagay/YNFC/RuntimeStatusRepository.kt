@@ -170,11 +170,13 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             pollingGuardStatus = run {
                 val status = map[ConfigProvider.KEY_POLLING_GUARD_STATUS] ?: "UNKNOWN"
                 val pid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0
-                val reported = if (pid > 0 && currentPid > 0 && pid != currentPid)
-                    "STALE($status)" else status
+                val capabilitiesPid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0
+                val reported = if (currentPid <= 0 || pid <= 0 || pid != currentPid ||
+                    capabilitiesPid != currentPid) "STALE($status)" else status
                 RuntimePresentationPolicy.pollingStatus(
                     map[ConfigProvider.KEY_POLLING_DISABLED].toBoolean(),
-                    reported, map[ConfigProvider.KEY_POLLING_CAPABILITIES]
+                    reported, if (reported.startsWith("STALE(")) null
+                    else map[ConfigProvider.KEY_POLLING_CAPABILITIES]
                 )
             },
             pollingGuardPid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0,
