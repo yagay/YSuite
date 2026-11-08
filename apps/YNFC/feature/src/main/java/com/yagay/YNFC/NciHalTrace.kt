@@ -371,6 +371,22 @@ internal object NciHalTrace {
      * current APPLY, never use a stale logcat snapshot to revise state.
      * No UID bytes or raw NCI payload leave the parser.
      */
+    /**
+     * A single UID-containing 0x33 TX with its matching successful NCI response
+     * in the current command window. This is NFCC acceptance, never RF proof.
+     */
+    fun isOwnUidParameterAccepted(summary: String): Boolean {
+        val properties = summary.lineSequence().mapNotNull { line ->
+            val cut = line.indexOf('=')
+            if (cut <= 0) null else line.substring(0, cut) to line.substring(cut + 1)
+        }.toMap()
+        val delta = properties["LA_NFCID1_FIRST_TX_DELTA_MS"]?.toLongOrNull() ?: return false
+        return delta in 0L..AFTER_MS &&
+            properties["LA_NFCID1_TAG_33_IN_CONFIG_TX"] == "1" &&
+            properties["LA_NFCID1_RSP_MATCHED"] == "1" &&
+            properties["LA_NFCID1_RSP_STATUS"] == "0x00_ACCEPTED"
+    }
+
     fun isOwnUidParameterRejected(summary: String): Boolean {
         val properties = summary.lineSequence().mapNotNull { line ->
             val cut = line.indexOf('=')
