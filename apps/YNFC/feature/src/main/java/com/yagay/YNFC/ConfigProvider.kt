@@ -28,6 +28,7 @@ open class ConfigProvider : ContentProvider() {
         const val METHOD_SET_POLLING_DISABLED = "set_polling_disabled"
         const val METHOD_CONFIRM_STOCK_RESTART = "confirm_stock_restart"
         const val METHOD_REPORT_OWN_NCI_INVALID_PARAM = "report_own_nci_invalid_param"
+        const val METHOD_REPORT_OWN_NCI_ACCEPTED = "report_own_nci_accepted"
         const val EXTRA_ENABLED = "enabled"
         const val EXTRA_UID = "uid"
         const val EXTRA_SAK = "sak"
@@ -304,6 +305,43 @@ open class ConfigProvider : ContentProvider() {
                 Bundle().apply {
                     putBoolean(RESULT_SUCCESS, true)
                     putLong(RESULT_GENERATION, generation)
+                }
+            }
+            METHOD_REPORT_OWN_NCI_ACCEPTED -> {
+                // App-owned read-only HAL trace evidence. Never promote this
+                // to RF accepted/verified: a reader must check the emitted UID.
+                val generation = extras?.getLong(EXTRA_GENERATION, 0L) ?: 0L
+                val pid = extras?.getInt(EXTRA_PID, 0) ?: 0
+                val current = prefs()
+                val eligible = Binder.getCallingUid() == Process.myUid() &&
+                    generation > 0L && pid > 0 &&
+                    (current.all[KEY_COMMAND_GENERATION] as? Number)?.toLong() == generation &&
+                    (current.all[KEY_COMMAND_HANDLED_GENERATION] as? Number)?.toLong() == generation &&
+                    (current.all[KEY_RF_GENERATION] as? Number)?.toLong() == generation &&
+                    current.getString(KEY_COMMAND_STATUS, "") == "UNVERIFIED" &&
+                    current.getString(KEY_COMMAND_ACTION, "") == "APPLY" &&
+                    current.getString(KEY_RF_SOURCE, "") == "own-nci-0x33" &&
+                    current.getString(KEY_RF_STATUS, "") == "OWN_NCI_UID_REQUESTED" &&
+                    current.getBoolean(KEY_SIMULATION_ENABLED, false) &&
+                    (current.all[KEY_COMMAND_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_RUNTIME_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_RF_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_CONTROLLER_EPOCH] as? Number)?.toLong() ==
+                        (current.all[KEY_RF_CONTROLLER_EPOCH] as? Number)?.toLong()
+                if (!eligible) {
+                    Bundle().apply { putBoolean(RESULT_SUCCESS, false) }
+                } else {
+                    val detail = "NFCC accepted LA_NFCID1 (0x33); over-the-air UID remains unverified"
+                    val saved = current.edit()
+                        .putString(KEY_COMMAND_DETAIL, detail)
+                        .putString(KEY_OPERATION_STATE, "NCI_ACCEPTED_RF_UNVERIFIED")
+                        .putString(KEY_VERIFICATION_CONFIDENCE, "NCI_ACCEPTED_RF_UNVERIFIED")
+                        .putString(KEY_RF_VERIFICATION, "NCI_ACCEPTED_EXTERNAL_RF_NOT_VERIFIED")
+                        .putString(KEY_FULL_DIAG_STAGE, "NCI_ACCEPTED_RF_UNVERIFIED")
+                        .putString(KEY_FULL_DIAG_SUMMARY, detail)
+                        .commit()
+                    if (saved) context?.contentResolver?.notifyChange(URI, null)
+                    Bundle().apply { putBoolean(RESULT_SUCCESS, saved) }
                 }
             }
             METHOD_REPORT_OWN_NCI_INVALID_PARAM -> {
