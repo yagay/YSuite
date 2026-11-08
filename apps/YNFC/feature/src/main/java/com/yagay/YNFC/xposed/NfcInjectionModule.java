@@ -657,6 +657,9 @@ public class NfcInjectionModule extends XposedModule {
         if (!firstInvalid) return;
         pollingGuardLastProof = "";
         pollingPolicy.invalidateRefresh();
+        recordPollingGuardState("CONTROLLER_RESET_PENDING",
+                "controller invalidated: " + reason + "; previous discovery interception is no longer current",
+                pollingBlocked());
         automaticRoutingRefreshAttempted = false;
         lifecycleFailureGeneration = Long.MIN_VALUE;
         lifecycleFailureControllerEpoch = Long.MIN_VALUE;
@@ -687,6 +690,9 @@ public class NfcInjectionModule extends XposedModule {
                 "pid=" + Process.myPid() + ";wasInvalid=" + wasInvalid);
         Log.i(TAG, "CONTROLLER READY reason=" + reason + " pid=" + Process.myPid() +
                 " wasInvalid=" + wasInvalid);
+        recordPollingGuardState("AWAITING_DISCOVERY",
+                "controller ready: " + reason + "; waiting for fresh discovery interception",
+                pollingBlocked());
         scheduleLifecycleRecovery("controller_ready:" + reason);
         if (!pollingDiscoveryHooksInstalled) {
             // Legacy fallback only: with natural compute/driver hooks installed,
