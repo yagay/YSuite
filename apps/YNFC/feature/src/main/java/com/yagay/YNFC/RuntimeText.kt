@@ -20,6 +20,7 @@ internal object RuntimeText {
         }
         appendLine("CONFIG: $configState uid=${status.selectedUid}")
         appendLine("SEMANTIC: operation=${status.operationState} effective=${status.effectiveState} confidence=${status.verificationConfidence} accepted=${status.rfAccepted}")
+        appendLine("UID_EVIDENCE: ${if (status.rfAccepted && status.verificationConfidence == "VERIFIED") "PROVIDER_VERIFIED" else if (status.commandAction == "APPLY" && status.commandStatus == "UNVERIFIED") "NCI_REQUESTED_RF_UNVERIFIED" else "NO_CURRENT_RF_PROOF"}; external reader verification is required")
         appendLine("COMMAND: generation=${status.commandGeneration} consumed=${status.consumedGeneration} completed=${status.handledGeneration} action=${status.commandAction} status=${status.commandStatus} detail=${status.commandDetail}")
         appendLine("READ_MODE: ${if (readModeEnabled) "ENABLED" else "IDLE"}")
         appendLine("NFC_POLICY: desired=${if (status.pollingDisabled) "HCE_ONLY" else "NORMAL"} status=${status.pollingGuardStatus} pid=${status.pollingGuardPid} detail=${status.pollingGuardDetail}")
