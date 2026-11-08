@@ -78,6 +78,11 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             controllerEpoch = controllerEpoch,
             rfControllerEpoch = rfControllerEpoch
         )
+        // Last manual RF evidence remains stale. A newer lifecycle request
+        // can be displayed separately only while its generation, PID and
+        // controller epoch are still current.
+        val ownNciRecoveryRequested =
+            RuntimePresentationPolicy.currentUidRestore(map, currentPid, controllerEpoch)
         val restartTransition = map[ConfigProvider.KEY_COMMAND_STATUS] == "RESTART_REQUIRED" &&
             map[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull() == map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull()
         // A current-generation terminal FAILED result is authoritative command
@@ -111,13 +116,14 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
         val visibleRfStatus = when {
             rawRfStatus == "IDLE" -> "IDLE"
             terminalFailureVisible || noOverrideVisible -> rawRfStatus
+            ownNciRecoveryRequested -> "UID_RECOVERY_REQUESTED_UNVERIFIED"
             rfFresh -> rawRfStatus
             restartTransition -> "RESETTING($rawRfStatus)"
             rfPid == 0 && rawRfStatus in setOf("WAITING", "APPLYING", "STOPPING") -> rawRfStatus
             else -> "STALE($rawRfStatus)"
         }
         val semanticVisible = rfFresh || rfPid == 0 || restartTransition ||
-            terminalFailureVisible || noOverrideVisible
+            terminalFailureVisible || noOverrideVisible || ownNciRecoveryRequested
         val rawOperation = map[ConfigProvider.KEY_OPERATION_STATE] ?: "IDLE"
         return RuntimeStatus(
             appBuild = map[ConfigProvider.KEY_APP_BUILD]?.toIntOrNull() ?: 0,
@@ -141,6 +147,7 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             commandPid = commandPid,
             operationState = when {
                 !semanticVisible -> "STALE"
+                ownNciRecoveryRequested -> "RECOVERY_REQUESTED"
                 lifecycleReverifyPending && rawOperation == "IDLE" -> "REVERIFY_PENDING"
                 else -> rawOperation
             },
@@ -163,14 +170,19 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             pollingGuardStatus = run {
                 val status = map[ConfigProvider.KEY_POLLING_GUARD_STATUS] ?: "UNKNOWN"
                 val pid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0
-                if (pid > 0 && currentPid > 0 && pid != currentPid) "STALE($status)"
-                else status
+                val reported = if (pid > 0 && currentPid > 0 && pid != currentPid)
+                    "STALE($status)" else status
+                RuntimePresentationPolicy.pollingStatus(
+                    map[ConfigProvider.KEY_POLLING_DISABLED].toBoolean(),
+                    reported, map[ConfigProvider.KEY_POLLING_CAPABILITIES]
+                )
             },
             pollingGuardPid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0,
             pollingGuardDetail = map[ConfigProvider.KEY_POLLING_GUARD_DETAIL]
                 ?.takeIf { it.isNotBlank() },
             pollingCapabilitySummary = map[ConfigProvider.KEY_POLLING_CAPABILITIES]
-                ?.takeIf { it.isNotBlank() }
+                ?.takeIf { it.isNotBlank() },
+            ownNciRecoveryRequested = ownNciRecoveryRequested
         )
     }
 }

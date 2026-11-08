@@ -50,6 +50,7 @@
 
     <string name="ynfc_sim_active">模拟已生效。UID=%1$s</string>
     <string name="ynfc_sim_failed">模拟失败。%1$s</string>
+    <string name="ynfc_sim_reapply_requested_unverified">NFC 重新初始化后已再次发送 UID %1$s；仍需外部读卡器验证。</string>
     <string name="ynfc_sim_stale">模拟已请求，但 RF 状态来自旧 NFC 进程。</string>
     <string name="ynfc_sim_applying">正在应用。状态 %1$s。UID=%2$s</string>
     <string name="ynfc_sim_stopped_lifecycle">模拟已停止。原厂 RF 已通过 NFC 生命周期恢复。</string>

@@ -24,6 +24,7 @@ internal object RuntimeText {
         appendLine("READ_MODE: ${if (readModeEnabled) "ENABLED" else "IDLE"}")
         appendLine("NFC_POLICY: desired=${if (status.pollingDisabled) "HCE_ONLY" else "NORMAL"} status=${status.pollingGuardStatus} pid=${status.pollingGuardPid} detail=${status.pollingGuardDetail}")
         appendLine("NFC_CAPABILITIES: ${status.pollingCapabilitySummary ?: "UNKNOWN"}")
+        appendLine("OWN_NCI_RECOVERY: requested=${status.ownNciRecoveryRequested} (not RF verified)")
         appendLine("RF: generation=${status.rfGeneration} ${status.rfStatus} uid=${status.rfUid} source=${status.rfSource} result=${status.rfResult} raw=${status.rfNativeResult}/${status.rfNativeResultType} verification=${status.rfVerification} error=${status.rfError}")
         append("FINAL: stage=${status.fullDiagStage} summary=${status.fullDiagSummary}")
     }

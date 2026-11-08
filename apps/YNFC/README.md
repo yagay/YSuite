@@ -316,3 +316,17 @@ respond as an NFC-A/HCE card. The existing UID-only write path and
 automatic ON/boot restore are intentionally unchanged. Any real
 contactless payments should be tested only after STOP and stock
 restoration.
+
+## No false STALE status after one-shot UID recovery
+
+A successful one-shot NFCID1 lifecycle *request* in the current NFC PID,
+controller epoch and command generation now displays a dedicated
+`UID_RECOVERY_REQUESTED_UNVERIFIED` state, rather than rendering only
+stale RF evidence from an earlier NFC process. The old RF proof remains
+stale and `rf_accepted` stays false. No acceptance or on-air UID success
+is fabricated; STOP, a new UID or any reset invalidates this display.
+
+When persistent HCE_ONLY is desired but runtime capability discovery
+reports `compute=false;driverHooks=0`, the UI explicitly reports
+`UNSUPPORTED_NO_DISCOVERY_HOOKS`. A checked setting does not count as
+an installed active-reader suppression hook. Unit tests cover both.

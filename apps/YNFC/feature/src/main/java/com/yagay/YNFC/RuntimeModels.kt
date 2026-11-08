@@ -47,5 +47,6 @@ data class RuntimeStatus(
     val pollingGuardStatus: String = "UNKNOWN",
     val pollingGuardPid: Int = 0,
     val pollingGuardDetail: String? = null,
-    val pollingCapabilitySummary: String? = null
+    val pollingCapabilitySummary: String? = null,
+    val ownNciRecoveryRequested: Boolean = false
 )

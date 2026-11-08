@@ -50,6 +50,7 @@
 
     <string name="ynfc_sim_active">Emulation active. UID=%1$s</string>
     <string name="ynfc_sim_failed">Emulation failed. %1$s</string>
+    <string name="ynfc_sim_reapply_requested_unverified">NFC restarted; UID %1$s was sent again. External NFC reader verification is pending.</string>
     <string name="ynfc_sim_stale">Emulation requested, but RF state belongs to an old NFC process.</string>
     <string name="ynfc_sim_applying">Applying. State %1$s. UID=%2$s</string>
     <string name="ynfc_sim_stopped_lifecycle">Emulation stopped. Stock RF restored through the NFC lifecycle.</string>

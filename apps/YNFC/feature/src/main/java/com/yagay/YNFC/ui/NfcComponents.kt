@@ -108,6 +108,13 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
                 simulationTone = StatusTone.WARNING
                 simulationDetail = stringResource(R.string.ynfc_intercept_call_waiting)
             }
+            status.ownNciRecoveryRequested -> {
+                simulationTone = StatusTone.WARNING
+                simulationDetail = stringResource(
+                    R.string.ynfc_sim_reapply_requested_unverified,
+                    status.selectedUid ?: "-",
+                )
+            }
             status.rfStatus.startsWith("STALE") -> {
                 simulationTone = StatusTone.WARNING
                 simulationDetail = stringResource(R.string.ynfc_sim_stale)
