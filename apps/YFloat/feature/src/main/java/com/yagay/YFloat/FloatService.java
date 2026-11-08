@@ -150,10 +150,39 @@ public class FloatService extends Service implements android.content.SharedPrefe
         final boolean[] mirrorOriginReady = {false};
         final boolean[] directExpanded = {false};
         final int[] otherVisibility = {View.VISIBLE};
+        final int[] latestDrag = new int[2];
+        final OverlayFrameScheduler[] dragFrame = new OverlayFrameScheduler[1];
+        final Runnable applyDragPosition = () -> {
+            if (!isCurrentIconCallback(generation, mirrored, lp)) return;
+            if (!originReady[0]) {
+                origin[0] = lp.x;
+                origin[1] = lp.y;
+                originReady[0] = true;
+            }
+            int x = origin[0] + latestDrag[0];
+            int y = origin[1] + latestDrag[1];
+            if (lp.x != x || lp.y != y) {
+                lp.x = x;
+                lp.y = y;
+                safeUpdate(mirrored ? secondary : primary, lp);
+            }
+            if (!mirrored && secondary != null && secondaryLp != null) {
+                int mirrorY = (mirrorOriginReady[0] ? mirrorOrigin[1] : origin[1])
+                        + latestDrag[1];
+                if (secondaryLp.y != mirrorY) {
+                    secondaryLp.y = mirrorY;
+                    safeUpdate(secondary, secondaryLp);
+                }
+            }
+        };
 
         return new FloatIconView(this, new FloatIconView.Callback() {
             @Override public void onDragStart() {
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
+                if (dragFrame[0] != null) dragFrame[0].cancel();
+                View active = mirrored ? secondary : primary;
+                dragFrame[0] = active == null ? null
+                        : new OverlayFrameScheduler(active, applyDragPosition);
                 origin[0] = lp.x;
                 origin[1] = lp.y;
                 originReady[0] = true;
@@ -168,21 +197,22 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
             @Override public void onMove(int dxFromDown, int dyFromDown) {
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
-                if (!originReady[0]) {
-                    origin[0] = lp.x;
-                    origin[1] = lp.y;
-                    originReady[0] = true;
-                }
-                lp.x = origin[0] + dxFromDown;
-                lp.y = origin[1] + dyFromDown;
-                safeUpdate(mirrored ? secondary : primary, lp);
-                if (!mirrored && secondary != null && secondaryLp != null) {
-                    secondaryLp.y = (mirrorOriginReady[0] ? mirrorOrigin[1] : origin[1]) + dyFromDown;
-                    safeUpdate(secondary, secondaryLp);
-                }
+                // Keep the most recent finger position, but submit at most one
+                // WindowManager update per display frame (capped at ~60 fps).
+                latestDrag[0] = dxFromDown;
+                latestDrag[1] = dyFromDown;
+                if (dragFrame[0] != null) dragFrame[0].request();
+                else applyDragPosition.run();
             }
 
             @Override public void onRelease(boolean moved) {
+                if (dragFrame[0] != null) {
+                    // Explicit repositioning must commit the final touch coordinate.
+                    // Temporary follow is restored immediately, without a stale queued frame.
+                    if (positionMoveArmed && moved) dragFrame[0].flush();
+                    else dragFrame[0].cancel();
+                    dragFrame[0] = null;
+                }
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
                 View icon = mirrored ? secondary : primary;
                 if (positionMoveArmed && moved) {

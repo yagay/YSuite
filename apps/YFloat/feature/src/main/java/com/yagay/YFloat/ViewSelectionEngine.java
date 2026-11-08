@@ -26,7 +26,15 @@ public final class ViewSelectionEngine {
     private static final long FL_RELEASE_ACTION_DELAY_MS = 5L;
 
     private static final ExecutorService TARGET_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "YFloat-FL-targets");
+        Thread t = new Thread(() -> {
+            // Accessibility traversal competes with video decoding and rendering.
+            // Run it slightly below normal foreground priority, off the UI thread.
+            try {
+                android.os.Process.setThreadPriority(
+                        android.os.Process.THREAD_PRIORITY_DEFAULT + 2);
+            } catch (Throwable ignored) { }
+            r.run();
+        }, "YFloat-FL-targets");
         t.setDaemon(true);
         return t;
     });

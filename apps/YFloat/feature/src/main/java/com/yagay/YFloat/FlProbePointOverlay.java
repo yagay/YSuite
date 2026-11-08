@@ -21,6 +21,7 @@ public final class FlProbePointOverlay {
     private final WindowManager.LayoutParams lp;
     private boolean attached;
     private boolean visible;
+    private final OverlayFrameScheduler moveUpdates;
     private int targetX, targetY;
     private SelectionVisualState state = SelectionVisualState.TRACKING;
 
@@ -44,6 +45,9 @@ public final class FlProbePointOverlay {
         lp.gravity = Gravity.TOP | Gravity.START;
         lp.x = -sizePx;
         lp.y = 0;
+        moveUpdates = new OverlayFrameScheduler(view, () -> {
+            if (attached) windowHost.update(view, lp, "probe");
+        });
     }
 
     public void setTracking() { setVisualState(SelectionVisualState.TRACKING); }
@@ -80,7 +84,7 @@ public final class FlProbePointOverlay {
             if (lp.x != targetX || lp.y != targetY) {
                 lp.x = targetX;
                 lp.y = targetY;
-                windowHost.update(view, lp, "probe");
+                moveUpdates.request();
             }
         }
         float cx = targetX + sizePx / 2f;
@@ -102,6 +106,7 @@ public final class FlProbePointOverlay {
     }
 
     public void close() {
+        moveUpdates.cancel();
         visible = false;
         if (attached) windowHost.remove(view, "probe");
         attached = false;

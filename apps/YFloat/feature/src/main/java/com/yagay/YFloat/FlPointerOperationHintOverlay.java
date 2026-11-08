@@ -30,6 +30,7 @@ public final class FlPointerOperationHintOverlay {
     private final ImageView icon;
     private final TextView text;
     private final WindowManager.LayoutParams lp;
+    private final OverlayFrameScheduler windowUpdates;
     private boolean attached;
     private boolean contentVisible;
     private Mode mode;
@@ -78,6 +79,9 @@ public final class FlPointerOperationHintOverlay {
         lp.gravity = Gravity.TOP | Gravity.START;
         lp.x = -hintHeightPx;
         lp.y = 0;
+        windowUpdates = new OverlayFrameScheduler(root, () -> {
+            if (attached) windowHost.update(root, lp, "pointer_hint");
+        });
     }
 
     public void syncToProbeWindow(int probeWindowX, int probeWindowY) {
@@ -97,7 +101,7 @@ public final class FlPointerOperationHintOverlay {
             }
             return;
         }
-        if (changed) windowHost.update(root, lp, "pointer_hint");
+        if (changed) windowUpdates.request();
     }
 
     public void show(Mode next, int probeWindowX, int probeWindowY) {
@@ -109,7 +113,18 @@ public final class FlPointerOperationHintOverlay {
         syncToProbeWindow(probeWindowX, probeWindowY);
         if (!attached) return;
 
-        if (mode != next) {
+        boolean modeChanged = mode != next;
+        boolean iconHidden = icon.getVisibility() != View.VISIBLE;
+        boolean textChanged = optionalText == null
+                ? text.getVisibility() != View.GONE
+                : text.getVisibility() != View.VISIBLE
+                    || !optionalText.contentEquals(text.getText());
+        // Position changes are already queued by syncToProbeWindow. Avoid
+        // remeasuring the hint and submitting a second WindowManager transaction
+        // on every MOVE if its actual content has not changed.
+        if (!modeChanged && !iconHidden && !textChanged && contentVisible) return;
+
+        if (modeChanged) {
             mode = next;
             int drawableRes;
             int background;
@@ -123,16 +138,16 @@ public final class FlPointerOperationHintOverlay {
             icon.setBackground(makeCircle(background));
         }
 
-        icon.setVisibility(View.VISIBLE);
+        if (iconHidden) icon.setVisibility(View.VISIBLE);
         if (optionalText == null) {
-            text.setVisibility(View.GONE);
-        } else {
+            if (textChanged) text.setVisibility(View.GONE);
+        } else if (textChanged) {
             text.setText(optionalText);
             text.setVisibility(View.VISIBLE);
         }
         contentVisible = true;
         root.requestLayout();
-        windowHost.update(root, lp, "pointer_hint");
+        windowUpdates.request();
         DiagnosticLog.i(context, "FL_POINTER_HINT",
                 "SHOW mode=" + mode + " pos=" + lp.x + "," + lp.y
                         + " icon=" + iconSizePx + "x" + iconSizePx
@@ -146,11 +161,12 @@ public final class FlPointerOperationHintOverlay {
         icon.setVisibility(View.GONE);
         text.setVisibility(View.GONE);
         root.requestLayout();
-        windowHost.update(root, lp, "pointer_hint");
+        windowUpdates.request();
         DiagnosticLog.i(context, "FL_POINTER_HINT", "CONTENT_HIDE pos=" + lp.x + "," + lp.y);
     }
 
     public void close() {
+        windowUpdates.cancel();
         contentVisible = false;
         if (attached) windowHost.remove(root, "pointer_hint");
         attached = false;
