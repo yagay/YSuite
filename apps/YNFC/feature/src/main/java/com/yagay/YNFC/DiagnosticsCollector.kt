@@ -62,6 +62,7 @@ class DiagnosticsCollector(
             AppLogger.i("NCI_TRACE_UID_REJECTION generation=$generation " +
                 "status=0x09 parameter=0x33 stateUpdated=$applied")
         }
+        reportOwnNciAcceptance(generation, summary)
         AppLogger.i("NCI_TRACE_SNAPSHOT commandGeneration=$generation capturedAt=$capturedAt " +
             "summaryOnly=true")
     }
@@ -88,7 +89,27 @@ class DiagnosticsCollector(
             .putLong("late_captured_at_ms", capturedAt)
             .putString("late_summary", summary)
             .apply()
+        reportOwnNciAcceptance(generation, summary)
         AppLogger.i("NCI_TRACE_DELAYED commandGeneration=$generation capturedAt=$capturedAt summaryOnly=true")
+    }
+
+    /** Read-only NCI acceptance belongs to the exact active APPLY/PID/epoch. */
+    private fun reportOwnNciAcceptance(generation: Long, summary: String) {
+        if (!NciHalTrace.isOwnUidParameterAccepted(summary) ||
+            !runtimeRepository.isCurrentCommandGeneration(generation)) return
+        val snapshot = runtimeRepository.readProviderMap()
+        val pid = snapshot[ConfigProvider.KEY_COMMAND_PID]?.toIntOrNull() ?: 0
+        val applied = runCatching {
+            appContext.contentResolver.call(
+                ConfigProvider.URI, ConfigProvider.METHOD_REPORT_OWN_NCI_ACCEPTED, null,
+                android.os.Bundle().apply {
+                    putLong(ConfigProvider.EXTRA_GENERATION, generation)
+                    putInt(ConfigProvider.EXTRA_PID, pid)
+                }
+            )?.getBoolean(ConfigProvider.RESULT_SUCCESS, false) == true
+        }.getOrDefault(false)
+        AppLogger.i("NCI_TRACE_UID_ACCEPTED generation=$generation pid=$pid " +
+            "stateUpdated=$applied externalRfVerified=false")
     }
 
     /**
