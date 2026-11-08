@@ -197,6 +197,7 @@ public class NfcInjectionModule extends XposedModule {
         }
         final Method compute = NfcDiscoveryCapabilityRegistry.findCompute(service, parameters);
         int installed = 0;
+        boolean computeHookInstalled = false;
         if (compute != null) {
             try {
                 compute.setAccessible(true);
@@ -223,6 +224,7 @@ public class NfcInjectionModule extends XposedModule {
                     }
                 });
                 installed++;
+                computeHookInstalled = true;
                 Log.i(TAG, "POLLING_GUARD compute target="
                         + compute.getDeclaringClass().getName() + "#" + compute.getName());
             } catch (Throwable t) {
@@ -293,7 +295,7 @@ public class NfcInjectionModule extends XposedModule {
         final NfcDiscoveryCapabilityRegistry.ServiceAdapter adapter =
                 NfcDiscoveryCapabilityRegistry.resolveRouting(service);
         pollingDiscoveryHooksInstalled = installed > 0;
-        pollingCapabilitySummary = "compute=" + (compute != null)
+        pollingCapabilitySummary = "compute=" + computeHookInstalled
                 + ";driverHooks=" + driverHooks
                 + ";routeRefresh=" + adapter.available()
                 + ";sdk=" + Build.VERSION.SDK_INT + ";detail=" + adapter.detail;
