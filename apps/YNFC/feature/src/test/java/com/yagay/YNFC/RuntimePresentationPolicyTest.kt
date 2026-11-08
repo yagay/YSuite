@@ -48,5 +48,12 @@ class RuntimePresentationPolicyTest {
         assertEquals("WAITING_FOR_NFC_ON",
             RuntimePresentationPolicy.pollingStatus(false, "WAITING_FOR_NFC_ON",
                 "compute=false;driverHooks=0;routeRefresh=true"))
+        // Controller reset is not proof that the old 0x0 mask remains active.
+        assertEquals("AWAITING_DISCOVERY",
+            RuntimePresentationPolicy.pollingStatus(true, "AWAITING_DISCOVERY",
+                "compute=true;driverHooks=1;routeRefresh=true"))
+        assertEquals("STALE(PARAMETERS_INTERCEPTED)",
+            RuntimePresentationPolicy.pollingStatus(true, "STALE(PARAMETERS_INTERCEPTED)",
+                null))
     }
 }
