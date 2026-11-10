@@ -642,19 +642,30 @@ final class OplusFlexibleWindowController {
             return true;
         }
 
-        if (resumingPackage != null
-                && session.packageName.equals(
-                resumingPackage)) {
-            if (session.backgroundProtected) {
-                session.backgroundProtected = false;
-                log(
-                        "BACKGROUND_PROTECTED",
-                        "pkg=" + session.packageName
-                                + " taskId=" + session.taskId
-                                + " enabled=false"
-                                + " reason=same-package-resume");
-            }
+        // A same-package *candidate* resumingActivity is not proof the app
+        // returned to the foreground. On OxygenOS 16/Android 17, a second
+        // startPausing(same package, "makeInvisible") can arrive immediately
+        // after the launcher transition, even though the protected task is
+        // being hidden. Clearing here let Activity.onPause/onStop stop audio.
+        // Only a confirmed RESUMED capture or actual focus can disarm.
+        boolean samePackageCandidate = resumingPackage != null
+                && session.packageName.equals(resumingPackage);
+        boolean armedBackgroundTransition =
+                BackgroundPlaybackPolicy.shouldRetainArmedProtection(
+                        session.backgroundProtected, reason);
+
+        if (samePackageCandidate && !armedBackgroundTransition) {
+            // Allow ordinary in-app Activity navigation; do not revoke
+            // the background protection of another Activity in this task.
             return false;
+        }
+
+        if (samePackageCandidate && armedBackgroundTransition) {
+            log("BACKGROUND_SELF_RESUME_DEFERRED",
+                    "pkg=" + session.packageName
+                            + " taskId=" + session.taskId
+                            + " reason=" + reason
+                            + " armed=true");
         }
 
         boolean switchingPackage =
@@ -676,17 +687,17 @@ final class OplusFlexibleWindowController {
         // while userLeaving and resumingPackage remain unset. Only selected
         // background-playback apps qualify; the keyguard UI stays hideable.
         boolean nativeMiniHidden =
-                isNativeOplusWindow(session)
-                        && reason != null
-                        && (reason.contains("makeInvisible")
-                        || reason.contains("setVisibility"));
+                (isNativeOplusWindow(session)
+                        || armedBackgroundTransition)
+                        && BackgroundPlaybackPolicy.isVisibilityHide(reason);
 
         if (!session.backgroundProtected
                 && !switchingPackage
                 && !explicitLeave
                 && !uiSleeping
                 && !recentsBackground
-                && !nativeMiniHidden) {
+                && !nativeMiniHidden
+                && !armedBackgroundTransition) {
             return false;
         }
 
@@ -706,6 +717,8 @@ final class OplusFlexibleWindowController {
                         + recentsBackground
                         + " nativeMiniHidden="
                         + nativeMiniHidden
+                        + " armedBackgroundTransition="
+                        + armedBackgroundTransition
                         + " reason=" + reason);
 
         return true;
