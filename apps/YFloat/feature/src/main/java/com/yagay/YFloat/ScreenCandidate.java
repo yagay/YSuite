@@ -49,7 +49,15 @@ public final class ScreenCandidate {
     public Rect bounds() { return new Rect(bounds); }
 
     /** Allocation-free hit test on the high-frequency Direct selection path. */
-    public boolean contains(int x, int y) { return bounds.contains(x, y); }
+    public boolean contains(int x, int y) {
+        return containsBounds(bounds.left, bounds.top, bounds.right, bounds.bottom, x, y);
+    }
+
+    /** Pure geometry core: Android Rect's half-open edge semantics. */
+    static boolean containsBounds(int left, int top, int right, int bottom, int x, int y) {
+        return left < right && top < bottom
+                && x >= left && x < right && y >= top && y < bottom;
+    }
     public Type type() { return type; }
     public String text() { return text; }
     public String semanticLabel() { return semanticLabel; }
