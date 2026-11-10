@@ -58,6 +58,7 @@ public class FloatIconView extends View {
     private boolean directSelectionActive;
     private boolean directTimerArmed;
     private boolean positionMoveMode;
+    private int touchMoveLogCounter;
     private float lastSelectionRawX = Float.NaN, lastSelectionRawY = Float.NaN;
     private float directTimerAnchorX = Float.NaN, directTimerAnchorY = Float.NaN;
     private float longPressAnchorRawX = Float.NaN, longPressAnchorRawY = Float.NaN;
@@ -159,8 +160,10 @@ public class FloatIconView extends View {
         final int action = e.getActionMasked();
         final float rx = e.getRawX(), ry = e.getRawY();
         final long now = SystemClock.uptimeMillis();
-        if (DiagnosticLog.enabled(getContext())
-                && (action != MotionEvent.ACTION_MOVE || session.points.size() % 4 == 0)) {
+        // Do not build verbose strings on every 120 Hz MOVE when diagnostics are off.
+        // Use an independent counter: Direct mode no longer stores history samples.
+        if ((action != MotionEvent.ACTION_MOVE || (++touchMoveLogCounter & 7) == 0)
+                && DiagnosticLog.enabled(getContext())) {
             DiagnosticLog.i(getContext(), "TOUCH", "action=" + action + " pointers=" + e.getPointerCount()
                     + " raw=" + Math.round(rx) + "," + Math.round(ry) + " phase=" + session.phase
                     + " direct=" + directSelectionActive + " long=" + longPressActionTriggered
