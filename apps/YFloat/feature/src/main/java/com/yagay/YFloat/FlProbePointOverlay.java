@@ -114,19 +114,21 @@ public final class FlProbePointOverlay {
 
     private static final class ProbeView extends View {
         private final Paint plus = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
         private SelectionVisualState state = SelectionVisualState.TRACKING;
 
         ProbeView(Context c) {
             super(c);
             plus.setStyle(Paint.Style.STROKE);
             plus.setStrokeCap(Paint.Cap.SQUARE);
-            plus.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
-            plus.setShadowLayer(
-                    Math.max(1f, 1.25f * getResources().getDisplayMetrics().density),
-                    0f,
-                    Math.max(.5f, .5f * getResources().getDisplayMetrics().density),
-                    YFloatOverlayStyle.scrim(c, 0x77));
-            setLayerType(LAYER_TYPE_SOFTWARE, null);
+            float stroke = YFloatOverlayStyle.selectionStroke(c);
+            plus.setStrokeWidth(stroke);
+            // Lightweight GPU-friendly backing stroke instead of software
+            // shadow rendering on a moving video overlay.
+            glow.setStyle(Paint.Style.STROKE);
+            glow.setStrokeCap(Paint.Cap.ROUND);
+            glow.setStrokeWidth(stroke * 2f);
+            glow.setColor(YFloatOverlayStyle.scrim(c, 0x77));
             setBackgroundColor(Color.TRANSPARENT);
             updateColor();
         }
@@ -148,6 +150,8 @@ public final class FlProbePointOverlay {
             float cx = getWidth() / 2f;
             float cy = getHeight() / 2f;
             float arm = Math.min(getWidth(), getHeight()) * .34f;
+            canvas.drawLine(cx - arm, cy, cx + arm, cy, glow);
+            canvas.drawLine(cx, cy - arm, cx, cy + arm, glow);
             canvas.drawLine(cx - arm, cy, cx + arm, cy, plus);
             canvas.drawLine(cx, cy - arm, cx, cy + arm, plus);
         }

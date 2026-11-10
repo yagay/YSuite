@@ -159,7 +159,8 @@ public class FloatIconView extends View {
         final int action = e.getActionMasked();
         final float rx = e.getRawX(), ry = e.getRawY();
         final long now = SystemClock.uptimeMillis();
-        if (action != MotionEvent.ACTION_MOVE || session.points.size() % 4 == 0) {
+        if (DiagnosticLog.enabled(getContext())
+                && (action != MotionEvent.ACTION_MOVE || session.points.size() % 4 == 0)) {
             DiagnosticLog.i(getContext(), "TOUCH", "action=" + action + " pointers=" + e.getPointerCount()
                     + " raw=" + Math.round(rx) + "," + Math.round(ry) + " phase=" + session.phase
                     + " direct=" + directSelectionActive + " long=" + longPressActionTriggered
@@ -240,7 +241,13 @@ public class FloatIconView extends View {
     }
 
     private void moveTouch(float rx, float ry, long now) {
-        session.add(rx, ry, now);
+        // Direct capture and position move need only the latest coordinates.
+        // Preserve complete history only for directional gesture classification.
+        if (positionMoveMode || directSelectionActive || longPressActionTriggered) {
+            session.advance(rx, ry);
+        } else {
+            session.add(rx, ry, now);
+        }
         if (session.multiTouch) return;
 
         int moveDx = Math.round(rx - session.downX);
@@ -265,11 +272,9 @@ public class FloatIconView extends View {
         if (longPressActionTriggered) return;
 
         if (directSelectionActive) {
-            if ((moveDx != 0 || moveDy != 0) && followStarted) {
-                updateFlWindowTracking(moveDx, moveDy);
-                cb.onMove(moveDx, moveDy);
-                session.moved = true;
-            }
+            // Selection uses virtual screen coordinates. The icon is not drawn
+            // during Direct, so moving its real WindowManager surface only
+            // adds unnecessary compositor transactions above video.
             if (selectionEngine != null) selectionEngine.updateDirect(rx, ry);
             return;
         }

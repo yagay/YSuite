@@ -29,9 +29,14 @@ final class GestureSession {
     }
 
     void add(float x, float y, long t) {
+        advance(x, y);
+        points.add(new GesturePointSample(x, y, t));
+    }
+
+    /** Keep Direct/drag position current without allocating gesture history. */
+    void advance(float x, float y) {
         lastX = x;
         lastY = y;
-        points.add(new GesturePointSample(x, y, t));
     }
 
     float dx() { return lastX - downX; }

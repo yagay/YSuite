@@ -166,6 +166,7 @@ public final class ViewSelectionEngine {
 
         PointF transformed = pointTransformer.transformRaw(rawX, rawY);
         PointF shown = showProbeAt(transformed);
+        if (shown.x == selectionX && shown.y == selectionY) return;
         selectionX = shown.x;
         selectionY = shown.y;
 

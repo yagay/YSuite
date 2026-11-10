@@ -299,6 +299,9 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
             @Override public void onDirectSelectionStart() {
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
+                // Freeze the invisible icon as Direct's separate probe takes
+                // over. Cancel any final pending drag-frame WindowManager work.
+                if (dragFrame[0] != null) dragFrame[0].cancel();
                 if (directExpanded[0]) return;
                 View icon = mirrored ? secondary : primary;
                 if (icon == null) return;

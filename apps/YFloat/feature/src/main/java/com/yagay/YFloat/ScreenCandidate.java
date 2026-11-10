@@ -47,6 +47,9 @@ public final class ScreenCandidate {
     }
 
     public Rect bounds() { return new Rect(bounds); }
+
+    /** Allocation-free hit test on the high-frequency Direct selection path. */
+    public boolean contains(int x, int y) { return bounds.contains(x, y); }
     public Type type() { return type; }
     public String text() { return text; }
     public String semanticLabel() { return semanticLabel; }

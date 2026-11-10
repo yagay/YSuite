@@ -32,6 +32,19 @@ public class ScreenCandidateSemanticsTest {
         assertEquals("Settings", candidate.toViewNodeCandidate().semanticLabel());
     }
 
+    @Test public void cachedHitTestKeepsRectGeometryAndDefensiveCopy() {
+        ScreenCandidate candidate = new ScreenCandidate(
+                new Rect(10, 20, 110, 80), ScreenCandidate.Type.TEXT,
+                "Visible", "", "TextView", "title", "app",
+                1, false, false, false, false, false);
+        assertTrue(candidate.contains(10, 20));
+        assertTrue(candidate.contains(109, 79));
+        assertFalse(candidate.contains(110, 80));
+        Rect mutableCopy = candidate.bounds();
+        mutableCopy.setEmpty();
+        assertTrue(candidate.contains(20, 30));
+    }
+
     @Test public void visibleTextRemainsAuthoritativeLabel() {
         ScreenCandidate candidate = new ScreenCandidate(
                 new Rect(0, 0, 100, 40),
