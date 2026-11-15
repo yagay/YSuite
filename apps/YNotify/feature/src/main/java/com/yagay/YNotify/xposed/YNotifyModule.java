@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import com.yagay.YNotify.BuildConfig;
 import com.yagay.YNotify.YNotifyApp;
+import com.yagay.YNotify.YNotifyRuntime;
 import com.yagay.YNotify.collector.XposedEventReceiver;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.util.HookAuth;
@@ -150,9 +151,97 @@ public final class YNotifyModule extends XposedModule {
     }
 
     private void installSystemUiHooks(ClassLoader cl) {
+        installClipboardHooks(cl);
         installHeadsUpHooks(cl);
         installBubbleHooks(cl);
         installFullScreenHooks(cl);
+    }
+
+    /**
+     * AOSP's ClipboardListener owns the floating clipboard preview, not the actual clipboard.
+     * Intercept only its UI callback; do not restrict READ_CLIPBOARD or ClipboardManager.
+     * The secondary observer records actual overlay presentation with no copied content.
+     */
+    private void installClipboardHooks(ClassLoader cl) {
+        int suppressHooks = 0;
+        for (String name : new String[]{
+                "com.android.systemui.clipboardoverlay.ClipboardListener",
+                "com.android.systemui.clipboard.ClipboardListener"
+        }) {
+            try {
+                Class<?> listener = Class.forName(name, false, cl);
+                for (Method method : listener.getDeclaredMethods()) {
+                    if (!"onPrimaryClipChanged".equals(method.getName())
+                            || method.getParameterCount() != 0
+                            || method.getReturnType() != void.class) continue;
+                    try {
+                        method.setAccessible(true);
+                        hook(method).setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
+                                .intercept(chain -> {
+                                    if (!hideClipboardOverlay()) return chain.proceed();
+                                    if (capturePopupEvents() && shouldEmitUi(
+                                            "com.android.systemui", EventTypes.SYSTEM_UI,
+                                            EventTypes.CLIPBOARD_SUPPRESSED_MARKER, 700L)) {
+                                        Context context = contextFromObject(chain.getThisObject());
+                                        emitUi(context == null ? currentApplicationContext() : context,
+                                                "com.android.systemui", EventTypes.SYSTEM_UI,
+                                                EventTypes.CLIPBOARD_SUPPRESSED_MARKER,
+                                                listener.getName());
+                                    }
+                                    return null; // void callback: suppress the overlay, not the copy
+                                });
+                        suppressHooks++;
+                    } catch (Throwable t) {
+                        log(Log.WARN, TAG, "clipboard listener hook failed: " + method, t);
+                    }
+                }
+            } catch (ClassNotFoundException ignored) {
+                // OEM versions may not have this AOSP class.
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "clipboard listener discovery failed: " + name, t);
+            }
+        }
+
+        int observed = 0;
+        for (String name : new String[]{
+                "com.android.systemui.clipboardoverlay.ClipboardOverlayController",
+                "com.android.systemui.clipboardoverlay.ClipboardOverlayControllerImpl"
+        }) {
+            try {
+                Class<?> controller = Class.forName(name, false, cl);
+                observed += hookNamed(controller, "setClipData", chain -> {
+                    Object result = chain.proceed();
+                    if (capturePopupEvents() && shouldEmitUi(
+                            "com.android.systemui", EventTypes.SYSTEM_UI,
+                            EventTypes.CLIPBOARD_SHOWN_MARKER, 700L)) {
+                        Context context = contextFromObject(chain.getThisObject());
+                        emitUi(context == null ? currentApplicationContext() : context,
+                                "com.android.systemui", EventTypes.SYSTEM_UI,
+                                EventTypes.CLIPBOARD_SHOWN_MARKER, controller.getName());
+                    }
+                    return result;
+                });
+            } catch (ClassNotFoundException ignored) {
+            } catch (Throwable t) {
+                log(Log.WARN, TAG, "clipboard controller discovery failed: " + name, t);
+            }
+        }
+        log(Log.INFO, TAG, "clipboard popup hooks listener=" + suppressHooks
+                + " overlayObserver=" + observed);
+    }
+
+    private boolean hideClipboardOverlay() {
+        try {
+            SharedPreferences prefs = runtimePrefs;
+            return prefs != null && prefs.getBoolean(YNotifyRuntime.KEY_HIDE_CLIPBOARD, false);
+        } catch (Throwable ignored) { return false; }
+    }
+
+    private boolean capturePopupEvents() {
+        try {
+            SharedPreferences prefs = runtimePrefs;
+            return prefs == null || prefs.getBoolean(YNotifyRuntime.KEY_POPUP_CAPTURE, true);
+        } catch (Throwable ignored) { return true; }
     }
 
     private void installHeadsUpHooks(ClassLoader cl) {
