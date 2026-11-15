@@ -121,7 +121,13 @@ final class YMiniSystemAudioObserver {
         boolean someUidUnknown = false;
         if (configurations != null) {
             for (AudioPlaybackConfiguration playback : configurations) {
-                if (playback == null || !playback.isActive()) continue;
+                if (playback == null) continue;
+                int playbackState = playbackState(playback);
+                if (playbackState == 0) continue;
+                if (playbackState < 0) {
+                    someUidUnknown = true;
+                    continue;
+                }
                 int uid = clientUid(playback);
                 if (uid < 10000) {
                     // Some OEM audio players may be anonymized; a negative
@@ -170,6 +176,29 @@ final class YMiniSystemAudioObserver {
             entries.append(e.getKey()).append(':').append(e.getValue());
         }
         send(someUidUnknown ? "partial" : "ready", entries.toString());
+    }
+
+    /**
+     * Both getPlayerState() and isActive() can be hidden from the normal
+     * Android SDK stubs even though system_server has these runtime methods.
+     * The AOSP PLAYER_STATE_STARTED value is 2. Unknown must never be
+     * interpreted as inactive or used to suppress a genuine media session.
+     *
+     * @return 1 started, 0 inactive, -1 unknown
+     */
+    private static int playbackState(AudioPlaybackConfiguration config) {
+        try {
+            Method method = AudioPlaybackConfiguration.class.getMethod("getPlayerState");
+            Object value = method.invoke(config);
+            if (value instanceof Number)
+                return ((Number) value).intValue() == 2 ? 1 : 0;
+        } catch (Throwable ignored) {}
+        try {
+            Method method = AudioPlaybackConfiguration.class.getMethod("isActive");
+            Object value = method.invoke(config);
+            if (value instanceof Boolean) return (Boolean) value ? 1 : 0;
+        } catch (Throwable ignored) {}
+        return -1;
     }
 
     /** Avoid referring to hidden SDK classes or requiring expanded LSPosed scopes. */
