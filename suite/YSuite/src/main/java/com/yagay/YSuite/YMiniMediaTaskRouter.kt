@@ -25,7 +25,7 @@ internal class YMiniMediaTaskRouter(private val host: Application) :
             val tasks = host.getSystemService(ActivityManager::class.java)?.appTasks ?: return
             val baseIntent = tasks.firstNotNullOfOrNull { task ->
                 val info = task.taskInfo
-                if (info.taskId == activity.taskId) info.baseIntent else null
+                if (info != null && info.taskId == activity.taskId) info.baseIntent else null
             } ?: return
             val signature = "${activity.taskId}|${baseIntent.toUri(0)}"
             // Consume each observed launcher/task state once. Merely resuming
