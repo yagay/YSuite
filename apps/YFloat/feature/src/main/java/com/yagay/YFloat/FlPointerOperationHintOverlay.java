@@ -11,6 +11,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -26,11 +27,13 @@ public final class FlPointerOperationHintOverlay {
     private final int hintHeightPx;
     private final int probeXOffsetPx;
     private final int iconSizePx;
+    private final FrameLayout windowRoot;
     private final LinearLayout root;
+    private final int[] windowOrigin = new int[2];
+    private int screenX, screenY;
     private final ImageView icon;
     private final TextView text;
     private final WindowManager.LayoutParams lp;
-    private final OverlayFrameScheduler windowUpdates;
     private boolean attached;
     private boolean contentVisible;
     private Mode mode;
@@ -66,44 +69,66 @@ public final class FlPointerOperationHintOverlay {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.MATCH_PARENT));
 
+        // Keep the actual WindowManager surface fixed. Only translate the
+        // small content child on the GPU instead of sending a binder
+        // updateViewLayout() transaction on every Direct MOVE.
+        windowRoot = new FrameLayout(context);
+        windowRoot.setBackgroundColor(Color.TRANSPARENT);
+        windowRoot.addView(root, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, hintHeightPx));
+
         lp = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                hintHeightPx,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                         | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                         | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                        | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
+                        | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
-        lp.x = -hintHeightPx;
+        lp.x = 0;
         lp.y = 0;
-        windowUpdates = new OverlayFrameScheduler(root, () -> {
-            if (attached) windowHost.update(root, lp, "pointer_hint");
-        });
+        lp.setFitInsetsTypes(0);
+        lp.setFitInsetsSides(0);
+        lp.setFitInsetsIgnoringVisibility(true);
+        lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
     }
 
     public void syncToProbeWindow(int probeWindowX, int probeWindowY) {
         int nextX = probeWindowX + probeXOffsetPx;
         int nextY = probeWindowY - hintHeightPx;
-        boolean changed = lp.x != nextX || lp.y != nextY;
-        lp.x = nextX;
-        lp.y = nextY;
+        if (screenX == nextX && screenY == nextY && attached) return;
+        screenX = nextX;
+        screenY = nextY;
 
         if (!attached) {
-            // Same lightweight application-overlay host as the moving
-            // crosshair; AccessibilityService remains a fallback.
-            attached = windowHost.addStable(root, lp, "pointer_hint");
+            attached = windowHost.addFollowingIconLayer(windowRoot, lp, "pointer_hint");
             if (attached) {
+                windowRoot.getLocationOnScreen(windowOrigin);
+                // One origin update after layout covers status bar/cutout
+                // differences; following pointer motion stays view-local.
+                windowRoot.post(() -> {
+                    if (attached) {
+                        windowRoot.getLocationOnScreen(windowOrigin);
+                        updateContentTranslation();
+                    }
+                });
                 DiagnosticLog.i(context, "FL_POINTER_HINT",
-                        "ATTACH pos=" + lp.x + "," + lp.y
+                        "ATTACH fixed_fullscreen_render_only pos=" + screenX + "," + screenY
                                 + " height=" + hintHeightPx + " xOffset=" + probeXOffsetPx
-                                + " accessibilityHost=" + windowHost.isAccessibilityHosted());
+                                + " type=" + lp.type
+                                + " accessibilityHost=" + windowHost.isAccessibilityHosted(windowRoot));
             }
-            return;
         }
-        if (changed) windowUpdates.request();
+        updateContentTranslation();
+    }
+
+    private void updateContentTranslation() {
+        if (!attached) return;
+        root.setTranslationX(screenX - windowOrigin[0]);
+        root.setTranslationY(screenY - windowOrigin[1]);
     }
 
     public void show(Mode next, int probeWindowX, int probeWindowY) {
@@ -149,9 +174,8 @@ public final class FlPointerOperationHintOverlay {
         }
         contentVisible = true;
         root.requestLayout();
-        windowUpdates.request();
         DiagnosticLog.i(context, "FL_POINTER_HINT",
-                "SHOW mode=" + mode + " pos=" + lp.x + "," + lp.y
+                "SHOW mode=" + mode + " pos=" + screenX + "," + screenY
                         + " icon=" + iconSizePx + "x" + iconSizePx
                         + " text=" + (optionalText == null ? "none" : optionalText));
     }
@@ -163,14 +187,12 @@ public final class FlPointerOperationHintOverlay {
         icon.setVisibility(View.GONE);
         text.setVisibility(View.GONE);
         root.requestLayout();
-        windowUpdates.request();
-        DiagnosticLog.i(context, "FL_POINTER_HINT", "CONTENT_HIDE pos=" + lp.x + "," + lp.y);
+        DiagnosticLog.i(context, "FL_POINTER_HINT", "CONTENT_HIDE pos=" + screenX + "," + screenY);
     }
 
     public void close() {
-        windowUpdates.cancel();
         contentVisible = false;
-        if (attached) windowHost.remove(root, "pointer_hint");
+        if (attached) windowHost.remove(windowRoot, "pointer_hint");
         attached = false;
         mode = null;
     }

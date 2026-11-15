@@ -139,7 +139,7 @@ final class NativeCircleWorkspace extends View {
         layout.y = bounds.top - display.top;
         FlOverlayWindowHost host = new FlOverlayWindowHost(app);
         NativeCircleWorkspace view = new NativeCircleWorkspace(app, host, frame, onClosed);
-        if (!host.addStable(view, layout, "native_circle_workspace")) return false;
+        if (!host.addFollowingIconLayer(view, layout, "native_circle_workspace")) return false;
         active = view;
         view.setFocusableInTouchMode(true);
         view.requestFocus();

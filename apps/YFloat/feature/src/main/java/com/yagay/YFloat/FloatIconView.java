@@ -117,7 +117,10 @@ public class FloatIconView extends View {
         renderer.refresh(fs);
         setClickable(true);
         setFocusable(false);
-        setLayerType(LAYER_TYPE_SOFTWARE, null);
+        // Avoid forcing software rendering while WindowManager moves the
+        // icon. All built-in styles and decoded Drawable paths support the
+        // normal hardware-accelerated View renderer.
+        setLayerType(LAYER_TYPE_NONE, null);
     }
 
     public void refreshSettings() {

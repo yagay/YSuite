@@ -6,15 +6,25 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PointF;
+import android.graphics.Rect;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 
-/** YFloat probe point; uses FL selection geometry. */
+/**
+ * Lightweight FL crosshair that stays in ONE fixed overlay window.
+ *
+ * The old 15dp moving window used updateViewLayout()/WindowManager binder
+ * transactions for every pointer frame. When the window was hosted by the
+ * shared AccessibilityService, those position updates competed with the icon,
+ * video and SystemUI compositor. Instead, keep an always non-touchable,
+ * transparent surface attached during the touch and invalidate only the
+ * crosshair's previous/new dirty bounds. A high-layer accessibility token can
+ * now be used without paying the per-frame accessibility-window reposition cost.
+ */
 public final class FlProbePointOverlay {
     private static final float FL_PROBE_SIZE_DP = 15f;
-
     private final Context context;
     private final FlOverlayWindowHost windowHost;
     private final int sizePx;
@@ -23,8 +33,6 @@ public final class FlProbePointOverlay {
     private boolean attached;
     private boolean visible;
     private long lastMoveLogAt;
-    private long lastSlowUpdateLogAt;
-    private final OverlayFrameScheduler moveUpdates;
     private int targetX, targetY;
     private SelectionVisualState state = SelectionVisualState.TRACKING;
 
@@ -36,33 +44,24 @@ public final class FlProbePointOverlay {
         view = new ProbeView(context);
         view.setState(state);
         lp = new WindowManager.LayoutParams(
-                sizePx,
-                sizePx,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                         | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                         | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                        | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
+                        | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
-        lp.x = -sizePx;
+        lp.x = 0;
         lp.y = 0;
-        moveUpdates = new OverlayFrameScheduler(view, () -> {
-            if (!attached) return;
-            long start = SystemClock.uptimeMillis();
-            windowHost.update(view, lp, "probe");
-            long elapsed = SystemClock.uptimeMillis() - start;
-            long now = SystemClock.uptimeMillis();
-            if (elapsed >= 16L && now - lastSlowUpdateLogAt >= 1_000L
-                    && DiagnosticLog.enabled(context)) {
-                lastSlowUpdateLogAt = now;
-                DiagnosticLog.i(context, "FL_PROBE_PERF",
-                        "slow_window_update_ms=" + elapsed +
-                        " host=" + (windowHost.isAccessibilityHosted(view)
-                                ? "accessibility" : "application"));
-            }
-        });
+        // The coordinates supplied by SelectionPointTransformer are physical
+        // screen coordinates, including status-bar and display-cutout regions.
+        lp.setFitInsetsTypes(0);
+        lp.setFitInsetsSides(0);
+        lp.setFitInsetsIgnoringVisibility(true);
+        lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
     }
 
     public void setTracking() { setVisualState(SelectionVisualState.TRACKING); }
@@ -78,43 +77,36 @@ public final class FlProbePointOverlay {
     }
 
     public PointF showAt(float screenX, float screenY) {
+        // Maintain the original 15dp bounding-box semantics for the separate
+        // operation hint and ViewSelectionEngine. Only the actual WM surface
+        // changes from a moving square into a stationary transparent canvas.
         targetX = Math.round(screenX - sizePx / 2f);
         targetY = Math.round(screenY - sizePx / 2f);
+        float cx = targetX + sizePx / 2f;
+        float cy = targetY + sizePx / 2f;
+        view.setScreenCenter(cx, cy, sizePx);
+
         if (!attached) {
-            lp.x = targetX;
-            lp.y = targetY;
-            // The persistent float icon is already an application overlay.
-            // Prefer that host for the 60 fps probe; an Accessibility
-            // overlay crosses the service bridge on every position update.
-            attached = windowHost.addStable(view, lp, "probe");
+            attached = windowHost.addFollowingIconLayer(view, lp, "probe");
             if (attached) {
                 visible = true;
                 DiagnosticLog.i(context, "FL_PROBE_VIEW",
-                        "ATTACH size=" + sizePx + " window=" + lp.x + "," + lp.y
+                        "ATTACH fixed_fullscreen_render_only size=" + sizePx
                                 + " state=" + state
-                                + " accessibilityHost=" + windowHost.isAccessibilityHosted());
+                                + " type=" + lp.type
+                                + " accessibilityHost=" + windowHost.isAccessibilityHosted(view));
             }
-        } else {
-            if (!visible) {
-                visible = true;
-                view.setVisibility(View.VISIBLE);
-            }
-            if (lp.x != targetX || lp.y != targetY) {
-                lp.x = targetX;
-                lp.y = targetY;
-                moveUpdates.request();
-            }
+        } else if (!visible) {
+            visible = true;
+            view.setVisibility(View.VISIBLE);
         }
-        float cx = targetX + sizePx / 2f;
-        float cy = targetY + sizePx / 2f;
-        // Diagnostics must not format/log every high-frequency touch event.
-        // Keep periodic positions without creating work on the hot path.
         long now = SystemClock.uptimeMillis();
         if (now - lastMoveLogAt >= 350L && DiagnosticLog.enabled(context)) {
             lastMoveLogAt = now;
             DiagnosticLog.i(context, "FL_PROBE_VIEW",
                     "MOVE centre=" + Math.round(cx) + "," + Math.round(cy)
-                            + " window=" + targetX + "," + targetY + " state=" + state);
+                            + " virtualWindow=" + targetX + "," + targetY
+                            + " state=" + state + " wmUpdates=0");
         }
         return new PointF(cx, cy);
     }
@@ -130,7 +122,6 @@ public final class FlProbePointOverlay {
     }
 
     public void close() {
-        moveUpdates.cancel();
         visible = false;
         if (attached) windowHost.remove(view, "probe");
         attached = false;
@@ -139,7 +130,11 @@ public final class FlProbePointOverlay {
     private static final class ProbeView extends View {
         private final Paint plus = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Rect dirty = new Rect();
+        private final int[] windowOrigin = new int[2];
         private SelectionVisualState state = SelectionVisualState.TRACKING;
+        private float screenCx = Float.NaN, screenCy = Float.NaN;
+        private int size;
 
         ProbeView(Context c) {
             super(c);
@@ -147,8 +142,6 @@ public final class FlProbePointOverlay {
             plus.setStrokeCap(Paint.Cap.SQUARE);
             float stroke = YFloatOverlayStyle.selectionStroke(c);
             plus.setStrokeWidth(stroke);
-            // Lightweight GPU-friendly backing stroke instead of software
-            // shadow rendering on a moving video overlay.
             glow.setStyle(Paint.Style.STROKE);
             glow.setStrokeCap(Paint.Cap.ROUND);
             glow.setStrokeWidth(stroke * 2f);
@@ -165,15 +158,37 @@ public final class FlProbePointOverlay {
             invalidate();
         }
 
+        void setScreenCenter(float x, float y, int probeSizePx) {
+            if (screenCx == x && screenCy == y && size == probeSizePx) return;
+            float oldX = screenCx, oldY = screenCy;
+            size = probeSizePx;
+            screenCx = x;
+            screenCy = y;
+            int radius = Math.max(8,
+                    Math.round(probeSizePx * .65f + glow.getStrokeWidth() + 3f));
+            if (Float.isNaN(oldX) || Float.isNaN(oldY)) {
+                invalidate();
+                return;
+            }
+            int x0 = Math.round(Math.min(oldX, x)) - windowOrigin[0] - radius;
+            int y0 = Math.round(Math.min(oldY, y)) - windowOrigin[1] - radius;
+            int x1 = Math.round(Math.max(oldX, x)) - windowOrigin[0] + radius;
+            int y1 = Math.round(Math.max(oldY, y)) - windowOrigin[1] + radius;
+            dirty.set(x0, y0, x1, y1);
+            invalidate(dirty);
+        }
+
         private void updateColor() {
             plus.setColor(SelectionVisuals.frameColor(state));
         }
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            float cx = getWidth() / 2f;
-            float cy = getHeight() / 2f;
-            float arm = Math.min(getWidth(), getHeight()) * .34f;
+            if (Float.isNaN(screenCx) || Float.isNaN(screenCy)) return;
+            getLocationOnScreen(windowOrigin);
+            float cx = screenCx - windowOrigin[0];
+            float cy = screenCy - windowOrigin[1];
+            float arm = size * .34f;
             canvas.drawLine(cx - arm, cy, cx + arm, cy, glow);
             canvas.drawLine(cx, cy - arm, cx, cy + arm, glow);
             canvas.drawLine(cx - arm, cy, cx + arm, cy, plus);

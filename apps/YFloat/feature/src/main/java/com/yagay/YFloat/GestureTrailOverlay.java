@@ -65,6 +65,15 @@ final class GestureTrailOverlay {
     private static final class TrailView extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path path = new Path();
+        // Bounded, allocation-free tail buffer: long finger drags previously
+        // redrew an ever-growing Path (hundreds/thousands of segments) across
+        // a fullscreen translucent overlay, stealing video/UI frame time.
+        private static final int MAX_TRAIL_POINTS = 240;
+        private final float[] xs = new float[MAX_TRAIL_POINTS];
+        private final float[] ys = new float[MAX_TRAIL_POINTS];
+        private int head, count;
+        private float lastX, lastY;
+        private float sampleSlopSquared;
         private FloatSettings settings;
 
         TrailView(Context c) {
@@ -76,7 +85,9 @@ final class GestureTrailOverlay {
             settings = new FloatSettings(getContext());
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeJoin(Paint.Join.ROUND);
-            paint.setStrokeWidth(settings.lineWidthDp() * getResources().getDisplayMetrics().density);
+            float density = getResources().getDisplayMetrics().density;
+            paint.setStrokeWidth(settings.lineWidthDp() * density);
+            sampleSlopSquared = Math.max(1f, density * density * 2.25f);
             paint.setAlpha(Math.round(255 * settings.lineAlpha() / 100f));
             paint.setStrokeCap(settings.lineStyle() == 1 ? Paint.Cap.SQUARE : Paint.Cap.ROUND);
             try {
@@ -100,18 +111,35 @@ final class GestureTrailOverlay {
         }
 
         void begin(float x, float y) {
-            path.reset();
-            path.moveTo(x, y);
+            head = 0;
+            count = 1;
+            lastX = xs[0] = x;
+            lastY = ys[0] = y;
             invalidate();
         }
 
         void add(float x, float y) {
-            path.lineTo(x, y);
+            float dx = x - lastX, dy = y - lastY;
+            if (dx * dx + dy * dy < sampleSlopSquared) return;
+            lastX = x;
+            lastY = y;
+            head = (head + 1) % MAX_TRAIL_POINTS;
+            xs[head] = x;
+            ys[head] = y;
+            if (count < MAX_TRAIL_POINTS) count++;
             invalidate();
         }
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
+            if (count < 2) return;
+            path.reset();
+            int index = (head - count + 1 + MAX_TRAIL_POINTS) % MAX_TRAIL_POINTS;
+            path.moveTo(xs[index], ys[index]);
+            for (int i = 1; i < count; i++) {
+                index = (index + 1) % MAX_TRAIL_POINTS;
+                path.lineTo(xs[index], ys[index]);
+            }
             canvas.drawPath(path, paint);
         }
     }

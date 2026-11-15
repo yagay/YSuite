@@ -21,6 +21,11 @@ final class FloatIconRenderer {
     private FloatSettings settings;
     private Drawable customDrawable;
     private int slideIndex;
+    // Theme lookups are relatively expensive on ColorOS. Cache their result
+    // when settings/appearance refresh, not inside each draw frame.
+    private int backgroundColor;
+    private int foregroundColor;
+    private float strokeWidth;
 
     private final Runnable slideRunnable = new Runnable() {
         @Override public void run() {
@@ -42,6 +47,10 @@ final class FloatIconRenderer {
         slides.clear();
         slideIndex = 0;
         if (settings == null) return;
+        int style = settings.style();
+        backgroundColor = YFloatOverlayStyle.iconBackground(owner.getContext(), style);
+        foregroundColor = YFloatOverlayStyle.iconForeground(owner.getContext(), style);
+        strokeWidth = YFloatOverlayStyle.selectionStroke(owner.getContext());
 
         if (settings.style() == 3) {
             String raw = settings.customIconUri();
@@ -91,11 +100,11 @@ final class FloatIconRenderer {
         float r = Math.min(w, h) * .47f;
         if (pressed) r *= .90f;
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(YFloatOverlayStyle.iconBackground(owner.getContext(), style));
+        paint.setColor(backgroundColor);
         canvas.drawCircle(w / 2f, h / 2f, r, paint);
-        paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(owner.getContext()));
+        paint.setStrokeWidth(strokeWidth);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setColor(YFloatOverlayStyle.iconForeground(owner.getContext(), style));
+        paint.setColor(foregroundColor);
         canvas.drawCircle(w / 2f, h / 2f, r * .53f, paint);
         canvas.drawLine(w * .68f, h * .68f, w * .83f, h * .83f, paint);
     }

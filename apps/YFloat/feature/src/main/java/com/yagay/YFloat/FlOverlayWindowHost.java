@@ -88,6 +88,14 @@ final class FlOverlayWindowHost {
         return false;
     }
 
+    /** Match the user's floating-icon layer preference for YFloat selection surfaces.
+     *  This is evaluated only on attachment, never during touch/move frames. */
+    boolean addFollowingIconLayer(View view, WindowManager.LayoutParams lp, String tag) {
+        return new FloatSettings(context).elevatedIconOverlay()
+                ? addElevated(view, lp, tag)
+                : addStable(view, lp, tag);
+    }
+
     boolean addApplication(View view, WindowManager.LayoutParams lp, String tag) {
         if (view == null || lp == null) return false;
         try {

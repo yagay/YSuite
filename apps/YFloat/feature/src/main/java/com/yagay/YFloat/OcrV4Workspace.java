@@ -81,7 +81,7 @@ final class OcrV4Workspace extends View {
         lp.x=bounds.left-display.left;lp.y=bounds.top-display.top;
         FlOverlayWindowHost host=new FlOverlayWindowHost(app);
         OcrV4Workspace view=new OcrV4Workspace(app,frame,host,onClosed);
-        if(!host.addStable(view,lp,"native_circle_workspace"))return false;
+        if(!host.addFollowingIconLayer(view,lp,"native_circle_workspace"))return false;
         active=view;
         view.setFocusableInTouchMode(true);
         view.requestFocus();
