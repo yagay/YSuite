@@ -376,6 +376,7 @@ public final class YNotifyModule extends XposedModule {
     }
 
     private void emitUi(Context context, String pkg, String type, String text, String className) {
+        if (!capturePopupEvents()) return;
         emit(context, pkg, XposedEventReceiver.KIND_UI, type, text, className, "");
     }
 
