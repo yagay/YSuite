@@ -65,6 +65,10 @@ final class SettingsIconPage {
                 FloatSettings.K_SNAP, fs.snap());
         ui.fullscreenModeCheck(position.body);
         ui.check(position.body,
+                activity.getString(R.string.yfloat_elevated_icon_overlay),
+                activity.getString(R.string.yfloat_elevated_icon_overlay_desc),
+                FloatSettings.K_ICON_ELEVATED_OVERLAY, fs.elevatedIconOverlay());
+        ui.check(position.body,
                 activity.getString(R.string.yfloat_edge_recall),
                 activity.getString(R.string.yfloat_edge_recall_desc),
                 FloatSettings.K_HIDE_MAIN_SWIPE, fs.edgeSwipeRecallEnabled());

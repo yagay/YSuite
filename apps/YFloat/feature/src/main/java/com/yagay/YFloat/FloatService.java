@@ -392,7 +392,9 @@ public class FloatService extends Service implements android.content.SharedPrefe
     }
 
     private boolean addIconWindow(View view, WindowManager.LayoutParams lp) {
-        return iconHost != null && iconHost.addStable(view, lp, "float_icon");
+        return iconHost != null && (fs.elevatedIconOverlay()
+                ? iconHost.addElevated(view, lp, "float_icon")
+                : iconHost.addStable(view, lp, "float_icon"));
     }
 
     private void removeIconWindow(View view) {
@@ -404,7 +406,12 @@ public class FloatService extends Service implements android.content.SharedPrefe
         removeTouchHandle(mirrored);
         FloatIconTouchHandle handle = new FloatIconTouchHandle(this, icon);
         WindowManager.LayoutParams handleLp = createTouchHandleLayout(iconLp);
-        if (!iconHost.addStable(handle, handleLp, "float_icon_handle")) {
+        // The invisible edge-touch handle must use the same window host as
+        // the real icon. A mixed 2032/2038 pair produces missed touches.
+        boolean iconElevated = iconHost.isAccessibilityHosted(icon);
+        if (!(iconElevated
+                ? iconHost.addElevated(handle, handleLp, "float_icon_handle")
+                : iconHost.addStable(handle, handleLp, "float_icon_handle"))) {
             DiagnosticLog.i(this, "FL_WINDOW", "touch handle add failed side="
                     + (layout.isLeft(iconLp) ? "L" : "R"));
             return;
@@ -425,9 +432,9 @@ public class FloatService extends Service implements android.content.SharedPrefe
     private WindowManager.LayoutParams createTouchHandleLayout(WindowManager.LayoutParams iconLp) {
         int handleWidth = Math.max(1, Math.round(iconLp.width * 0.50f));
         int handleHeight = Math.max(iconLp.height, Math.round(iconLp.height * 1.16f));
-        int type = LensAccessibilityService.ready()
-                ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-                : WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        // The actual type is assigned by FlOverlayWindowHost. Do not infer
+        // it from service readiness (the window may have fallen back).
+        int type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 handleWidth, handleHeight, type,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
@@ -480,22 +487,36 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
     public void onAccessibilityOverlayHostChanged(boolean available) {
         getMainExecutor().execute(() -> {
-            // Persistent controls stay on the application overlay whenever possible. Do not
-            // migrate them into AccessibilityService merely because that service connected:
-            // its coordinate space can briefly lag behind display rotation on some ROMs.
-            if (Settings.canDrawOverlays(this)) {
-                if (primary == null) show();
-                else rehostIconWindows(false);
-                verifyCurrentIconPlacements("accessibility_host_change");
-            } else if (available) {
-                if (primary == null) show();
-                else rehostIconWindows(true);
-                verifyCurrentIconPlacements("accessibility_only_host");
-            } else {
-                // Without either host there is no safe place for a persistent control.
+            if (!available && !Settings.canDrawOverlays(this)) {
+                // No permitted host remains; do not keep orphaned touch windows.
                 removeIcons();
+                return;
             }
+            if (primary == null) show();
+            else rehostIconWindows(preferAccessibilityIconHost(available));
+            verifyCurrentIconPlacements("accessibility_host_change");
         });
+    }
+
+    private boolean preferAccessibilityIconHost(boolean accessibilityAvailable) {
+        // If the user has no ordinary overlay permission, 2032 is the only
+        // viable host. Otherwise honor the explicit icon layer preference.
+        return accessibilityAvailable && (fs.elevatedIconOverlay()
+                || !Settings.canDrawOverlays(this));
+    }
+
+    private void refreshIconWindowHost() {
+        if (instance != this) return;
+        boolean available = LensAccessibilityService.ready();
+        if (primary == null) {
+            show();
+        } else if (available || Settings.canDrawOverlays(this)) {
+            rehostIconWindows(preferAccessibilityIconHost(available));
+            recomputeVisibility();
+            verifyCurrentIconPlacements("icon_layer_preference");
+        } else {
+            removeIcons();
+        }
     }
 
     private void rehostIconWindows(boolean useAccessibility) {
@@ -505,11 +526,24 @@ public class FloatService extends Service implements android.content.SharedPrefe
         DiagnosticLog.i(this, "FL_WINDOW", "rehost overlays target=" + target
                 + " notif=" + visibility.notificationExpanded());
         rehostOne(primary, primaryLp, useAccessibility);
-        rehostOne(primaryHandle, primaryHandleLp, useAccessibility);
+        rehostOne(primaryHandle, primaryHandleLp,
+                primary != null && iconHost.isAccessibilityHosted(primary));
         rehostOne(secondary, secondaryLp, useAccessibility);
-        rehostOne(secondaryHandle, secondaryHandleLp, useAccessibility);
-        rehostOne(wakeLeft, wakeLeftLp, useAccessibility);
-        rehostOne(wakeRight, wakeRightLp, useAccessibility);
+        rehostOne(secondaryHandle, secondaryHandleLp,
+                secondary != null && iconHost.isAccessibilityHosted(secondary));
+        // Wake edges deliberately stay ordinary application overlays. They
+        // are wide input strips and must not intercept sensitive system UI.
+        DiagnosticLog.i(this, "FL_ICON_LAYER", "desired="
+                + (useAccessibility ? "accessibility" : "application")
+                + " primary=" + iconWindowHost(primary)
+                + " primaryHandle=" + iconWindowHost(primaryHandle)
+                + " secondary=" + iconWindowHost(secondary)
+                + " secondaryHandle=" + iconWindowHost(secondaryHandle));
+    }
+
+    private String iconWindowHost(View view) {
+        if (view == null || iconHost == null) return "none";
+        return iconHost.isAccessibilityHosted(view) ? "2032" : "2038";
     }
 
     private void rehostOne(View view, WindowManager.LayoutParams lp, boolean useAccessibility) {
@@ -746,6 +780,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
         switch (impact) {
             case APPEARANCE_LAYOUT -> refreshAppearance();
             case VISIBILITY -> refreshVisibilitySettings();
+            case ICON_WINDOW_HOST -> mainHandler.post(this::refreshIconWindowHost);
             case WAKE_REGION -> mainHandler.post(() -> {
                 if (instance != this) return;
                 removeWakeViews();

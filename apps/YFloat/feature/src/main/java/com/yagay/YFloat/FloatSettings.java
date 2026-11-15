@@ -47,6 +47,8 @@ public final class FloatSettings {
     public static final String K_GLOBAL_DEFAULT_HIDE = "global_app_default_hide";
     public static final String K_HIDE_ICON_NO_NOTIFY = "hide_icon_no_notify";
     public static final String K_HIDE_FULLSCREEN = "hide_icon_when_full_screen";
+    /** Prefer the higher accessibility window for ONLY the icon and its touch handle. */
+    public static final String K_ICON_ELEVATED_OVERLAY = "float_icon_elevated_overlay_v1";
     public static final String K_CLICK_UNDER = "action_click_screen_under_icon";
     public static final String K_LINE_ALPHA = "float_line_alpha";
     public static final String K_LINE_WIDTH = "float_line_width_2";
@@ -287,6 +289,7 @@ public final class FloatSettings {
         return 0;
     }
     public boolean hideWhenFullscreen() { return fullscreenHideMode() != 0; }
+    public boolean elevatedIconOverlay() { return p.getBoolean(K_ICON_ELEVATED_OVERLAY, true); }
     public boolean clickScreenUnderIcon() { return p.getBoolean(K_CLICK_UNDER, false); }
     public int lineAlpha() { return YFloatVisualSettings.readInt(context, K_LINE_ALPHA, 80); }
     public int lineWidthDp() { return YFloatVisualSettings.readInt(context, K_LINE_WIDTH, 6); }

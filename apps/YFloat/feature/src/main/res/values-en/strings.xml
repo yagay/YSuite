@@ -25,4 +25,6 @@
     <string name="yfloat_text_handle_snap">Text handle snap distance</string>
     <string name="yfloat_crop_min_size">Minimum crop rectangle</string>
     <string name="yfloat_crop_drag_slop">Crop handle drag tolerance</string>
+    <string name="yfloat_elevated_icon_overlay">Prefer higher-layer icon (Accessibility overlay)</string>
+    <string name="yfloat_elevated_icon_overlay_desc">Use the existing YFloat icon and edge-touch handle in the AccessibilityService overlay (2032) when connected; fall back to the normal overlay (2038). Does not override protected system pages or guarantee display above the notification shade.</string>
 </resources>

@@ -30,6 +30,12 @@ public class FloatPreferenceImpactTest {
     }
 
     @Test
+    public void iconWindowHostChangesDoNotRecreateOcrOrGestureEngine() {
+        assertEquals(FloatPreferenceImpact.Impact.ICON_WINDOW_HOST,
+                FloatPreferenceImpact.classify(FloatSettings.K_ICON_ELEVATED_OVERLAY));
+    }
+
+    @Test
     public void gestureThresholdsOnlyRefreshIconSettings() {
         assertEquals(FloatPreferenceImpact.Impact.ICON_SETTINGS,
                 FloatPreferenceImpact.classify(FloatSettings.K_LONG_PRESS));

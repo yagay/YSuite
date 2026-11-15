@@ -58,6 +58,36 @@ final class FlOverlayWindowHost {
         return false;
     }
 
+    /**
+     * High-layer opt-in for the persistent YFloat icon ONLY. Unlike a root
+     * WindowManager policy hook, the accessibility overlay is an Android
+     * sanctioned window with an actual AccessibilityService token.
+     *
+     * Do not use for arbitrary menus/screens or for protected system pages.
+     * A failed 2032 add always returns to the existing ordinary app overlay.
+     */
+    boolean addElevated(View view, WindowManager.LayoutParams lp, String tag) {
+        if (view == null || lp == null) return false;
+        LensAccessibilityService host = LensAccessibilityService.get();
+        if (host != null && host.addAccessibilityOverlay(view, lp)) {
+            remember(view, true);
+            bindToWorkflowScene(view, tag);
+            DiagnosticLog.i(context, "FL_ICON_LAYER",
+                    tag + " host=accessibility type=" + lp.type);
+            return true;
+        }
+        if (Settings.canDrawOverlays(context)) {
+            boolean ok = addApplication(view, lp, tag);
+            DiagnosticLog.i(context, "FL_ICON_LAYER",
+                    tag + " fallback=application ok=" + ok
+                            + " accessibility=" + (host != null));
+            return ok;
+        }
+        DiagnosticLog.i(context, "FL_ICON_LAYER",
+                tag + " unavailable: no accessibility host or app-overlay grant");
+        return false;
+    }
+
     boolean addApplication(View view, WindowManager.LayoutParams lp, String tag) {
         if (view == null || lp == null) return false;
         try {

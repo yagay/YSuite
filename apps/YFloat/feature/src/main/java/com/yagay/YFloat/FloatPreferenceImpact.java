@@ -12,6 +12,8 @@ final class FloatPreferenceImpact {
         VISIBILITY,
         /** Reattach only the narrow edge-wakeup overlay windows when their size changes. */
         WAKE_REGION,
+        /** Change only the icon and its touch handles between app/accessibility window hosts. */
+        ICON_WINDOW_HOST,
         /** Refresh FloatIconView's touch/renderer settings without WindowManager updates. */
         ICON_SETTINGS,
         /** Refresh the live Circle border without rebuilding the floating icon. */
@@ -47,6 +49,8 @@ final class FloatPreferenceImpact {
                 FloatSettings.K_IME_AVOID);
 
         register(Impact.WAKE_REGION, FloatSettings.K_EDGE_WAKE_WIDTH_DP);
+
+        register(Impact.ICON_WINDOW_HOST, FloatSettings.K_ICON_ELEVATED_OVERLAY);
 
         register(Impact.ICON_SETTINGS,
                 FloatSettings.K_LONG_PRESS,
