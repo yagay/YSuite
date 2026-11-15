@@ -29,6 +29,7 @@ final class YMiniMediaCard {
     private final NotificationManager notificationManager;
     private String lastInfoSource = "";
     private String infoStatus = "Metadata unchecked";
+    private String launchStatus = "unresolved";
 
     YMiniMediaCard(Context context, MediaController source) {
         this.context = context;
@@ -63,6 +64,10 @@ final class YMiniMediaCard {
                     source.getTransportControls().seekTo(position);
             }
         }, new Handler(Looper.getMainLooper()));
+        // Android 13+ SystemUI opens the MediaSession's session activity,
+        // not necessarily Notification.contentIntent. Install this *before*
+        // making the mirror discoverable to avoid caching the host activity.
+        updateSessionActivity();
         session.setActive(true);
     }
 
@@ -127,16 +132,9 @@ final class YMiniMediaCard {
                 .setOnlyAlertOnce(true)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setOngoing(true);
-        PendingIntent activity = source.getSessionActivity();
-        if (activity == null) {
-            Intent launch = context.getPackageManager().getLaunchIntentForPackage(
-                    source.getPackageName());
-            if (launch != null) {
-                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                activity = PendingIntent.getActivity(context, 300, launch,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            }
-        }
+        // Both notification and Android 13+ media controls must have the
+        // same target-app Activity PendingIntent. Never fall back to YMini.
+        PendingIntent activity = updateSessionActivity();
         if (activity != null) builder.setContentIntent(activity);
         if (artwork != null) builder.setLargeIcon(artwork);
 
@@ -177,7 +175,62 @@ final class YMiniMediaCard {
     }
 
     String infoStatus() {
-        return infoStatus;
+        return infoStatus + ", click=" + launchStatus;
+    }
+
+    /**
+     * Restore a real target app task from the media notification and its
+     * MediaSession. No target-app hooks or LSPosed scope changes are needed.
+     *
+     * Reject wrong-owner or non-Activity intents (for example a service
+     * PendingIntent), otherwise the media card might launch a different app.
+     */
+    private PendingIntent updateSessionActivity() {
+        String target = source.getPackageName();
+        PendingIntent activity = null;
+        String route = "unavailable";
+        try {
+            PendingIntent sourceActivity = source.getSessionActivity();
+            if (sourceActivity != null
+                    && target.equals(sourceActivity.getCreatorPackage())
+                    && sourceActivity.isActivity()) {
+                activity = sourceActivity;
+                route = "source-session:" + target;
+            }
+        } catch (Throwable error) {
+            Log.w("YMiniMedia", "SOURCE_ACTIVITY_CHECK_FAILED target=" + target, error);
+        }
+
+        if (activity == null) {
+            try {
+                Intent launch = context.getPackageManager().getLaunchIntentForPackage(target);
+                if (launch != null && launch.getComponent() != null
+                        && target.equals(launch.getComponent().getPackageName())) {
+                    launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                            | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                    // Use a different PendingIntent identity for each source
+                    // package. Reusing requestCode=300 could redirect a cached
+                    // tile to a previous app after a media-session switch.
+                    activity = PendingIntent.getActivity(context, target.hashCode(),
+                            launch, PendingIntent.FLAG_UPDATE_CURRENT
+                                    | PendingIntent.FLAG_IMMUTABLE);
+                    route = "launcher:" + target;
+                }
+            } catch (Throwable error) {
+                Log.w("YMiniMedia", "APP_LAUNCH_INTENT_FAILED target=" + target, error);
+            }
+        }
+
+        if (!route.equals(launchStatus)) {
+            launchStatus = route;
+            Log.i("YMiniMedia", "MEDIA_CARD_CLICK_ROUTE route=" + route);
+        }
+        try {
+            session.setSessionActivity(activity);
+        } catch (Throwable error) {
+            Log.w("YMiniMedia", "SET_SESSION_ACTIVITY_FAILED target=" + target, error);
+        }
+        return activity;
     }
 
     private Icon sourceAppSmallIcon() {
