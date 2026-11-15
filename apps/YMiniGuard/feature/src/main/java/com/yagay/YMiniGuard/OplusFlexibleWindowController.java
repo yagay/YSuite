@@ -230,7 +230,10 @@ final class OplusFlexibleWindowController {
                             return current;
                         });
 
-        if (session.backgroundProtected) {
+        if (session.backgroundProtected
+                && !(keyguardShowing
+                    && GuardConfig.backgroundPlaybackPackage(
+                            session.packageName))) {
             session.backgroundProtected = false;
 
             log(
@@ -500,20 +503,25 @@ final class OplusFlexibleWindowController {
         if (!running) return;
 
         int armed = 0;
+        int backgroundArmed = 0;
+        boolean verifiedKeyguard = "KeyguardController.setKeyguardShown"
+                .equals(reason);
 
-        for (Session session :
-                sessions.values()) {
-            if (!session.active
-                    || !GuardConfig
-                    .foregroundPackage(
-                            session.packageName)) {
-                continue;
+        for (Session session : sessions.values()) {
+            if (!session.active) continue;
+            // The canonical KeyguardController event runs before any OEM
+            // visibility/STOP callbacks. Pre-arm only selected background apps.
+            if (verifiedKeyguard
+                    && GuardConfig.backgroundPlaybackPackage(session.packageName)
+                    && !session.backgroundProtected) {
+                session.backgroundProtected = true;
+                backgroundArmed++;
+                log("BACKGROUND_PRELOCK_ARM",
+                        "pkg=" + session.packageName
+                                + " taskId=" + session.taskId);
             }
-
-            if (!isNativeOplusWindow(
-                    session)) {
-                continue;
-            }
+            if (!GuardConfig.foregroundPackage(session.packageName)
+                    || !isNativeOplusWindow(session)) continue;
 
             if (!session.lockKeepAlive) {
                 session.lockKeepAlive = true;
@@ -524,7 +532,8 @@ final class OplusFlexibleWindowController {
         log(
                 "OPLUS_LOCK_PREARM",
                 "reason=" + reason
-                        + " armed=" + armed);
+                        + " armed=" + armed
+                        + " backgroundArmed=" + backgroundArmed);
     }
 
     void onKeyguardStateChanged(
@@ -687,9 +696,12 @@ final class OplusFlexibleWindowController {
         // while userLeaving and resumingPackage remain unset. Only selected
         // background-playback apps qualify; the keyguard UI stays hideable.
         boolean nativeMiniHidden =
-                (isNativeOplusWindow(session)
-                        || armedBackgroundTransition)
-                        && BackgroundPlaybackPolicy.isVisibilityHide(reason);
+                BackgroundPlaybackPolicy.isVisibilityHide(reason)
+                && (isNativeOplusWindow(session)
+                    || armedBackgroundTransition
+                    || BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                        true, finishing, samePackageCandidate,
+                        resumingPackage, reason));
 
         if (!session.backgroundProtected
                 && !switchingPackage
@@ -745,6 +757,12 @@ final class OplusFlexibleWindowController {
             return;
         }
 
+        // Focus can change under the lock screen without any real foreground
+        // resume. Preserve the process session until RESUMED is confirmed.
+        if (keyguardShowing
+                && GuardConfig.backgroundPlaybackPackage(session.packageName)) {
+            return;
+        }
         session.backgroundProtected = false;
         session.activityRecord = activityRecord;
         session.taskObject = task;
@@ -778,9 +796,15 @@ final class OplusFlexibleWindowController {
             return false;
         }
 
-        if (!session.backgroundProtected) {
-            return false;
+        if (!session.backgroundProtected && keyguardShowing) {
+            // Some OEM paths dispatch STOP directly without startPausing.
+            // This is only for a still-active, selected, non-finishing Task.
+            session.backgroundProtected = true;
+            log("BACKGROUND_STOP_LOCK_ARM",
+                    "pkg=" + session.packageName
+                            + " taskId=" + session.taskId);
         }
+        if (!session.backgroundProtected) return false;
 
         session.taskObject = task;
         session.lastSeenElapsed =

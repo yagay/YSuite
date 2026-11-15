@@ -103,6 +103,8 @@ public final class GuardModule extends XposedModule {
                 systemClassLoader);
         installBackgroundStopKeepaliveHook(
                 systemClassLoader);
+        installOplusRemotePlaybackStopHook(
+                systemClassLoader);
         installOplusLockKeepaliveHooks(
                 systemClassLoader);
         // The ColorOS FlexibleTask callback does not fire on every physical
@@ -698,37 +700,31 @@ public final class GuardModule extends XposedModule {
 
                         String reason = null;
                         Object resumingActivity = null;
-                        int booleanCount = 0;
-                        boolean firstBoolean = false;
-                        boolean secondBoolean = false;
-
-                        for (Object arg : args) {
-                            if (arg instanceof String) {
-                                reason = (String) arg;
-                            } else if (arg instanceof Boolean value) {
-                                if (booleanCount == 0) {
-                                    firstBoolean = value;
-                                } else if (booleanCount == 1) {
-                                    secondBoolean = value;
-                                }
-                                booleanCount++;
-                            } else if (arg != null
-                                    && arg.getClass()
-                                    .getName()
-                                    .endsWith(
-                                            ".ActivityRecord")) {
-                                resumingActivity = arg;
+                        Class<?>[] signature = method.getParameterTypes();
+                        // Verified against CPH2747 SDK37 services.jar:
+                        // (Z, ActivityRecord, String)
+                        // (ZZ, ActivityRecord, String)
+                        // (ZZ, ActivityRecord, ActivityRecord, String).
+                        // In every overload boolean #0 is userLeaving.
+                        boolean userLeaving =
+                                !args.isEmpty() && Boolean.TRUE.equals(args.get(0));
+                        boolean uiSleeping =
+                                signature.length > 1
+                                && signature[1] == boolean.class
+                                && args.size() > 1
+                                && Boolean.TRUE.equals(args.get(1));
+                        for (int i = 0; i < signature.length && i < args.size(); i++) {
+                            if (signature[i] == String.class) {
+                                reason = (String) args.get(i);
+                            } else if (resumingActivity == null
+                                    && "com.android.server.wm.ActivityRecord"
+                                    .equals(signature[i].getName())) {
+                                // First ActivityRecord is the resuming candidate.
+                                // The extra ActivityRecord in the 5-arg OEM path
+                                // must NOT overwrite this (it may be the pausing one).
+                                resumingActivity = args.get(i);
                             }
                         }
-
-                        boolean userLeaving =
-                                booleanCount >= 2
-                                        && firstBoolean;
-                        boolean uiSleeping =
-                                booleanCount >= 2
-                                        ? secondBoolean
-                                        : booleanCount == 1
-                                        && firstBoolean;
 
                         Object task =
                                 taskFromContainer(
@@ -1113,6 +1109,60 @@ public final class GuardModule extends XposedModule {
     }
 
     /**
+     * OxygenOS 17 vendor-specific remote playing decision, confirmed from
+     * oplus-services.jar classes3.dex on CPH2747. Unlike a package-global
+     * exemption, the engine must verify the live user-selected Task and
+     * its already armed background/lock protection.
+     */
+    private void installOplusRemotePlaybackStopHook(ClassLoader loader) {
+        Class<?> ext = load(loader,
+                "com.android.server.wm.ActivityTaskSupervisorExtImpl");
+        if (ext == null) {
+            diag("OEM_REMOTE_STOP_UNAVAILABLE", "class missing");
+            return;
+        }
+        for (Method method : ext.getDeclaredMethods()) {
+            if (!"skipStopActivityWhenRemotePlaying".equals(method.getName())
+                    || method.getReturnType() != boolean.class
+                    || method.getParameterCount() != 1
+                    || !"com.android.server.wm.ActivityRecord"
+                    .equals(method.getParameterTypes()[0].getName())) {
+                continue;
+            }
+            String key = "oem-remote-stop:" + method.toGenericString();
+            try {
+                method.setAccessible(true);
+                if (!installedHooks.add(key)) continue;
+                hook(method).intercept(chain -> {
+                    Object record = chain.getArgs().isEmpty()
+                            ? null : chain.getArgs().get(0);
+                    EngineBridge current = engine;
+                    String pkg = activityPackage(record);
+                    if (current == null || record == null
+                            || !current.isBackgroundPlaybackPackage(pkg)) {
+                        return chain.proceed();
+                    }
+                    Object task = invokeNoArg(record, "getTask");
+                    boolean finishing = Boolean.TRUE.equals(
+                            fieldValue(record, "finishing"));
+                    if (task != null && current.shouldBlockBackgroundStop(
+                            task, finishing)) {
+                        diag("OEM_REMOTE_STOP_BLOCK",
+                                "taskId=" + taskId(task) + " pkg=" + pkg);
+                        return true;
+                    }
+                    return chain.proceed();
+                });
+                diag("OEM_REMOTE_STOP_INSTALLED", "method=" + method);
+            } catch (Throwable error) {
+                installedHooks.remove(key);
+                log(Log.WARN, TAG,
+                        "OxygenOS remote playback hook unavailable", error);
+            }
+        }
+    }
+
+    /**
      * Lock-screen keepalive. These hooks are intentionally narrow: they only
      * fire for an "always foreground" app whose task was a real OPlus
      * FlexibleWindow/floating task at the moment keyguard started.
@@ -1164,6 +1214,9 @@ public final class GuardModule extends XposedModule {
 
                     EngineBridge current = engine;
                     if (showing && current != null) {
+                        // Arm before ColorOS can dispatch Activity PAUSE/STOP.
+                        current.preArmLockKeepAlive(
+                                "KeyguardController.setKeyguardShown");
                         current.onKeyguardStateChanged(true);
                         diag("KEYGUARD_FALLBACK_ARM",
                                 "displayId=" + displayId + " showing=true");

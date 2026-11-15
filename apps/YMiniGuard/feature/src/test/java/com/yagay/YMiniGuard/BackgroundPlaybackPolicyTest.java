@@ -29,6 +29,23 @@ public class BackgroundPlaybackPolicyTest {
         assertFalse(BackgroundPlaybackPolicy.isBackgroundTransition(null));
     }
 
+    @Test public void selectedFullscreenAppArmsOnOos17InvisibleWithoutResume() {
+        assertTrue(BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                true, false, false, null, "makeInvisible"));
+        assertTrue(BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                true, false, false, null, "setVisibility"));
+        assertFalse(BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                false, false, false, null, "makeInvisible"));
+        assertFalse(BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                true, true, false, null, "makeInvisible"));
+        assertFalse(BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                true, false, true, "com.example.player", "makeInvisible"));
+        assertFalse(BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                true, false, false, "com.example.other", "makeInvisible"));
+        assertFalse(BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                true, false, false, null, "inAppNavigation"));
+    }
+
     @Test public void visibilityHideReasonDoesNotConfuseRecentsEvents() {
         assertTrue(BackgroundPlaybackPolicy.isVisibilityHide("makeInvisible"));
         assertTrue(BackgroundPlaybackPolicy.isVisibilityHide("setVisibility"));

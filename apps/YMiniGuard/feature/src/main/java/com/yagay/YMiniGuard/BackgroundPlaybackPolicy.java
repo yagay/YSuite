@@ -24,6 +24,20 @@ final class BackgroundPlaybackPolicy {
     }
 
     /**
+     * On OOS17 a selected fullscreen app can be hidden by makeInvisible
+     * without a resuming ActivityRecord or userLeaving indication. This is a
+     * background transition only when no same-package candidate is known.
+     */
+    static boolean shouldArmHiddenBackground(
+            boolean selected, boolean finishing,
+            boolean samePackageCandidate, String resumingPackage,
+            String reason
+    ) {
+        return selected && !finishing && !samePackageCandidate
+                && resumingPackage == null && isVisibilityHide(reason);
+    }
+
+    /**
      * Do not interpret a same-package resuming candidate as a real RESUMED
      * state during an already-protected background/recents transition.
      */
