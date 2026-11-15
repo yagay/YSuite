@@ -163,4 +163,13 @@
     <string name="ynotify_reason_assistant_cancel">通知助理取消</string>
     <string name="ynotify_reason_unknown">未知</string>
     <string name="ynotify_reason_system">系统原因 %1$d</string>
+    <string name="ynotify_filter_system_popups">系统弹窗</string>
+    <string name="ynotify_popups_title">弹窗检测与清理</string>
+    <string name="ynotify_popups_desc">识别应用对话框、临时提示及受支持的系统悬浮弹窗</string>
+    <string name="ynotify_popups_monitor">记录检测到的弹窗</string>
+    <string name="ynotify_popups_hide_clipboard">隐藏剪贴板预览窗口</string>
+    <string name="ynotify_popups_clipboard_note">不会记录复制内容。仅关闭悬浮预览，不影响复制、粘贴。需要 SystemUI 的 LSPosed Hook；厂商实现可能不同。</string>
+    <string name="ynotify_popup_text_unavailable">弹窗（无可访问文字）</string>
+    <string name="ynotify_clipboard_popup_shown">剪贴板预览已显示</string>
+    <string name="ynotify_clipboard_popup_suppressed">剪贴板预览已拦截</string>
 </resources>
