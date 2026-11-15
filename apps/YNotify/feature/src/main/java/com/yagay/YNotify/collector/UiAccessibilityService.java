@@ -30,7 +30,7 @@ public class UiAccessibilityService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        UiAccessibilityBridge.onAccessibilityEvent(this, event);
+        UiAccessibilityBridge.onAccessibilityEvent((AccessibilityService) this, event);
     }
 
     @Override public void onInterrupt() {}
