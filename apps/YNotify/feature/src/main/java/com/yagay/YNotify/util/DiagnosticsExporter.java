@@ -19,6 +19,7 @@ import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.data.NotifyDatabase;
+import com.yagay.YNotify.data.PopupSettings;
 import com.yagay.suite.api.FeatureServices;
 import com.yagay.suite.api.FeatureDiagnosticArchive;
 import com.yagay.suite.api.HostBinaryCommandResult;
@@ -181,7 +182,11 @@ public final class DiagnosticsExporter {
         out.append("last_notification_package=").append(ListenerStateStore.lastNotificationPackage(context)).append('\n');
         out.append("last_error_time=").append(ListenerStateStore.lastErrorTime(context)).append('\n');
         out.append("last_error=").append(ListenerStateStore.lastError(context)).append('\n');
-        out.append("\n[framework]\n").append(YNotifyApp.runtimeStatus()).append('\n');
+        out.append("\n[framework]\n").append(YNotifyApp.runtimeStatus(context)).append('\n');
+        out.append("\n[popup_capture]\n");
+        out.append("accessibility_connected=").append(com.yagay.YNotify.collector.UiAccessibilityBridge.isConnected()).append('\n');
+        out.append("capture_enabled=").append(PopupSettings.captureEnabled(context)).append('\n');
+        out.append("clipboard_preview_hidden=").append(PopupSettings.hideClipboardEnabled(context)).append('\n');
         try {
             out.append("\n[secure_settings]\n");
             out.append("enabled_notification_listeners=")
