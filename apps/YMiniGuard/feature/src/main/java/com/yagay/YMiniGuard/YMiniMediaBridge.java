@@ -111,6 +111,20 @@ public final class YMiniMediaBridge {
                 .getBoolean(ConfigKeys.MEDIA_BRIDGE_ENABLED, true);
     }
 
+    private static Set<String> selectedPackages(Context context) {
+        Set<String> selected = new HashSet<>();
+        if (context == null) return selected;
+        Set<String> background = context.getSharedPreferences(
+                ConfigKeys.LOCAL_PREFS, Context.MODE_PRIVATE)
+                .getStringSet(ConfigKeys.BACKGROUND_PLAYBACK_PACKAGES, null);
+        Set<String> foreground = context.getSharedPreferences(
+                ConfigKeys.LOCAL_PREFS, Context.MODE_PRIVATE)
+                .getStringSet(ConfigKeys.FOREGROUND_PACKAGES, null);
+        if (background != null) selected.addAll(background);
+        if (foreground != null) selected.addAll(foreground);
+        return selected;
+    }
+
     private static void scanNative() {
         nativeMediaPackages.clear();
         if (host == null) return;
@@ -136,10 +150,8 @@ public final class YMiniMediaBridge {
             stop();
             return;
         }
-        Set<String> selected = host.getSharedPreferences(
-                ConfigKeys.LOCAL_PREFS, Context.MODE_PRIVATE)
-                .getStringSet(ConfigKeys.BACKGROUND_PLAYBACK_PACKAGES, null);
-        if (selected == null || selected.isEmpty()) {
+        Set<String> selected = selectedPackages(host);
+        if (selected.isEmpty()) {
             stop();
             return;
         }
@@ -185,10 +197,8 @@ public final class YMiniMediaBridge {
         MAIN.post(() -> {
             if (source == null || !enabled(context)
                     || target == null || !target.equals(source.getPackageName())) return;
-            Set<String> selected = context.getSharedPreferences(
-                    ConfigKeys.LOCAL_PREFS, Context.MODE_PRIVATE)
-                    .getStringSet(ConfigKeys.BACKGROUND_PLAYBACK_PACKAGES, null);
-            if (selected == null || !selected.contains(target)) return;
+            Set<String> selected = selectedPackages(context);
+            if (!selected.contains(target)) return;
             PlaybackState state = source.getPlaybackState();
             if (state == null) return;
             long required = code == 1 ? PlaybackState.ACTION_PLAY
