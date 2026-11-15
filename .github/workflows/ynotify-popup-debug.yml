@@ -1,0 +1,87 @@
+name: YNotify Popup Debug-only
+
+on:
+  push:
+    branches:
+      - feature/ynotify-popup-capture-control
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ynotify-popup-debug-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify generated project configuration
+        run: |
+          python3 tools/generate_feature_catalog.py --check
+          python3 tools/generate_standalone_catalog.py --check
+          python3 tools/sync_version_catalog.py --check
+      - name: Read build versions
+        id: versions
+        run: python3 tools/export_build_versions.py >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.versions.outputs.java }}
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ steps.versions.outputs.gradle }}
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "cmdline-tools;23.0"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/23.0/bin/sdkmanager"
+          "$SDKMANAGER" --channel=3 \
+            "platforms;android-${{ steps.versions.outputs.android_platform }}" \
+            "build-tools;${{ steps.versions.outputs.build_tools }}" \
+            "platform-tools"
+      - name: Test YNotify and build standalone Debug
+        run: |
+          gradle --no-daemon --stacktrace -PciArm64Only=true :ynotify-feature:testDebugUnitTest
+          gradle --no-daemon --stacktrace -PciArm64Only=true -PySuiteStandaloneFeature=ynotify buildFeatureDebug
+      - name: Build YSuite Debug
+        run: gradle --no-daemon --stacktrace -PciArm64Only=true :suite:assembleDebug
+      - name: Collect and check ARM64 Debug APKs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          import zipfile
+
+          out = Path("artifacts")
+          out.mkdir(exist_ok=True)
+          standalone = Path("build/standalone/ynotify-debug.apk")
+          suites = list(Path("suite/YSuite/build/outputs/apk/debug").glob("*.apk"))
+          if not standalone.is_file() or len(suites) != 1:
+              raise SystemExit(f"Missing Debug APKs: standalone={standalone.is_file()} suite={suites}")
+          for src, name in [(standalone, "YNotify-debug-arm64-v8a.apk"),
+                            (suites[0], "YSuite-debug-arm64-v8a.apk")]:
+              with zipfile.ZipFile(src) as zf:
+                  abis = {i.filename.split("/")[1]
+                          for i in zf.infolist() if i.filename.startswith("lib/")
+                          and i.filename.count("/") >= 2}
+              if abis and abis != {"arm64-v8a"}:
+                  raise SystemExit(f"{src}: unexpected ABIs {sorted(abis)}")
+              shutil.copy2(src, out / name)
+              print(f"{name}: {src} abis={sorted(abis)}")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YNotify-popup-debug
+          path: artifacts/*.apk
+          if-no-files-found: error
+          retention-days: 14
