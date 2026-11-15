@@ -26,20 +26,24 @@ final class FloatIconTouchHandle extends View {
 
     @Override public boolean onTouchEvent(MotionEvent event) {
         if (target == null || event == null) return false;
+        // Only DOWN needs local coordinates relative to the real icon:
+        // SelectionPointTransformer captures the initial window origin
+        // once. Every subsequent MOVE/UP is processed using RAW screen
+        // coordinates. Repeated getLocationOnScreen() while that icon is
+        // being moved forces needless view-transform work on the UI thread.
+        if (event.getActionMasked() != MotionEvent.ACTION_DOWN) {
+            return target.onTouchEvent(event);
+        }
         MotionEvent forwarded = MotionEvent.obtainNoHistory(event);
         try {
             target.getLocationOnScreen(targetLocation);
-            // Keep rawX/rawY from the original screen touch, but make getX/getY match the real icon
-            // window. SelectionPointTransformer depends on raw-local to recover the icon origin.
             forwarded.setLocation(
                     event.getRawX() - targetLocation[0],
                     event.getRawY() - targetLocation[1]);
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                DiagnosticLog.i(getContext(), "FL_HANDLE", "DOWN raw="
-                        + Math.round(event.getRawX()) + "," + Math.round(event.getRawY())
-                        + " owner=" + targetLocation[0] + "," + targetLocation[1]
-                        + " local=" + Math.round(forwarded.getX()) + "," + Math.round(forwarded.getY()));
-            }
+            DiagnosticLog.i(getContext(), "FL_HANDLE", "DOWN raw="
+                    + Math.round(event.getRawX()) + "," + Math.round(event.getRawY())
+                    + " owner=" + targetLocation[0] + "," + targetLocation[1]
+                    + " local=" + Math.round(forwarded.getX()) + "," + Math.round(forwarded.getY()));
             return target.onTouchEvent(forwarded);
         } finally {
             forwarded.recycle();

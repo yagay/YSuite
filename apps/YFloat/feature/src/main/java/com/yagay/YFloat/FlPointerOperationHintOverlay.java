@@ -92,7 +92,9 @@ public final class FlPointerOperationHintOverlay {
         lp.y = nextY;
 
         if (!attached) {
-            attached = windowHost.add(root, lp, "pointer_hint");
+            // Same lightweight application-overlay host as the moving
+            // crosshair; AccessibilityService remains a fallback.
+            attached = windowHost.addStable(root, lp, "pointer_hint");
             if (attached) {
                 DiagnosticLog.i(context, "FL_POINTER_HINT",
                         "ATTACH pos=" + lp.x + "," + lp.y

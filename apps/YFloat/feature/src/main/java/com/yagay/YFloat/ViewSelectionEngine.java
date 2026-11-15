@@ -299,8 +299,11 @@ public final class ViewSelectionEngine {
         ensureProbe();
         if (probeOverlay == null) return new PointF(Math.round(p.x), Math.round(p.y));
         PointF shown = probeOverlay.showAt(Math.round(p.x), Math.round(p.y));
-        ensurePointerHint();
-        if (pointerHintOverlay != null && probeOverlay.isAttached()) {
+        // TRACKING only draws the crosshair. Do not construct or relocate an
+        // invisible second WindowManager surface for every raw MOVE. The
+        // operation hint becomes visible only after Direct takes ownership.
+        if (state == State.DIRECT && pointerHintOverlay != null
+                && probeOverlay.isAttached()) {
             pointerHintOverlay.syncToProbeWindow(probeOverlay.windowX(), probeOverlay.windowY());
         }
         return shown;

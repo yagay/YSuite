@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PointF;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -21,6 +22,8 @@ public final class FlProbePointOverlay {
     private final WindowManager.LayoutParams lp;
     private boolean attached;
     private boolean visible;
+    private long lastMoveLogAt;
+    private long lastSlowUpdateLogAt;
     private final OverlayFrameScheduler moveUpdates;
     private int targetX, targetY;
     private SelectionVisualState state = SelectionVisualState.TRACKING;
@@ -46,7 +49,19 @@ public final class FlProbePointOverlay {
         lp.x = -sizePx;
         lp.y = 0;
         moveUpdates = new OverlayFrameScheduler(view, () -> {
-            if (attached) windowHost.update(view, lp, "probe");
+            if (!attached) return;
+            long start = SystemClock.uptimeMillis();
+            windowHost.update(view, lp, "probe");
+            long elapsed = SystemClock.uptimeMillis() - start;
+            long now = SystemClock.uptimeMillis();
+            if (elapsed >= 16L && now - lastSlowUpdateLogAt >= 1_000L
+                    && DiagnosticLog.enabled(context)) {
+                lastSlowUpdateLogAt = now;
+                DiagnosticLog.i(context, "FL_PROBE_PERF",
+                        "slow_window_update_ms=" + elapsed +
+                        " host=" + (windowHost.isAccessibilityHosted(view)
+                                ? "accessibility" : "application"));
+            }
         });
     }
 
@@ -68,7 +83,10 @@ public final class FlProbePointOverlay {
         if (!attached) {
             lp.x = targetX;
             lp.y = targetY;
-            attached = windowHost.add(view, lp, "probe");
+            // The persistent float icon is already an application overlay.
+            // Prefer that host for the 60 fps probe; an Accessibility
+            // overlay crosses the service bridge on every position update.
+            attached = windowHost.addStable(view, lp, "probe");
             if (attached) {
                 visible = true;
                 DiagnosticLog.i(context, "FL_PROBE_VIEW",
@@ -89,9 +107,15 @@ public final class FlProbePointOverlay {
         }
         float cx = targetX + sizePx / 2f;
         float cy = targetY + sizePx / 2f;
-        DiagnosticLog.i(context, "FL_PROBE_VIEW",
-                "MOVE centre=" + Math.round(cx) + "," + Math.round(cy)
-                        + " window=" + targetX + "," + targetY + " state=" + state);
+        // Diagnostics must not format/log every high-frequency touch event.
+        // Keep periodic positions without creating work on the hot path.
+        long now = SystemClock.uptimeMillis();
+        if (now - lastMoveLogAt >= 350L && DiagnosticLog.enabled(context)) {
+            lastMoveLogAt = now;
+            DiagnosticLog.i(context, "FL_PROBE_VIEW",
+                    "MOVE centre=" + Math.round(cx) + "," + Math.round(cy)
+                            + " window=" + targetX + "," + targetY + " state=" + state);
+        }
         return new PointF(cx, cy);
     }
 

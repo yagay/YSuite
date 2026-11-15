@@ -59,6 +59,8 @@ public class FloatIconView extends View {
     private boolean directTimerArmed;
     private boolean positionMoveMode;
     private int touchMoveLogCounter;
+    private int dragPerfSamples, dragPerfOver16;
+    private long dragPerfDelaySum, dragPerfDelayMax;
     private float lastSelectionRawX = Float.NaN, lastSelectionRawY = Float.NaN;
     private float directTimerAnchorX = Float.NaN, directTimerAnchorY = Float.NaN;
     private float longPressAnchorRawX = Float.NaN, longPressAnchorRawY = Float.NaN;
@@ -162,12 +164,35 @@ public class FloatIconView extends View {
         final long now = SystemClock.uptimeMillis();
         // Do not build verbose strings on every 120 Hz MOVE when diagnostics are off.
         // Use an independent counter: Direct mode no longer stores history samples.
-        if ((action != MotionEvent.ACTION_MOVE || (++touchMoveLogCounter & 7) == 0)
+        if ((action != MotionEvent.ACTION_MOVE || (++touchMoveLogCounter & 31) == 0)
                 && DiagnosticLog.enabled(getContext())) {
             DiagnosticLog.i(getContext(), "TOUCH", "action=" + action + " pointers=" + e.getPointerCount()
                     + " raw=" + Math.round(rx) + "," + Math.round(ry) + " phase=" + session.phase
                     + " direct=" + directSelectionActive + " long=" + longPressActionTriggered
                     + " positionMove=" + positionMoveMode);
+        }
+
+        if (action == MotionEvent.ACTION_MOVE) {
+            // Measure actual UI-thread input queue delay, not OCR or
+            // WindowManager timing guesses. Log an aggregate only once
+            // per 64 MOVE samples, never per 120 Hz touch frame.
+            long delay = Math.max(0L, now - e.getEventTime());
+            dragPerfSamples++;
+            dragPerfDelaySum += delay;
+            dragPerfDelayMax = Math.max(dragPerfDelayMax, delay);
+            if (delay > 16L) dragPerfOver16++;
+            if (dragPerfSamples >= 64) {
+                if (DiagnosticLog.enabled(getContext())) {
+                    DiagnosticLog.i(getContext(), "FL_DRAG_PERF",
+                            "queue_avg_ms=" + (dragPerfDelaySum / dragPerfSamples)
+                            + " queue_max_ms=" + dragPerfDelayMax
+                            + " over16=" + dragPerfOver16
+                            + " samples=" + dragPerfSamples
+                            + " direct=" + directSelectionActive);
+                }
+                dragPerfSamples = dragPerfOver16 = 0;
+                dragPerfDelaySum = dragPerfDelayMax = 0L;
+            }
         }
 
         if (action == MotionEvent.ACTION_POINTER_DOWN) {
@@ -225,6 +250,8 @@ public class FloatIconView extends View {
         longPressPrimed = false;
         longPressActionTriggered = false;
         directSelectionActive = false;
+        dragPerfSamples = dragPerfOver16 = 0;
+        dragPerfDelaySum = dragPerfDelayMax = 0L;
         followStarted = false;
         lastSelectionRawX = lastSelectionRawY = Float.NaN;
         directTimerAnchorX = directTimerAnchorY = Float.NaN;
