@@ -62,6 +62,20 @@ public final class UiAccessibilityBridge {
         if (!PopupSettings.captureEnabled(app)) return;
 
         int eventType = event.getEventType();
+        if (eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                && eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED
+                && eventType != AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED
+                && eventType != AccessibilityEvent.TYPE_ANNOUNCEMENT
+                && eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) return;
+        if (eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            // YSuite also subscribes to all text/content changes for other features.
+            // Avoid expensive window enumeration for ordinary scrolling or typing.
+            String cls = event.getClassName() == null ? ""
+                    : event.getClassName().toString().toLowerCase(Locale.ROOT);
+            if (!(cls.contains("dialog") || cls.contains("popup")
+                    || cls.contains("snackbar") || cls.contains("toast")
+                    || cls.contains("clipboard"))) return;
+        }
         if (eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
                 && (event.getWindowChanges() & AccessibilityEvent.WINDOWS_CHANGE_ADDED) == 0) return;
 
