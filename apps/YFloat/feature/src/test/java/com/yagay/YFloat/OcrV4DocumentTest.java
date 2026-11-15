@@ -45,6 +45,52 @@ public final class OcrV4DocumentTest {
         assertEquals("rog",d.selectedText(1,3));
         assertEquals("",d.selectedText(0,15)); // Multi-word unverified
     }
+    @Test public void independentlyRecognizedMultipleWordsRestoreTextMenu(){
+        var d=OcrV4Document.build(List.of(
+                word("latin:0",0,0,"hello",10,20),
+                word("latin:0",0,1,"world",75,20)));
+        assertFalse(d.accept(0,"unrelated",.99f));
+        assertTrue(d.acceptWord(0,"hello",.96f));
+        // Partial source must not expose a misleading truncated selection.
+        assertEquals("",d.selectedText(0,9));
+        assertTrue(d.acceptWord(1,"world",.97f));
+        assertEquals("hello world",d.selectedText(0,9));
+        assertEquals("",d.selectedText(1,9)); // partial first Element
+        assertEquals("",d.selectedText(0,8)); // partial final Element
+    }
+
+    @Test public void independentlyRecognizedWordsAcrossLinesPreserveLineBreaks(){
+        var d=OcrV4Document.build(List.of(
+                word("latin:0",0,0,"good",10,20),
+                word("latin:0",0,1,"morning",70,20),
+                word("latin:0",1,0,"everyone",10,60)));
+        assertTrue(d.acceptWord(0,"good",.99f));
+        assertTrue(d.acceptWord(1,"morning",.99f));
+        assertTrue(d.acceptWord(2,"everyone",.99f));
+        assertEquals("good morning\\neveryone",d.selectedText(0,18));
+    }
+
+    @Test public void verifiedLineAndWordFallbackCanCoexist(){
+        var d=OcrV4Document.build(List.of(
+                word("latin:0",0,0,"Hello",10,20),
+                word("latin:0",1,0,"different",10,60),
+                word("latin:0",1,1,"words",110,60)));
+        assertTrue(d.accept(0,"Hello",.99f));
+        assertFalse(d.accept(1,"unrelated",.99f));
+        assertTrue(d.acceptWord(1,"different",.99f));
+        assertTrue(d.acceptWord(2,"words",.99f));
+        assertEquals("Hello\\ndifferent words",d.selectedText(0,18));
+    }
+
+    @Test public void wordBoundaryFallbackDoesNotInsertSpacesIntoChinese(){
+        var d=OcrV4Document.build(List.of(
+                word("zh:0",0,0,"你好",10,20),
+                word("zh:0",0,1,"世界",65,20)));
+        assertTrue(d.acceptWord(0,"你好",.99f));
+        assertTrue(d.acceptWord(1,"世界",.99f));
+        assertEquals("你好世界",d.selectedText(0,3));
+    }
+
     @Test public void neighboringWordInRoiMustNotBeSilentlyCopied(){
         var d=OcrV4Document.build(List.of(word("latin:0",0,0,"hello",10,20)));
         assertFalse(d.acceptWord(0,"hello world",.99f));

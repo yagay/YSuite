@@ -152,6 +152,36 @@ final class OcrV4Selection {
         OcrV4Document.Word w=document.word(a.wordId);
         return range[0]==w.firstUnit&&range[1]==w.lastUnit?w.id:-1;
     }
+    /**
+     * The multiword fallback may OCR each complete Element individually.
+     * Never turn a partly selected word into the full word's transcription.
+     */
+    List<Integer> completeSelectedWords(){
+        int[] range=selectedUnitRange();
+        if(range==null)return List.of();
+        OcrV4Document.Unit first=document.unit(range[0]);
+        OcrV4Document.Unit last=document.unit(range[1]);
+        OcrV4Document.Word start=document.word(first.wordId);
+        OcrV4Document.Word end=document.word(last.wordId);
+        if(range[0]!=start.firstUnit||range[1]!=end.lastUnit)
+            return List.of();
+        ArrayList<Integer> words=new ArrayList<>();
+        for(int id=start.id;id<=end.id;id++)words.add(id);
+        return List.copyOf(words);
+    }
+
+    boolean lineReadyForWord(int wordId){
+        return document.ready(document.word(wordId).lineId);
+    }
+
+    boolean wordReady(int wordId){
+        return document.wordReady(wordId);
+    }
+
+    boolean lineReady(int id){
+        return document.ready(id);
+    }
+
     Rect wordBox(int id){
         return id<0||id>=document.wordCount()?new Rect():
                 rect(document.word(id).box);

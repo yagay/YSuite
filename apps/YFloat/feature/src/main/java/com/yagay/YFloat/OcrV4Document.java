@@ -247,20 +247,76 @@ final class OcrV4Document {
         }
         StringBuilder output=new StringBuilder();
         for(int id:selectedLines){
-            OcrV4Alignment.Result a=source.get(id);
-            if(a==null)return "";
-            int first=-1,last=-1;
+            OcrV4Alignment.Result aligned=source.get(id);
+            int start=-1,end=-1,first=-1,last=-1;
             for(int i=firstUnit;i<=lastUnit;i++){
                 Unit u=units.get(i);
                 if(u.lineId!=id)continue;
-                if(first<0)first=u.lineOffset;
-                last=u.lineOffset;
+                if(start<0){start=i;first=u.lineOffset;}
+                end=i;last=u.lineOffset;
             }
-            String part=a.slice(first,last);
+            if(start<0)return "";
+            String part;
+            if(aligned!=null){
+                // Original Paddle LINE is the preferred source because it
+                // preserves every verified separator and punctuation.
+                part=aligned.slice(first,last);
+            }else{
+                // A rejected ML/Paddle LINE alignment previously blocked the
+                // entire multiword menu, even after each word was independently
+                // recognized. Permit a fallback ONLY if every selected word
+                // is complete and has its OWN verified Paddle ROI.
+                part=selectedFullWordText(start,end,id);
+            }
             if(part.isEmpty())return "";
             if(output.length()>0)output.append('\n');
             output.append(part);
         }
         return output.toString();
+    }
+
+    /**
+     * Rebuild an all-whole-word visual selection when full-line OCR cannot be
+     * aligned. Only Paddle-recognized word source strings are used as text;
+     * ML Kit is used solely for spatial word/line boundaries and separators.
+     * Partial-character selections deliberately remain unavailable.
+     */
+    private String selectedFullWordText(int firstUnit,int lastUnit,int lineId){
+        Unit first=units.get(firstUnit),last=units.get(lastUnit);
+        Word head=words.get(first.wordId),tail=words.get(last.wordId);
+        if(firstUnit!=head.firstUnit || lastUnit!=tail.lastUnit)return "";
+        StringBuilder result=new StringBuilder();
+        String previous=null;
+        for(int id=first.wordId;id<=last.wordId;id++){
+            Word word=words.get(id);
+            if(word.lineId!=lineId)return "";
+            WordSource recognized=wordSource.get(id);
+            if(recognized==null)return "";
+            String raw=recognized.raw;
+            if(previous!=null && needsVisualWordSpace(previous,raw))
+                result.append(' ');
+            result.append(raw);
+            previous=raw;
+        }
+        return result.toString();
+    }
+
+    private static boolean needsVisualWordSpace(String previous,String next){
+        if(previous.isEmpty()||next.isEmpty())return false;
+        int left=previous.codePointBefore(previous.length());
+        int right=next.codePointAt(0);
+        // CJK word boundaries are not equivalent to ASCII word spaces.
+        if(isCjk(left)||isCjk(right))return false;
+        if(".,!?;:)]}％%".indexOf(right)>=0)return false;
+        if("([{".indexOf(left)>=0)return false;
+        return true;
+    }
+
+    private static boolean isCjk(int value){
+        Character.UnicodeScript script=Character.UnicodeScript.of(value);
+        return script==Character.UnicodeScript.HAN
+                ||script==Character.UnicodeScript.HIRAGANA
+                ||script==Character.UnicodeScript.KATAKANA
+                ||script==Character.UnicodeScript.HANGUL;
     }
 }

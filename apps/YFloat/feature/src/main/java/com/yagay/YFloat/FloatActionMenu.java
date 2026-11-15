@@ -405,7 +405,7 @@ public final class FloatActionMenu {
             if (cm != null) cm.setPrimaryClip(ClipData.newPlainText(
                     "YFloat", currentSelectionText(text)));
             Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e84b8e9c556), Toast.LENGTH_SHORT).show();
-            dismiss();
+            finishTextSelectionAction(app, "copy");
         });
         if (all != null) {
             all.setOnClickListener(v -> {
@@ -633,12 +633,22 @@ public final class FloatActionMenu {
      * Accessibility overlays stay above normal activities. Remove the action menu and active
      * Circle workspace first, then launch the target on the next main-loop turn.
      */
-    private static void launchExternal(Context app, String reason, Runnable launch) {
+    private static void finishTextSelectionAction(Context app, String reason) {
+        // A command (copy/target/share/process/custom) commits the selected
+        // text, so the frozen-circle workspace must be closed as well as
+        // the menu. Select All / More / Back only change the selection/menu
+        // and intentionally do NOT call this.
         dismiss();
         resetLockedRow();
-        FLCircleInlineOverlay.dismissActive("external_text_action_" + reason);
-        NativeCircleWorkspace.dismissActive("external_text_action_" + reason);
-        OcrV3Workspace.dismissActive("external_text_action_" + reason);
+        FLCircleInlineOverlay.dismissActive("text_action_" + reason);
+        NativeCircleWorkspace.dismissActive("text_action_" + reason);
+        OcrV3Workspace.dismissActive("text_action_" + reason);
+        OcrV4Workspace.dismissActive("text_action_" + reason);
+        DiagnosticLog.i(app, "FLOAT_ACTION_MENU", "selection finished reason=" + reason);
+    }
+
+    private static void launchExternal(Context app, String reason, Runnable launch) {
+        finishTextSelectionAction(app, reason);
         DiagnosticLog.i(app, "FLOAT_ACTION_MENU", "external prepare reason=" + reason);
         MAIN.post(() -> {
             try {

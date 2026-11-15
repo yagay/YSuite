@@ -445,38 +445,53 @@ final class OcrV4Workspace extends View {
         if(selection==null||!selection.selected()){
             FloatActionMenu.dismiss();return;
         }
-        // Cache-first: the chosen Element may already have a verified
-        // independent Paddle WORD source even if its ML line was rejected.
+        // Prefer verified original Paddle LINE text. A multiword selection
+        // may span lines; a failed first line must not starve later lines.
         String value=selection.text();
         if(value.isEmpty()){
-            int unready=selection.nextUnreadyLine();
-            if(unready>=0){
-                FloatActionMenu.dismiss();
-                if(pendingLines.contains(unready))return;
-                int count=attempts.getOrDefault(unready,0);
-                if(count<2){
-                    attempts.put(unready,count+1);
-                    requestLine(unready,count+1);
-                    return;
-                }
-            }
-            // IMPORTANT: a wider LINE retry cannot repair an erroneous
-            // ML line split or insertion. Instead, try the selected WORD.
-            int word=selection.completeSelectedWord();
-            if(word>=0){
-                FloatActionMenu.dismiss();
-                if(pendingWords.contains(word))return;
-                if(attemptedWords.add(word)){
-                    requestWord(word);
-                    return;
-                }
-                status=tr("单词识别不可靠，可重新截图或调整选区",
-                        "Word OCR uncertain; recapture or adjust selection");
-            }else{
-                status=tr("部分或多词选区未能可靠对齐，请先选完整单词",
-                        "Partial or multiword selection unverified; try one full word");
-            }
             FloatActionMenu.dismiss();
+            for(int lineId:selection.requiredLines()){
+                if(selection.lineReady(lineId))continue;
+                if(pendingLines.contains(lineId))return;
+                int count=attempts.getOrDefault(lineId,0);
+                if(count<2){
+                    attempts.put(lineId,count+1);
+                    DiagnosticLog.i(app,"OCR_V4_MENU",
+                            "stage=resolve_line id="+lineId+
+                            " pass="+(count+1)+" multiword=true");
+                    requestLine(lineId,count+1);
+                    return;
+                }
+            }
+
+            // A LINE split/insertion can defeat the Paddle/ML symbol
+            // alignment for many words simultaneously. Recognize each
+            // COMPLETE selected word independently, sequentially and only
+            // once, then join *Paddle* text at ML visual word boundaries.
+            // A partial-symbol selection never expands silently to a word.
+            List<Integer> complete=selection.completeSelectedWords();
+            if(!complete.isEmpty()){
+                for(int word:complete){
+                    if(selection.lineReadyForWord(word)||selection.wordReady(word))
+                        continue;
+                    if(pendingWords.contains(word))return;
+                    if(attemptedWords.add(word)){
+                        DiagnosticLog.i(app,"OCR_V4_MENU",
+                                "stage=resolve_word word="+word+
+                                " words="+complete.size());
+                        requestWord(word);
+                        return;
+                    }
+                }
+                status=tr("部分文字仍未可靠识别，请调整选区或重试",
+                        "Some selected words could not be verified; adjust the selection");
+            }else{
+                status=tr("部分字符选区需要可靠的整行文字对齐",
+                        "Partial-character selection needs verified line alignment");
+            }
+            DiagnosticLog.i(app,"OCR_V4_MENU",
+                    "stage=unavailable selected_words="+complete.size()+
+                    " "+selection.diagnostics());
             invalidate();return;
         }
         Rect bounds=new Rect();
@@ -629,10 +644,10 @@ final class OcrV4Workspace extends View {
                     clip.recycle();
                 clip=null;return;
             }
-            if(ImageMenuSettings.FIND.equals(action)||
-                    ImageMenuSettings.SHARE.equals(action)||
-                    ImageCustomMenuStore.isCustom(action))
-                dismissActive("image_external_action");
+            // The crop bitmap is already independent of the frame, so all
+            // completed image actions can close Circle before launching or
+            // copying. RESET is handled above and remains non-terminal.
+            dismissActive("image_action_"+action);
             if(ImageMenuSettings.FIND.equals(action))
                 ImageShareUtils.openWith(app,clip);
             else if(ImageMenuSettings.COPY.equals(action))
