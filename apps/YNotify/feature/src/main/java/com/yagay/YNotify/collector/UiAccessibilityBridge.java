@@ -97,6 +97,11 @@ public final class UiAccessibilityBridge {
         String className = event.getClassName() == null ? "" : event.getClassName().toString();
         String sourceClass = source != null && source.getClassName() != null
                 ? source.getClassName().toString() : "";
+        // Never record the content of password or editable input fields.
+        try {
+            if (source != null && (source.isPassword() || source.isEditable()
+                    || sourceClass.contains("EditText"))) return;
+        } catch (Throwable ignored) {}
         String title = "";
         try {
             if (window != null && window.getTitle() != null) title = window.getTitle().toString();
