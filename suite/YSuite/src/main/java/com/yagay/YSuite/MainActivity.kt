@@ -1,6 +1,12 @@
 package com.yagay.YSuite
 
+import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
+import com.yagay.YMiniGuard.YMiniMediaBridge
+import com.yagay.YMiniGuard.YMiniMediaLaunchPolicy
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
 import com.yagay.yui.YUiText as Text
@@ -42,6 +48,69 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : YComposeActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        routeOxygenMediaPanelLaunch(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        routeOxygenMediaPanelLaunch(intent)
+    }
+
+    /**
+     * OxygenOS 17's MediaData panel ignores the source app's valid Activity
+     * PendingIntent and instead launches the media notification *owner*'s
+     * launcher (YSuite). This narrow trampoline restores the target app
+     * without hooking SystemUI, or any newly scoped target application.
+     *
+     * Observed SystemUI click: ACTION_MAIN/CATEGORY_LAUNCHER NEW_TASK
+     * (without RESET_TASK_IF_NEEDED). A normal launcher tap uses both flags.
+     */
+    private fun routeOxygenMediaPanelLaunch(incoming: Intent?): Boolean {
+        if (incoming == null) return false
+        val from = if (Build.VERSION.SDK_INT >= 34) {
+            runCatching { launchedFromPackage }.getOrNull()
+        } else null
+        val flags = incoming.flags
+        val fromMediaPanel = YMiniMediaLaunchPolicy.shouldRedirect(
+            incoming.action == Intent.ACTION_MAIN,
+            incoming.hasCategory(Intent.CATEGORY_LAUNCHER),
+            incoming.component?.packageName == packageName &&
+                incoming.component?.className == MainActivity::class.java.name,
+            flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0,
+            flags and Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED != 0,
+            from,
+        )
+        if (!fromMediaPanel) return false
+        val target = YMiniMediaBridge.activeTargetForMediaPanel(this)
+        if (target.isNullOrBlank() || target == packageName) {
+            Log.i("YMiniMedia", "MEDIA_PANEL_REDIRECT_SKIP no_active_target" +
+                    " source=$from flags=0x${flags.toString(16)}")
+            return false
+        }
+        try {
+            val targetIntent = packageManager.getLaunchIntentForPackage(target)
+            if (targetIntent?.component?.packageName != target) {
+                Log.w("YMiniMedia", "MEDIA_PANEL_REDIRECT_SKIP target_no_launcher=$target")
+                return false
+            }
+            targetIntent.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED,
+            )
+            Log.i("YMiniMedia", "MEDIA_PANEL_REDIRECT target=$target" +
+                    " source=$from flags=0x${flags.toString(16)}" +
+                    " component=${targetIntent.component}")
+            startActivity(targetIntent)
+            finish()
+            return true
+        } catch (error: Throwable) {
+            Log.w("YMiniMedia", "MEDIA_PANEL_REDIRECT_FAILED target=$target", error)
+            return false
+        }
+    }
+
     @Composable
     override fun YContent() {
         FeatureManagerScreen()

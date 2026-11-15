@@ -181,6 +181,43 @@ public final class YMiniMediaBridge {
                 + " · " + uidObserverStatus(context);
     }
 
+    /**
+     * OxygenOS 17 sometimes ignores MediaSession.sessionActivity and instead
+     * launches the *package* that posted the media notification. YSuite's
+     * launcher may query this narrowly-scoped target to forward such a tap.
+     *
+     * Never return an unselected, stale, or already stopped media source;
+     * callers must independently verify the SystemUI launcher intent shape.
+     */
+    public static String activeTargetForMediaPanel(Context context) {
+        if (context == null || host == null || source == null || card == null
+                || !enabled(context)) return null;
+        String pkg;
+        try {
+            pkg = source.getPackageName();
+            if (pkg == null || pkg.equals(context.getPackageName())
+                    || !selectedPackages(context).contains(pkg)
+                    || nativeMediaPackages.contains(pkg)) return null;
+            PlaybackState state = source.getPlaybackState();
+            if (state != null) {
+                int value = state.getState();
+                if (value == PlaybackState.STATE_PLAYING
+                        || value == PlaybackState.STATE_BUFFERING) return pkg;
+                if (value != PlaybackState.STATE_NONE) return null;
+            }
+            if (!fallbackPlayback) return null;
+            int uid = context.getPackageManager().getApplicationInfo(pkg, 0).uid;
+            int decision = EngineStatusProvider.readAudio(context).stateForUid(uid);
+            if (decision == YMiniAudioUidPolicy.ACTIVE) return pkg;
+            if (decision == YMiniAudioUidPolicy.INACTIVE) return null;
+            AudioManager audio = context.getSystemService(AudioManager.class);
+            return audio != null && audio.isMusicActive() ? pkg : null;
+        } catch (Throwable error) {
+            Log.w(TAG, "MEDIA_PANEL_TARGET_LOOKUP_FAILED", error);
+            return null;
+        }
+    }
+
     private static boolean enabled(Context context) {
         if (context == null) return false;
         return context.getSharedPreferences(ConfigKeys.LOCAL_PREFS, Context.MODE_PRIVATE)
