@@ -29,7 +29,7 @@
     <string name="ymg_support_desc">只对勾选的应用放行一加 FlexibleWindow 支持或黑名单检查，不会主动启动或主动切换小窗。</string>
 
     <string name="ymg_media_title">系统媒体卡片</string>
-    <string name="ymg_media_desc">后台播放名单里的应用正在播放、拥有真实 MediaSession 且未显示原生媒体通知时，通过 Android 系统媒体卡片显示真实媒体信息，并转发原应用支持的控制。</string>
+    <string name="ymg_media_desc">对已加入 YMini 的应用显示系统媒体卡片。利用现有 system_server 引擎按 UID 识别真实音频播放，不新增任何 App Hook；剧名和进度仍取决于应用公开的数据。</string>
     <string name="ymg_media_enabled">启用系统媒体卡片桥接</string>
     <string name="ymg_media_enabled_desc">优先读取真实媒体会话，也尝试媒体通知和播放队列；没有封面时显示应用图标。应用未公开的剧名、集数和进度无法可靠获取。</string>
     <string name="ymg_media_access_title">通知读取权限</string>

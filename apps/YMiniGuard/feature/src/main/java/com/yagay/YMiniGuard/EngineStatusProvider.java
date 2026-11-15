@@ -23,6 +23,10 @@ public class EngineStatusProvider extends ContentProvider {
     static volatile String AUTHORITY = DEFAULT_HOST + ".engine_status";
     static volatile Uri URI = Uri.parse("content://" + AUTHORITY);
     static final String METHOD_MARK = "markEngine";
+    static final String METHOD_AUDIO = "markAudio";
+    static final String KEY_AUDIO_UIDS = "audio_uids";
+    static final String KEY_AUDIO_STATE = "audio_state";
+    static final String KEY_AUDIO_AT = "audio_updated_at";
 
     private static final String PREFS = "engine_status";
     static final String KEY_VERSION = "version";
@@ -83,6 +87,30 @@ public class EngineStatusProvider extends ContentProvider {
         }
     }
 
+    static final class AudioState {
+        final String status;
+        final String uidUsages;
+        final long updatedAt;
+
+        AudioState(String status, String uidUsages, long updatedAt) {
+            this.status = status == null ? "unavailable" : status;
+            this.uidUsages = uidUsages == null ? "" : uidUsages;
+            this.updatedAt = updatedAt;
+        }
+
+        boolean isFresh() {
+            return updatedAt > 0
+                    && RuntimeHealth.isRecentFromCurrentBoot(updatedAt,
+                            YMiniAudioUidPolicy.MAX_AGE_MS);
+        }
+
+        int stateForUid(int uid) {
+            long age = isFresh() ? System.currentTimeMillis() - updatedAt
+                    : YMiniAudioUidPolicy.MAX_AGE_MS + 1L;
+            return YMiniAudioUidPolicy.decision(status, uidUsages, age, uid);
+        }
+    }
+
     @Override
     public boolean onCreate() {
         Context context = getContext();
@@ -98,6 +126,30 @@ public class EngineStatusProvider extends ContentProvider {
         int caller = Binder.getCallingUid();
         int ownUid = context.getApplicationInfo().uid;
         if (caller != Process.SYSTEM_UID && caller != ownUid) return null;
+
+        if (METHOD_AUDIO.equals(method)) {
+            // Only system_server or this APK can submit playback UID state.
+            String state = extras == null ? "" :
+                    extras.getString(KEY_AUDIO_STATE, "");
+            if (!"ready".equals(state) && !"partial".equals(state)
+                    && !"disabled".equals(state)
+                    && !"unavailable".equals(state))
+                return null;
+            String uids = extras == null ? "" : extras.getString(KEY_AUDIO_UIDS, "");
+            if (uids == null || uids.length() > 1024) return null;
+            // Store only UID+audio usage for already-selected packages,
+            // never information about unrelated apps or raw audio data.
+            if (!uids.matches("(?:[0-9]{5,8}:[0-9]{1,3}:[0-9]{1,3})(?:,[0-9]{5,8}:[0-9]{1,3}:[0-9]{1,3})*")
+                    && !uids.isEmpty()) return null;
+            boolean saved = prefs(context).edit()
+                    .putString(KEY_AUDIO_STATE, state)
+                    .putString(KEY_AUDIO_UIDS, uids)
+                    .putLong(KEY_AUDIO_AT, System.currentTimeMillis())
+                    .commit();
+            Bundle result = new Bundle();
+            result.putBoolean("ok", saved);
+            return result;
+        }
 
         if (METHOD_MARK.equals(method)) {
             long version = extras == null ? -1L : extras.getLong(KEY_VERSION, -1L);
@@ -147,6 +199,15 @@ public class EngineStatusProvider extends ContentProvider {
                 p.getLong(KEY_STARTED_AT, 0L),
                 p.getInt(KEY_PID, -1),
                 p.getInt(KEY_HOOKS, -1));
+    }
+
+    static AudioState readAudio(Context context) {
+        if (context == null) return new AudioState("unavailable", "", 0);
+        SharedPreferences p = prefs(context);
+        return new AudioState(
+                p.getString(KEY_AUDIO_STATE, "unavailable"),
+                p.getString(KEY_AUDIO_UIDS, ""),
+                p.getLong(KEY_AUDIO_AT, 0L));
     }
 
     private static SharedPreferences prefs(Context context) {

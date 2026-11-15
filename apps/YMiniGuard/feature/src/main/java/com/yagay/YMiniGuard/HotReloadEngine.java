@@ -17,6 +17,7 @@ public final class HotReloadEngine {
     private static final int BOOTSTRAP_API_REQUIRED = 4;
 
     private OplusFlexibleWindowController controller;
+    private YMiniSystemAudioObserver audioObserver;
     private volatile boolean started;
 
     public HotReloadEngine() {}
@@ -36,6 +37,16 @@ public final class HotReloadEngine {
                 this::engineLog);
         controller.start();
 
+        // An observer in the *existing* system_server process, not a new Hook
+        // in AudioService, SystemUI, or any target application.
+        try {
+            audioObserver = new YMiniSystemAudioObserver(handler, context);
+            audioObserver.start();
+        } catch (Throwable error) {
+            audioObserver = null;
+            Log.w(TAG, "UID_AUDIO_OBSERVER_START_FAILED", error);
+        }
+
         started = true;
 
         engineLog(
@@ -50,10 +61,14 @@ public final class HotReloadEngine {
         if (!started) return;
 
         try {
+            if (audioObserver != null) {
+                audioObserver.stop();
+            }
             if (controller != null) {
                 controller.shutdown();
             }
         } finally {
+            audioObserver = null;
             controller = null;
             started = false;
             engineLog(

@@ -32,6 +32,7 @@ public final class YMiniMediaBridge {
     private static YMiniMediaCard card;
     private static boolean registered;
     private static boolean fallbackPlayback;
+    private static String fallbackEvidence = "none";
     private static String lastDiagnostic = "Listener not connected";
     private static long lastRebindElapsed;
     private static final Runnable FALLBACK_REFRESH = () -> update();
@@ -150,6 +151,15 @@ public final class YMiniMediaBridge {
         }
     }
 
+    private static String uidObserverStatus(Context context) {
+        EngineStatusProvider.AudioState snapshot = EngineStatusProvider.readAudio(context);
+        if (!snapshot.isFresh()) return "UID audio observer pending/stale";
+        String data = snapshot.uidUsages;
+        int count = data.isEmpty() ? 0 : data.split(",").length;
+        return "UID observer " + snapshot.status + " (" + count
+                + " selected playback UID" + (count == 1 ? "" : "s") + ")";
+    }
+
     /** User-readable fault isolation; no root logs required to check notification access. */
     public static String status(Context context) {
         if (context == null) return "Context unavailable";
@@ -163,9 +173,12 @@ public final class YMiniMediaBridge {
         if (host == null) return "Notification access granted, listener not connected";
         if (!registered) return "Listener connected, media observer not registered";
         if (source != null) return "Media card: " + source.getPackageName()
-                + (fallbackPlayback ? " [audio fallback]" : " [MediaSession]")
-                + (card == null ? "" : " · " + card.infoStatus());
-        return "Listener connected; " + lastDiagnostic;
+                + (fallbackPlayback ? " [audio fallback: " + fallbackEvidence + "]"
+                        : " [MediaSession]")
+                + (card == null ? "" : " · " + card.infoStatus())
+                + " · " + uidObserverStatus(context);
+        return "Listener connected; " + lastDiagnostic
+                + " · " + uidObserverStatus(context);
     }
 
     private static boolean enabled(Context context) {
@@ -246,15 +259,39 @@ public final class YMiniMediaBridge {
                 }
             }
             boolean legacy = false;
+            String evidence = "none";
             if (candidate == null && unreported != null
                     && unreportedPackages.size() == 1) {
-                AudioManager audio = host.getSystemService(AudioManager.class);
-                // This is a *global* signal; the unique session owner above is
-                // essential to avoid attributing another app's playback.
-                if (MediaFallbackPolicy.shouldActivate(unreportedPackages.size(),
-                        audio != null && audio.isMusicActive())) {
+                // system_server's AudioManager callback supplies privileged,
+                // un-anonymized playback UID(s) through our existing Provider.
+                // Never infer *this* app is playing from another app's audio.
+                EngineStatusProvider.AudioState snapshot =
+                        EngineStatusProvider.readAudio(host);
+                int uid = -1;
+                try {
+                    uid = host.getPackageManager().getApplicationInfo(
+                            unreported.getPackageName(), 0).uid;
+                } catch (Throwable error) {
+                    Log.w(TAG, "Playback package UID lookup failed", error);
+                }
+                int decision = snapshot.stateForUid(uid);
+                if (decision == YMiniAudioUidPolicy.ACTIVE) {
                     candidate = unreported;
                     legacy = true;
+                    evidence = "system_server-uid";
+                } else if (decision == YMiniAudioUidPolicy.UNKNOWN) {
+                    // Graceful rollback for devices where the UID observer
+                    // has not yet registered or OEM playback is anonymized.
+                    // This original fallback is intentionally marked weaker.
+                    AudioManager audio = host.getSystemService(AudioManager.class);
+                    if (MediaFallbackPolicy.shouldActivate(unreportedPackages.size(),
+                            audio != null && audio.isMusicActive())) {
+                        candidate = unreported;
+                        legacy = true;
+                        evidence = "global-compat-unknown-uid";
+                    }
+                } else {
+                    evidence = "selected-uid-inactive";
                 }
             }
             if (candidate == null) {
@@ -279,7 +316,9 @@ public final class YMiniMediaBridge {
                         + " mode=" + (legacy ? "audio-fallback" : "native-state"));
             }
             fallbackPlayback = legacy;
-            lastDiagnostic = legacy ? "Fallback audio active" : "Real MediaSession active";
+            fallbackEvidence = evidence;
+            lastDiagnostic = legacy ? "Fallback audio active (" + evidence + ")"
+                    : "Real MediaSession active";
             if (card != null) card.publish(legacy);
             MAIN.removeCallbacks(FALLBACK_REFRESH);
             if (legacy) MAIN.postDelayed(FALLBACK_REFRESH, 3500L);
@@ -351,6 +390,7 @@ public final class YMiniMediaBridge {
     private static void stop() {
         MAIN.removeCallbacks(FALLBACK_REFRESH);
         fallbackPlayback = false;
+        fallbackEvidence = "none";
         if (source != null) {
             try { source.unregisterCallback(CALLBACK); } catch (Throwable ignored) {}
         }
