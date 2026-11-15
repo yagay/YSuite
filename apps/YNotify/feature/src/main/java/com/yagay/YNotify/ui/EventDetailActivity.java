@@ -322,6 +322,12 @@ public class EventDetailActivity extends AppCompatActivity {
         if (EventTypes.CUSTOM_TOAST_MARKER.equals(value)) {
             return getString(R.string.ynotify_custom_toast);
         }
+        if (EventTypes.EMPTY_UI_MARKER.equals(value))
+            return getString(R.string.ynotify_popup_text_unavailable);
+        if (EventTypes.CLIPBOARD_SHOWN_MARKER.equals(value))
+            return getString(R.string.ynotify_clipboard_popup_shown);
+        if (EventTypes.CLIPBOARD_SUPPRESSED_MARKER.equals(value))
+            return getString(R.string.ynotify_clipboard_popup_suppressed);
         return value == null || value.isBlank() ? getString(R.string.ynotify_not_available) : value;
     }
 
