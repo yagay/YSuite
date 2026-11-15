@@ -7,6 +7,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Icon;
+import android.util.Log;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
@@ -25,6 +27,8 @@ final class YMiniMediaCard {
     private final MediaController source;
     private final MediaSession session;
     private final NotificationManager notificationManager;
+    private String lastInfoSource = "";
+    private String infoStatus = "Metadata unchecked";
 
     YMiniMediaCard(Context context, MediaController source) {
         this.context = context;
@@ -65,35 +69,30 @@ final class YMiniMediaCard {
     void publish(boolean audioFallback) {
         PlaybackState state = source.getPlaybackState();
         if ((state == null && !audioFallback) || notificationManager == null) return;
-        MediaMetadata sourceMetadata = source.getMetadata();
-        String title = sourceMetadata == null ? null
-                : sourceMetadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
-        if (title == null || title.isEmpty())
-            title = sourceMetadata == null ? null
-                    : sourceMetadata.getString(MediaMetadata.METADATA_KEY_TITLE);
-        if (title == null || title.isEmpty()) title = appLabel();
-        String artist = sourceMetadata == null ? null
-                : sourceMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
-        if (artist == null || artist.isEmpty())
-            artist = audioFallback ? "Background audio · metadata unavailable" : appLabel();
+        YMiniMediaInfo.Result info = YMiniMediaInfo.collect(context, source);
+        String title = info.title;
+        String artist = info.subtitle;
+        Bitmap artwork = info.artwork;
         MediaMetadata.Builder meta = new MediaMetadata.Builder()
                 .putString(MediaMetadata.METADATA_KEY_TITLE, title)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, artist);
-        Bitmap artwork = null;
-        if (sourceMetadata != null) {
-            if (sourceMetadata.containsKey(MediaMetadata.METADATA_KEY_DURATION))
-                meta.putLong(MediaMetadata.METADATA_KEY_DURATION,
-                        sourceMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION));
-            artwork = sourceMetadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
-            if (artwork == null)
-                artwork = sourceMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
-            if (artwork != null && !artwork.isRecycled()) {
-                if (artwork.getWidth() > 256 || artwork.getHeight() > 256)
-                    artwork = Bitmap.createScaledBitmap(artwork, 256, 256, true);
-                meta.putBitmap(MediaMetadata.METADATA_KEY_ART, artwork);
-            }
+        if (info.duration > 0)
+            meta.putLong(MediaMetadata.METADATA_KEY_DURATION, info.duration);
+        if (artwork != null && !artwork.isRecycled()) {
+            // Metadata is mirrored for Android SystemUI. When the real player
+            // has no artwork, show its installed app icon instead of an empty
+            // media tile. This is a visual fallback, not a claimed cover image.
+            meta.putBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON, artwork);
+            meta.putBitmap(MediaMetadata.METADATA_KEY_ART, artwork);
         }
         session.setMetadata(meta.build());
+        infoStatus = "title=" + info.textSource + ", image=" + info.imageSource
+                + ", duration=" + (info.duration > 0 ? "available" : "unknown");
+        if (!infoStatus.equals(lastInfoSource)) {
+            lastInfoSource = infoStatus;
+            Log.i("YMiniMedia", "METADATA_SOURCES package=" + source.getPackageName()
+                    + " " + infoStatus);
+        }
         long available = state == null ? 0 : state.getActions();
         long forwarded = available & (PlaybackState.ACTION_PLAY
                 | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_SEEK_TO
@@ -121,7 +120,7 @@ final class YMiniMediaCard {
         notificationManager.createNotificationChannel(new NotificationChannel(
                 CHANNEL, "YMini media", NotificationManager.IMPORTANCE_LOW));
         Notification.Builder builder = new Notification.Builder(context, CHANNEL)
-                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setSmallIcon(sourceAppSmallIcon())
                 .setContentTitle(title)
                 .setContentText(artist)
                 .setCategory(Notification.CATEGORY_TRANSPORT)
@@ -175,6 +174,20 @@ final class YMiniMediaCard {
                 intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         indices.add(indices.size());
         builder.addAction(new Notification.Action.Builder(icon, label, pending).build());
+    }
+
+    String infoStatus() {
+        return infoStatus;
+    }
+
+    private Icon sourceAppSmallIcon() {
+        try {
+            android.content.pm.ApplicationInfo app = context.getPackageManager()
+                    .getApplicationInfo(source.getPackageName(), 0);
+            if (app.icon != 0)
+                return Icon.createWithResource(source.getPackageName(), app.icon);
+        } catch (Throwable ignored) {}
+        return Icon.createWithResource("android", android.R.drawable.ic_media_play);
     }
 
     private String appLabel() {

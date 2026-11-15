@@ -31,7 +31,7 @@
     <string name="ymg_media_title">System media card</string>
     <string name="ymg_media_desc">Show an Android media card for selected background-playback apps when they expose a real MediaSession and have no existing media notification. Read metadata and forward only the controls the original app supports.</string>
     <string name="ymg_media_enabled">Enable media card bridge</string>
-    <string name="ymg_media_enabled_desc">Only mirrors active real MediaSessions. Apps without a MediaSession cannot provide accurate title, episode or progress through this bridge.</string>
+    <string name="ymg_media_enabled_desc">Reads real MediaSession metadata, media notifications and queue items when available. Uses the app icon if no cover exists. Missing title, episode and position cannot be inferred reliably.</string>
     <string name="ymg_media_access_title">Notification access</string>
     <string name="ymg_media_access_desc">Grant YSuite notification access so the shared listener can read active media sessions.</string>
 

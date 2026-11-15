@@ -31,7 +31,7 @@
     <string name="ymg_media_title">系统媒体卡片</string>
     <string name="ymg_media_desc">后台播放名单里的应用正在播放、拥有真实 MediaSession 且未显示原生媒体通知时，通过 Android 系统媒体卡片显示真实媒体信息，并转发原应用支持的控制。</string>
     <string name="ymg_media_enabled">启用系统媒体卡片桥接</string>
-    <string name="ymg_media_enabled_desc">只读取真实媒体会话。没有 MediaSession 的应用暂时无法获得准确的剧名、集数和进度。</string>
+    <string name="ymg_media_enabled_desc">优先读取真实媒体会话，也尝试媒体通知和播放队列；没有封面时显示应用图标。应用未公开的剧名、集数和进度无法可靠获取。</string>
     <string name="ymg_media_access_title">通知读取权限</string>
     <string name="ymg_media_access_desc">在系统设置中允许 YSuite 读取通知，以便统一监听服务读取应用的媒体会话。</string>
 

@@ -163,7 +163,8 @@ public final class YMiniMediaBridge {
         if (host == null) return "Notification access granted, listener not connected";
         if (!registered) return "Listener connected, media observer not registered";
         if (source != null) return "Media card: " + source.getPackageName()
-                + (fallbackPlayback ? " (audio fallback: no metadata/position)" : " (MediaSession)");
+                + (fallbackPlayback ? " [audio fallback]" : " [MediaSession]")
+                + (card == null ? "" : " · " + card.infoStatus());
         return "Listener connected; " + lastDiagnostic;
     }
 
