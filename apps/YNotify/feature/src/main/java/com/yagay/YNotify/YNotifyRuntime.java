@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.yagay.YNotify.data.ListenerStateStore;
+import com.yagay.YNotify.data.PopupSettings;
 import com.yagay.YNotify.util.DiagLog;
 import com.yagay.YNotify.util.HookAuth;
 import com.yagay.suite.api.ManagedFeatureRuntime;
@@ -23,6 +24,8 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
     public static final String KEY_HOOK_VERSION = "hook_version";
     public static final String KEY_HOOK_PACKAGE = "hook_package";
     public static final String KEY_HOOK_PROCESS = "hook_process";
+    public static final String KEY_POPUP_CAPTURE = "popup_capture_enabled";
+    public static final String KEY_HIDE_CLIPBOARD = "popup_clipboard_hidden";
     private static final String FEATURE_ID = "ynotify";
 
     private enum FrameworkState {
@@ -126,6 +129,8 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
             prefs.edit()
                     .putString(KEY_SECRET, secret)
                     .putString(KEY_HOST_PACKAGE, context.getPackageName())
+                    .putBoolean(KEY_POPUP_CAPTURE, PopupSettings.captureEnabled(context))
+                    .putBoolean(KEY_HIDE_CLIPBOARD, PopupSettings.hideClipboardEnabled(context))
                     .putString("app_version", versionName)
                     .putLong("app_sync_at", System.currentTimeMillis())
                     .commit();
@@ -154,6 +159,21 @@ public final class YNotifyRuntime implements XposedServiceHelper.OnServiceListen
                 frameworkState = FrameworkState.DIED;
                 DiagLog.w(context, "LSPosed", "service died/disconnected");
             }
+        }
+    }
+
+    /** Push switch changes to already running SystemUI hooks without restarting the device. */
+    public static void syncPopupControls(Context context) {
+        SharedPreferences prefs = remote;
+        if (prefs == null || context == null) return;
+        try {
+            prefs.edit()
+                    .putBoolean(KEY_POPUP_CAPTURE, PopupSettings.captureEnabled(context))
+                    .putBoolean(KEY_HIDE_CLIPBOARD, PopupSettings.hideClipboardEnabled(context))
+                    .commit();
+            DiagLog.i(context, "PopupControls", "settings synchronized with LSPosed");
+        } catch (Throwable t) {
+            DiagLog.e(context, "PopupControls", "remote settings sync failed", t);
         }
     }
 
