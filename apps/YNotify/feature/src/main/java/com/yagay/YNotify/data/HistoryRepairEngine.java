@@ -220,6 +220,10 @@ public final class HistoryRepairEngine {
         }
 
         if (isAccessibility(r)) {
+            // Additional focused application windows can be identified as a popup even when
+            // their generic FrameLayout class name contains no "popup"/"dialog" token.
+            if (r.accessibilityEventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+                    && EventTypes.POPUP.equals(r.originalEventType)) return EventTypes.POPUP;
             if (r.accessibilityEventType == AccessibilityEvent.TYPE_ANNOUNCEMENT) return EventTypes.OTHER_UI;
             return EventTypes.OTHER_UI;
         }
