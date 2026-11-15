@@ -16,9 +16,10 @@ import java.util.concurrent.Future;
 /**
  * Same-touch Direct selection engine.
  *
- * <p>One Accessibility snapshot is prepared as soon as a touch starts. The 400 ms dwell only
- * decides when Direct owns the gesture; it no longer starts a second late tree scan. Once Direct is
- * READY, TEXT/VIEW/IMAGE routing is driven from the same cached snapshot and MOVE is geometry-only.</p>
+ * <p>One Accessibility snapshot is prepared only after the touch has remained
+ * stable long enough to plausibly enter Direct. Fast drags therefore do not
+ * scan the tree at all. Once Direct is READY, TEXT/VIEW/IMAGE routing uses
+ * the same cached snapshot and MOVE is geometry-only.</p>
  */
 public final class ViewSelectionEngine {
     public enum State { IDLE, DIRECT }
@@ -76,7 +77,7 @@ public final class ViewSelectionEngine {
     public boolean isActive() { return state == State.DIRECT; }
     public State state() { return state; }
 
-    /** Snapshot the icon origin and immediately prewarm the one candidate tree for this touch. */
+    /** Snapshot only the icon origin here; fast dragging should not launch an Accessibility scan. */
     public void dispatchTouchEvent(MotionEvent e) {
         if (e == null) return;
         int action = e.getActionMasked();
@@ -87,17 +88,23 @@ public final class ViewSelectionEngine {
             PointF p = pointTransformer.transform(e);
             selectionX = p.x;
             selectionY = p.y;
-            prepareTargetsAsync();
             DiagnosticLog.i(context, "FL_SELECT", "DOWN probe="
                     + Math.round(selectionX) + "," + Math.round(selectionY)
                     + " iconSide=" + (pointTransformer.gestureLeftSide() ? "L" : "R")
                     + " accessibility=" + (accessibility != null)
-                    + " prewarm=true");
+                    + " prewarm=deferred_until_direct_dwell");
         } else if (action == MotionEvent.ACTION_MOVE && state == State.DIRECT) {
             updateDirect(e.getRawX(), e.getRawY());
         } else if (action == MotionEvent.ACTION_CANCEL) {
             cancel();
         }
+    }
+
+    /** Prewarm once after a stable Direct dwell, not on every temporary icon drag. */
+    void warmTargetsForDirect() {
+        if (state != State.IDLE || targetFuture != null || preparedOverlay != null
+                || accessibility == null || directRegionMode) return;
+        prepareTargetsAsync();
     }
 
     /** Free-moving phase: only move the probe; candidate snapshot continues in the background. */

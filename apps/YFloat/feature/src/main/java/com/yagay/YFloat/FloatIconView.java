@@ -36,6 +36,7 @@ public class FloatIconView extends View {
     }
 
     private static final long FL_DIRECT_SELECT_DELAY_MS = 400L;
+    private static final long FL_DIRECT_PREWARM_DELAY_MS = 120L;
     private static final float FL_DIRECT_MOVE_START_DP = 3f;
     private static final long FL_LONG_PRESS_FINAL_STABLE_MS = 100L;
     private static final float FL_LONG_PRESS_REARM_PX = 3f;
@@ -45,6 +46,12 @@ public class FloatIconView extends View {
     private final FloatIconRenderer renderer;
     private final Callback cb;
     private final Runnable directSelectionRunnable;
+    private final Runnable directPrewarmRunnable = () -> {
+        if (!directTimerArmed || directSelectionActive || longPressActionTriggered
+                || positionMoveMode || selectionEngine == null || session.multiTouch) return;
+        targetPrewarmTriggered = true;
+        selectionEngine.warmTargetsForDirect();
+    };
     private final float directRearmSlopPx;
 
     private FloatSettings fs;
@@ -57,6 +64,7 @@ public class FloatIconView extends View {
     private boolean longPressActionTriggered;
     private boolean directSelectionActive;
     private boolean directTimerArmed;
+    private boolean targetPrewarmTriggered;
     private boolean positionMoveMode;
     private int touchMoveLogCounter;
     private int dragPerfSamples, dragPerfOver16;
@@ -252,6 +260,7 @@ public class FloatIconView extends View {
         directSelectionActive = false;
         dragPerfSamples = dragPerfOver16 = 0;
         dragPerfDelaySum = dragPerfDelayMax = 0L;
+        targetPrewarmTriggered = false;
         followStarted = false;
         lastSelectionRawX = lastSelectionRawY = Float.NaN;
         directTimerAnchorX = directTimerAnchorY = Float.NaN;
@@ -462,6 +471,7 @@ public class FloatIconView extends View {
             directTimerArmed = true;
             handler.removeCallbacks(directSelectionRunnable);
             handler.postDelayed(directSelectionRunnable, FL_DIRECT_SELECT_DELAY_MS);
+            scheduleDirectPrewarm();
             DiagnosticLog.i(getContext(), "FL_DIRECT", "ARM anchor=" + Math.round(rawX) + ","
                     + Math.round(rawY) + " delay=" + FL_DIRECT_SELECT_DELAY_MS);
             return;
@@ -473,8 +483,15 @@ public class FloatIconView extends View {
         directTimerAnchorX = rawX;
         directTimerAnchorY = rawY;
         handler.postDelayed(directSelectionRunnable, FL_DIRECT_SELECT_DELAY_MS);
+        scheduleDirectPrewarm();
         DiagnosticLog.i(getContext(), "FL_DIRECT", "REARM anchor=" + Math.round(rawX) + ","
                 + Math.round(rawY) + " dx=" + Math.round(dx) + " dy=" + Math.round(dy));
+    }
+
+    private void scheduleDirectPrewarm() {
+        if (targetPrewarmTriggered) return;
+        handler.removeCallbacks(directPrewarmRunnable);
+        handler.postDelayed(directPrewarmRunnable, FL_DIRECT_PREWARM_DELAY_MS);
     }
 
     private void finish(long now, boolean cancelled) {
@@ -519,6 +536,7 @@ public class FloatIconView extends View {
         flWindowKnown = false;
         lastSelectionRawX = lastSelectionRawY = Float.NaN;
         longPressAnchorRawX = longPressAnchorRawY = Float.NaN;
+        targetPrewarmTriggered = false;
         session.reset();
         invalidate();
     }
@@ -545,6 +563,7 @@ public class FloatIconView extends View {
 
     private void cancelDirectSelectionTimer() {
         handler.removeCallbacks(directSelectionRunnable);
+        handler.removeCallbacks(directPrewarmRunnable);
         directTimerArmed = false;
         directTimerAnchorX = directTimerAnchorY = Float.NaN;
     }
