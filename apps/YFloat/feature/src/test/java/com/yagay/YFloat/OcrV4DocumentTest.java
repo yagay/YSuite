@@ -67,7 +67,7 @@ public final class OcrV4DocumentTest {
         assertTrue(d.acceptWord(0,"good",.99f));
         assertTrue(d.acceptWord(1,"morning",.99f));
         assertTrue(d.acceptWord(2,"everyone",.99f));
-        assertEquals("good morning\\neveryone",d.selectedText(0,18));
+        assertEquals("good morning\neveryone",d.selectedText(0,18));
     }
 
     @Test public void verifiedLineAndWordFallbackCanCoexist(){
@@ -79,7 +79,7 @@ public final class OcrV4DocumentTest {
         assertFalse(d.accept(1,"unrelated",.99f));
         assertTrue(d.acceptWord(1,"different",.99f));
         assertTrue(d.acceptWord(2,"words",.99f));
-        assertEquals("Hello\\ndifferent words",d.selectedText(0,18));
+        assertEquals("Hello\ndifferent words",d.selectedText(0,18));
     }
 
     @Test public void wordBoundaryFallbackDoesNotInsertSpacesIntoChinese(){
