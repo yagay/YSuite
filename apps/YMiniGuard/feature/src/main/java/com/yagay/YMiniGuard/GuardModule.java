@@ -701,18 +701,22 @@ public final class GuardModule extends XposedModule {
                         String reason = null;
                         Object resumingActivity = null;
                         Class<?>[] signature = method.getParameterTypes();
-                        // Verified against CPH2747 SDK37 services.jar:
-                        // (Z, ActivityRecord, String)
-                        // (ZZ, ActivityRecord, String)
-                        // (ZZ, ActivityRecord, ActivityRecord, String).
-                        // In every overload boolean #0 is userLeaving.
-                        boolean userLeaving =
-                                !args.isEmpty() && Boolean.TRUE.equals(args.get(0));
-                        boolean uiSleeping =
-                                signature.length > 1
-                                && signature[1] == boolean.class
-                                && args.size() > 1
-                                && Boolean.TRUE.equals(args.get(1));
+                        // Verified from SDK37 services.jar *method bodies*:
+                        // the (Z, ActivityRecord, String) wrapper passes
+                        // mTaskSupervisor.mUserLeaving as boolean #0 and its
+                        // own boolean argument as uiSleeping (boolean #1).
+                        // The two-boolean overloads receive both directly.
+                        boolean twoBooleans = signature.length > 1
+                                && signature[1] == boolean.class;
+                        Object supervisor = twoBooleans ? null
+                                : fieldValue(chain.getThisObject(), "mTaskSupervisor");
+                        boolean userLeaving = twoBooleans
+                                ? !args.isEmpty() && Boolean.TRUE.equals(args.get(0))
+                                : Boolean.TRUE.equals(
+                                        fieldValue(supervisor, "mUserLeaving"));
+                        boolean uiSleeping = twoBooleans
+                                ? args.size() > 1 && Boolean.TRUE.equals(args.get(1))
+                                : !args.isEmpty() && Boolean.TRUE.equals(args.get(0));
                         for (int i = 0; i < signature.length && i < args.size(); i++) {
                             if (signature[i] == String.class) {
                                 reason = (String) args.get(i);
