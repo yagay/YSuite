@@ -38,6 +38,12 @@ class YSuiteApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // OxygenOS may restore an existing YSuite/YMini task instead of
+        // sending onNewIntent when the user taps its proxy media card.
+        // Register before feature initialization; no additional Xposed Hook.
+        runCatching { registerActivityLifecycleCallbacks(YMiniMediaTaskRouter(this)) }
+            .onFailure { Log.w(TAG, "Media task router registration failed", it) }
+
         runCatching { SuiteCrashTracker.install(this) }
             .onFailure { Log.e(TAG, "Crash tracker initialization failed safely", it) }
 
