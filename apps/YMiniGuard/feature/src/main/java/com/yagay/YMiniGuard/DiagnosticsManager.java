@@ -259,6 +259,8 @@ final class DiagnosticsManager {
                 .append(audio.uidUsages).append('\n');
         out.append("mediaCardStatus=").append(YMiniMediaBridge.status(context))
                 .append('\n');
+        out.append("mediaPanelLaunch=").append(
+                EngineStatusProvider.mediaPanelDiagnostic(context)).append('\n');
         out.append("diagnosticsActive=")
                 .append(GuardApp.getBoolean(ConfigKeys.DIAGNOSTICS_ACTIVE)).append('\n');
         out.append("diagnosticsStartedAt=")

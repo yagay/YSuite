@@ -97,6 +97,10 @@ public final class GuardModule extends XposedModule {
         boolean initialLoaded =
                 engine.loadInitial();
 
+        // Only the existing system_server scope. Detect the real SystemUI
+        // activity-start request instead of stale ActivityManager baseIntent.
+        installMediaPanelLaunchObserver(systemClassLoader, handler);
+
         installOplusFlexibleWindowHooks(
                 systemClassLoader);
         installOplusEdgeKeepaliveHooks(
@@ -207,6 +211,106 @@ public final class GuardModule extends XposedModule {
         }
 
         return false;
+    }
+
+    /**
+     * OxygenOS 17 launches YSuite's package launcher for our MediaSession
+     * even when sessionActivity points at the real player. In a reused task,
+     * the existing baseIntent is never updated. This system_server-only
+     * observer records the *fresh* SystemUI activity-start request; it never
+     * changes that request, adds target-app hooks, or touches SystemUI.
+     *
+     * Checked against the user's services.jar:
+     * ActivityStarter.executeRequest(ActivityStarter.Request) -> int
+     * Request.intent, Request.realCallingUid fields.
+     */
+    private void installMediaPanelLaunchObserver(
+            ClassLoader loader,
+            Handler handler
+    ) {
+        if (!"com.yagay.YSuite".equals(GuardConfig.hostPackage())) return;
+        Class<?> starter = load(loader, "com.android.server.wm.ActivityStarter");
+        if (starter == null) {
+            log(Log.WARN, TAG, "MEDIA_LAUNCH_HOOK_UNAVAILABLE ActivityStarter");
+            return;
+        }
+        for (Method method : starter.getDeclaredMethods()) {
+            if (!"executeRequest".equals(method.getName())
+                    || method.getParameterCount() != 1
+                    || method.getReturnType() != int.class
+                    || !method.getParameterTypes()[0].getName()
+                            .endsWith("ActivityStarter$Request")) continue;
+            String hookKey = method.toGenericString();
+            if (!installedHooks.add(hookKey)) continue;
+            try {
+                method.setAccessible(true);
+                hook(method).intercept(chain -> {
+                    List<Object> args = chain.getArgs();
+                    Object request = args.isEmpty() ? null : args.get(0);
+                    Object candidate = fieldValue(request, "intent");
+                    android.content.Intent incoming = candidate instanceof android.content.Intent
+                            ? (android.content.Intent) candidate : null;
+                    int sourceUid = intField(request, "realCallingUid", -1);
+                    boolean shape = false;
+                    if (incoming != null && enabled()) {
+                        ComponentName component = incoming.getComponent();
+                        int flags = incoming.getFlags();
+                        shape = android.content.Intent.ACTION_MAIN.equals(incoming.getAction())
+                                && incoming.hasCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                                && component != null
+                                && "com.yagay.YSuite".equals(component.getPackageName())
+                                && "com.yagay.YSuite.MainActivity".equals(component.getClassName())
+                                && (flags & android.content.Intent.FLAG_ACTIVITY_NEW_TASK) != 0
+                                && (flags & android.content.Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED) == 0
+                                && sourceUid >= 10000;
+                    }
+                    Object result = chain.proceed(); // Observe only; never alter task handling.
+                    if (shape && result instanceof Number
+                            && ((Number) result).intValue() >= 0) {
+                        int verifiedUid = sourceUid;
+                        int resultCode = ((Number) result).intValue();
+                        handler.post(() -> {
+                            try {
+                                EngineBridge current = engine;
+                                Context ctx = current == null ? null : current.availableContext();
+                                if (ctx == null) ctx = resolveSystemContext(systemClassLoader);
+                                if (ctx == null) return;
+                                String[] owners = ctx.getPackageManager()
+                                        .getPackagesForUid(verifiedUid);
+                                boolean systemUi = false;
+                                if (owners != null) {
+                                    for (String owner : owners) {
+                                        if ("com.android.systemui".equals(owner)
+                                                || "com.oplus.systemui".equals(owner)) {
+                                            systemUi = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!systemUi) return;
+                                android.os.Bundle response = ctx.getContentResolver().call(
+                                        EngineStatusProvider.URI,
+                                        EngineStatusProvider.METHOD_MEDIA_PANEL_LAUNCH,
+                                        null,
+                                        new android.os.Bundle());
+                                boolean recorded = response != null
+                                        && response.getBoolean("ok", false);
+                                Log.i(TAG, "MEDIA_LAUNCH_FROM_SYSTEMUI callerUid="
+                                        + verifiedUid + " result=" + resultCode
+                                        + " recorded=" + recorded);
+                            } catch (Throwable error) {
+                                log(Log.WARN, TAG, "MEDIA_LAUNCH_SIGNAL_FAILED", error);
+                            }
+                        });
+                    }
+                    return result;
+                });
+                log(Log.INFO, TAG, "SYSTEM_SCOPE installed media launcher request observer");
+            } catch (Throwable error) {
+                installedHooks.remove(hookKey);
+                log(Log.WARN, TAG, "MEDIA_LAUNCH_HOOK_INSTALL_FAILED", error);
+            }
+        }
     }
 
     /**

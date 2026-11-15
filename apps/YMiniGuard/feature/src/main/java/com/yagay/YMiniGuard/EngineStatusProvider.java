@@ -10,6 +10,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.SystemClock;
+import android.util.Log;
 
 import com.yagay.suite.api.RuntimeHealth;
 
@@ -27,6 +28,13 @@ public class EngineStatusProvider extends ContentProvider {
     static final String KEY_AUDIO_UIDS = "audio_uids";
     static final String KEY_AUDIO_STATE = "audio_state";
     static final String KEY_AUDIO_AT = "audio_updated_at";
+
+    static final String METHOD_MEDIA_PANEL_LAUNCH = "markMediaPanelLaunch";
+    static final String KEY_MEDIA_PANEL_SEQUENCE = "media_panel_seq";
+    static final String KEY_MEDIA_PANEL_AT = "media_panel_at";
+    static final String KEY_MEDIA_PANEL_CONSUMED = "media_panel_consumed";
+    private static final long MEDIA_PANEL_LAUNCH_VALID_MS = 5_000L;
+    private static final Object MEDIA_PANEL_LOCK = new Object();
 
     private static final String PREFS = "engine_status";
     static final String KEY_VERSION = "version";
@@ -127,6 +135,32 @@ public class EngineStatusProvider extends ContentProvider {
         int ownUid = context.getApplicationInfo().uid;
         if (caller != Process.SYSTEM_UID && caller != ownUid) return null;
 
+        if (METHOD_MEDIA_PANEL_LAUNCH.equals(method)) {
+            // The event is not a generic "open an app" IPC. A system_server
+            // observer verifies the genuine SystemUI UID and exact YSuite
+            // launcher intent before calling here. Reject app/user callers.
+            if (caller != Process.SYSTEM_UID) return null;
+            boolean success;
+            long seq;
+            synchronized (MEDIA_PANEL_LOCK) {
+                SharedPreferences p = prefs(context);
+                seq = p.getLong(KEY_MEDIA_PANEL_SEQUENCE, 0L) + 1L;
+                success = p.edit()
+                        .putLong(KEY_MEDIA_PANEL_SEQUENCE, seq)
+                        .putLong(KEY_MEDIA_PANEL_AT, System.currentTimeMillis())
+                        .commit();
+            }
+            Bundle result = new Bundle();
+            result.putBoolean("ok", success);
+            if (success) {
+                Log.i("YMiniMedia", "MEDIA_PANEL_LAUNCH_MARKED sequence=" + seq);
+                context.getContentResolver().notifyChange(
+                        Uri.parse("content://" + context.getPackageName() + ".engine_status"),
+                        null);
+            }
+            return result;
+        }
+
         if (METHOD_AUDIO.equals(method)) {
             // Only system_server or this APK can submit playback UID state.
             String state = extras == null ? "" :
@@ -199,6 +233,49 @@ public class EngineStatusProvider extends ContentProvider {
                 p.getLong(KEY_STARTED_AT, 0L),
                 p.getInt(KEY_PID, -1),
                 p.getInt(KEY_HOOKS, -1));
+    }
+
+    /**
+     * Consume at most once, and only within a short interval of the
+     * system_server-verified SystemUI request. Normal YSuite launcher,
+     * Recents, lockscreen wake, and other notifications do not mark an event.
+     */
+    public static boolean consumeMediaPanelLaunch(Context context) {
+        if (context == null) return false;
+        synchronized (MEDIA_PANEL_LOCK) {
+            SharedPreferences p = prefs(context);
+            long seq = p.getLong(KEY_MEDIA_PANEL_SEQUENCE, 0L);
+            long consumed = p.getLong(KEY_MEDIA_PANEL_CONSUMED, 0L);
+            long age = System.currentTimeMillis()
+                    - p.getLong(KEY_MEDIA_PANEL_AT, 0L);
+            if (seq <= consumed || age < 0 || age > MEDIA_PANEL_LAUNCH_VALID_MS)
+                return false;
+            return p.edit().putLong(KEY_MEDIA_PANEL_CONSUMED, seq).commit();
+        }
+    }
+
+    public static boolean hasPendingMediaPanelLaunch(Context context) {
+        return pendingMediaPanelLaunchSequence(context) > 0L;
+    }
+
+    static long pendingMediaPanelLaunchSequence(Context context) {
+        if (context == null) return 0L;
+        SharedPreferences p = prefs(context);
+        long seq = p.getLong(KEY_MEDIA_PANEL_SEQUENCE, 0L);
+        long consumed = p.getLong(KEY_MEDIA_PANEL_CONSUMED, 0L);
+        long age = System.currentTimeMillis() - p.getLong(KEY_MEDIA_PANEL_AT, 0L);
+        return seq > consumed && age >= 0 && age <= MEDIA_PANEL_LAUNCH_VALID_MS
+                ? seq : 0L;
+    }
+
+    static String mediaPanelDiagnostic(Context context) {
+        if (context == null) return "unavailable";
+        SharedPreferences p = prefs(context);
+        long at = p.getLong(KEY_MEDIA_PANEL_AT, 0L);
+        return "lastSeq=" + p.getLong(KEY_MEDIA_PANEL_SEQUENCE, 0L)
+                + ", consumedSeq=" + p.getLong(KEY_MEDIA_PANEL_CONSUMED, 0L)
+                + ", lastAtMs=" + at
+                + ", ageMs=" + (at > 0 ? System.currentTimeMillis() - at : -1);
     }
 
     static AudioState readAudio(Context context) {

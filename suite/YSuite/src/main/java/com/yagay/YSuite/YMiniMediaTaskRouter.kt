@@ -1,80 +1,89 @@
 package com.yagay.YSuite
 
 import android.app.Activity
-import android.app.ActivityManager
 import android.app.Application
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import com.yagay.YMiniGuard.EngineStatusProvider
 import com.yagay.YMiniGuard.YMiniMediaBridge
-import com.yagay.YMiniGuard.YMiniMediaLaunchPolicy
 
 /**
- * OnePlus/OxygenOS can bring an existing YSuite task forward for a media-card
- * click without delivering onCreate/onNewIntent to its root activity.
- * Observe task restoration in the host process instead: works even when a
- * YMini settings activity was the last visible screen.
+ * Only react to a fresh media-panel launch signal verified in system_server.
+ * A task's baseIntent is from the *original* launcher and must not be used
+ * to infer the source of a later START_TASK_TO_FRONT event.
+ *
+ * ActivityLifecycleCallbacks plus provider notifications cover both an
+ * existing YMini settings Activity being resumed and a YSuite Activity
+ * already resumed while the notification shade is open.
  */
 internal class YMiniMediaTaskRouter(private val host: Application) :
     Application.ActivityLifecycleCallbacks {
-    private val lastTaskIntent = mutableMapOf<Int, String>()
+
+    private val main = Handler(Looper.getMainLooper())
+    private var resumedActivity: Activity? = null
+
+    fun onMediaPanelSignal() {
+        main.post { resumedActivity?.let(::tryRedirect) }
+        main.postDelayed({ resumedActivity?.let(::tryRedirect) }, 120L)
+        main.postDelayed({ resumedActivity?.let(::tryRedirect) }, 350L)
+    }
 
     override fun onActivityResumed(activity: Activity) {
         if (activity.packageName != host.packageName || activity.isFinishing) return
+        resumedActivity = activity
+        tryRedirect(activity)
+        // system_server writes the signal on its main handler, which may
+        // arrive slightly *after* this Activity's onResume.
+        main.postDelayed({ if (resumedActivity === activity) tryRedirect(activity) }, 100L)
+        main.postDelayed({ if (resumedActivity === activity) tryRedirect(activity) }, 400L)
+        main.postDelayed({ if (resumedActivity === activity) tryRedirect(activity) }, 900L)
+    }
+
+    private fun tryRedirect(activity: Activity) {
+        if (resumedActivity !== activity || activity.isFinishing ||
+            activity.packageName != host.packageName) return
+        val target = YMiniMediaBridge.activeTargetForMediaPanel(activity)
+        if (target.isNullOrBlank() || target == host.packageName) return
+        // Do not consume a verified click until we have a real target
+        // launcher intent; otherwise a late Activity can still try it.
+        val launch = runCatching {
+            activity.packageManager.getLaunchIntentForPackage(target)
+        }.getOrNull()
+        if (launch == null || launch.component?.packageName != target) {
+            if (EngineStatusProvider.hasPendingMediaPanelLaunch(activity)) {
+                Log.w(TAG, "MEDIA_PANEL_REDIRECT_SKIP no_launcher target=$target")
+            }
+            return
+        }
+        if (!EngineStatusProvider.consumeMediaPanelLaunch(activity)) return
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
+            Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         try {
-            val tasks = host.getSystemService(ActivityManager::class.java)?.appTasks ?: return
-            val baseIntent = tasks.firstNotNullOfOrNull { task ->
-                val info = task.taskInfo
-                if (info != null && info.taskId == activity.taskId) info.baseIntent else null
-            } ?: return
-            val signature = "${activity.taskId}|${baseIntent.toUri(0)}"
-            // Consume each observed launcher/task state once. Merely resuming
-            // the same task (configuration, recents, lock/unlock, dialog) must
-            // not repeatedly open a video app.
-            if (lastTaskIntent.put(activity.taskId, signature) == signature) return
-
-            val flags = baseIntent.flags
-            val mediaPanelStyle = YMiniMediaLaunchPolicy.shouldRedirect(
-                baseIntent.action == Intent.ACTION_MAIN,
-                baseIntent.hasCategory(Intent.CATEGORY_LAUNCHER),
-                baseIntent.component?.packageName == host.packageName &&
-                    baseIntent.component?.className == MainActivity::class.java.name,
-                flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0,
-                flags and Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED != 0,
-                // The existing Activity's original caller is stale on a
-                // START_TASK_TO_FRONT launch; baseIntent is our fresh evidence.
-                null,
-            )
-            if (!mediaPanelStyle) return
-
-            val target = YMiniMediaBridge.activeTargetForMediaPanel(activity)
-            if (target.isNullOrBlank() || target == host.packageName) {
-                Log.i(TAG, "MEDIA_TASK_RESUME_SKIP no_active_target taskId=${activity.taskId}")
-                return
-            }
-            val launch = activity.packageManager.getLaunchIntentForPackage(target)
-            if (launch == null || launch.component?.packageName != target) {
-                Log.w(TAG, "MEDIA_TASK_RESUME_SKIP no_launcher target=$target")
-                return
-            }
-            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-            Log.i(TAG, "MEDIA_TASK_RESUME_REDIRECT target=$target" +
-                    " taskId=${activity.taskId} flags=0x${flags.toString(16)}" +
-                    " topActivity=${activity.javaClass.name}")
+            Log.i(TAG, "MEDIA_PANEL_UID_VERIFIED_REDIRECT target=$target" +
+                " fromActivity=${activity.javaClass.name}" +
+                " taskId=${activity.taskId}")
             activity.startActivity(launch)
-            activity.finish()
+            // Keep the YSuite / YMini settings task intact in the back
+            // stack. The player's existing task normally returns to front
+            // with its current episode, instead of opening a fresh player.
         } catch (error: Throwable) {
-            Log.w(TAG, "MEDIA_TASK_RESUME_FAILED", error)
+            Log.w(TAG, "MEDIA_PANEL_UID_VERIFIED_REDIRECT_FAILED target=$target", error)
         }
     }
 
+    override fun onActivityPaused(activity: Activity) {
+        if (resumedActivity === activity) resumedActivity = null
+    }
+    override fun onActivityDestroyed(activity: Activity) {
+        if (resumedActivity === activity) resumedActivity = null
+    }
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
     override fun onActivityStarted(activity: Activity) = Unit
-    override fun onActivityPaused(activity: Activity) = Unit
     override fun onActivityStopped(activity: Activity) = Unit
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
-    override fun onActivityDestroyed(activity: Activity) = Unit
 
     private companion object {
         const val TAG = "YMiniMedia"

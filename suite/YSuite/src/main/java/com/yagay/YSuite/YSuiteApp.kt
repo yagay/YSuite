@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.database.ContentObserver
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -34,6 +36,8 @@ class YSuiteApp : Application() {
     private var brokerRegistered = false
     private var brokerRetryCount = 0
     private var startupRetryCount = 0
+    private var mediaTaskRouter: YMiniMediaTaskRouter? = null
+    private var mediaPanelObserver: ContentObserver? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -41,8 +45,19 @@ class YSuiteApp : Application() {
         // OxygenOS may restore an existing YSuite/YMini task instead of
         // sending onNewIntent when the user taps its proxy media card.
         // Register before feature initialization; no additional Xposed Hook.
-        runCatching { registerActivityLifecycleCallbacks(YMiniMediaTaskRouter(this)) }
-            .onFailure { Log.w(TAG, "Media task router registration failed", it) }
+        runCatching {
+            val router = YMiniMediaTaskRouter(this)
+            registerActivityLifecycleCallbacks(router)
+            mediaTaskRouter = router
+            val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean) {
+                    router.onMediaPanelSignal()
+                }
+            }
+            contentResolver.registerContentObserver(
+                Uri.parse("content://$packageName.engine_status"), false, observer)
+            mediaPanelObserver = observer
+        }.onFailure { Log.w(TAG, "Media task router registration failed", it) }
 
         runCatching { SuiteCrashTracker.install(this) }
             .onFailure { Log.e(TAG, "Crash tracker initialization failed safely", it) }
@@ -205,6 +220,10 @@ class YSuiteApp : Application() {
     }
 
     override fun onTerminate() {
+        mediaPanelObserver?.let { runCatching { contentResolver.unregisterContentObserver(it) } }
+        mediaPanelObserver = null
+        mediaTaskRouter?.let { runCatching { unregisterActivityLifecycleCallbacks(it) } }
+        mediaTaskRouter = null
         recoveryHandler.removeCallbacksAndMessages(null)
         runCatching { FeatureRuntimeManager.destroyAll(this) }
             .onFailure { Log.e(TAG, "Feature runtime shutdown failed safely", it) }
