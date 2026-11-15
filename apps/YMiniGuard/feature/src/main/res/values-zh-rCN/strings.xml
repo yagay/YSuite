@@ -28,6 +28,13 @@
     <string name="ymg_support_title">小窗支持</string>
     <string name="ymg_support_desc">只对勾选的应用放行一加 FlexibleWindow 支持或黑名单检查，不会主动启动或主动切换小窗。</string>
 
+    <string name="ymg_media_title">系统媒体卡片</string>
+    <string name="ymg_media_desc">后台播放名单里的应用正在播放、拥有真实 MediaSession 且未显示原生媒体通知时，通过 Android 系统媒体卡片显示真实媒体信息，并转发原应用支持的控制。</string>
+    <string name="ymg_media_enabled">启用系统媒体卡片桥接</string>
+    <string name="ymg_media_enabled_desc">只读取真实媒体会话。没有 MediaSession 的应用暂时无法获得准确的剧名、集数和进度。</string>
+    <string name="ymg_media_access_title">通知读取权限</string>
+    <string name="ymg_media_access_desc">在系统设置中允许 YSuite 读取通知，以便统一监听服务读取应用的媒体会话。</string>
+
     <string name="ymg_protection_title">运行保护</string>
     <string name="ymg_protection_desc">小窗继续使用 OPlus 状态驱动。后台播放名单只在离开普通全屏后进入后台保护状态。</string>
     <string name="ymg_keep_top">受保护进程状态保持 TOP</string>

@@ -44,6 +44,7 @@ public final class MainActivity extends Activity {
         addEngineCard(root);
         addAppListsCard(root);
         addForegroundCard(root);
+        addMediaCard(root);
         addDiagnosticsCard(root);
         refreshStatus();
     }
@@ -174,6 +175,21 @@ public final class MainActivity extends Activity {
                 ConfigKeys.SYSTEM_HAS_RESUMED);
         addSwitch(card, getString(R.string.ymg_block_cleanup), getString(R.string.ymg_block_cleanup_desc),
                 ConfigKeys.SYSTEM_BLOCK_REMOVE_KILL);
+    }
+
+    private void addMediaCard(LinearLayout parent) {
+        LinearLayout card = YViewLayout.card(parent,
+                getString(R.string.ymg_media_title),
+                getString(R.string.ymg_media_desc));
+        addSwitch(card,
+                getString(R.string.ymg_media_enabled),
+                getString(R.string.ymg_media_enabled_desc),
+                ConfigKeys.MEDIA_BRIDGE_ENABLED);
+        YViewLayout.navigationRow(card,
+                getString(R.string.ymg_media_access_title),
+                getString(R.string.ymg_media_access_desc),
+                v -> startActivity(new Intent(
+                        android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
     }
 
     private void addDiagnosticsCard(LinearLayout parent) {

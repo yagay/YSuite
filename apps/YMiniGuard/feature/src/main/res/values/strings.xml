@@ -28,6 +28,13 @@
     <string name="ymg_support_title">Mini-window support</string>
     <string name="ymg_support_desc">Only selected apps bypass OPlus FlexibleWindow support or blacklist checks. YMiniGuard does not launch or switch an app into mini-window mode.</string>
 
+    <string name="ymg_media_title">System media card</string>
+    <string name="ymg_media_desc">Show an Android media card for selected background-playback apps when they expose a real MediaSession and have no existing media notification. Read metadata and forward only the controls the original app supports.</string>
+    <string name="ymg_media_enabled">Enable media card bridge</string>
+    <string name="ymg_media_enabled_desc">Only mirrors active real MediaSessions. Apps without a MediaSession cannot provide accurate title, episode or progress through this bridge.</string>
+    <string name="ymg_media_access_title">Notification access</string>
+    <string name="ymg_media_access_desc">Grant YSuite notification access so the shared listener can read active media sessions.</string>
+
     <string name="ymg_protection_title">Runtime protection</string>
     <string name="ymg_protection_desc">Mini-window protection remains driven by OPlus state. Background-playback apps enter the protected background state only after leaving normal full-screen mode.</string>
     <string name="ymg_keep_top">Keep protected process state at TOP</string>

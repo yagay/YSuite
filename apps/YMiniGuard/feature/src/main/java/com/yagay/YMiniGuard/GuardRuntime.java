@@ -27,6 +27,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
             ConfigKeys.SYSTEM_IMPORTANCE_TOP,
             ConfigKeys.SYSTEM_HAS_RESUMED,
             ConfigKeys.SYSTEM_BLOCK_REMOVE_KILL,
+            ConfigKeys.MEDIA_BRIDGE_ENABLED,
             ConfigKeys.DIAGNOSTICS_ACTIVE
     };
 
@@ -245,6 +246,8 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     static void putBoolean(String key, boolean value) {
         localPrefs().edit().putBoolean(key, value).apply();
         syncAll();
+        GuardRuntime runtime = instance;
+        if (runtime != null) YMiniMediaBridge.refresh(runtime.context);
     }
 
     static void putInt(String key, int value) {
@@ -269,6 +272,8 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
                 key,
                 value == null ? Collections.emptySet() : new HashSet<>(value)).apply();
         syncAll();
+        GuardRuntime runtime = instance;
+        if (runtime != null) YMiniMediaBridge.refresh(runtime.context);
     }
 
     static boolean packageSelected(String key, String packageName) {
@@ -285,6 +290,8 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     static void resetDefaults() {
         localPrefs().edit().clear().commit();
         syncAll();
+        GuardRuntime runtime = instance;
+        if (runtime != null) YMiniMediaBridge.refresh(runtime.context);
     }
 
     static synchronized boolean syncAll() {

@@ -18,6 +18,7 @@ final class ConfigKeys {
     static final String FORCE_SUPPORT_PACKAGES =
             "force_support_packages";
 
+    static final String MEDIA_BRIDGE_ENABLED = "media_bridge_enabled";
     static final String SYSTEM_IMPORTANCE_TOP =
             "system_importance_top";
     static final String SYSTEM_HAS_RESUMED =
@@ -38,7 +39,8 @@ final class ConfigKeys {
                     ENGINE_AUTO_RELOAD,
                     SYSTEM_IMPORTANCE_TOP,
                     SYSTEM_HAS_RESUMED,
-                    SYSTEM_BLOCK_REMOVE_KILL -> true;
+                    SYSTEM_BLOCK_REMOVE_KILL,
+                    MEDIA_BRIDGE_ENABLED -> true;
             default -> false;
         };
     }
