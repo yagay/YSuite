@@ -57,6 +57,7 @@
         <receiver android:name="com.yagay.YFloat.FloatServiceBootReceiver" tools:node="remove" />
         <receiver android:name="com.yagay.YNotify.collector.XposedEventReceiver" tools:node="remove" />
         <provider android:name="com.yagay.YMiniGuard.EngineStatusProvider" tools:node="remove" />
+        <service android:name="com.yagay.YMiniGuard.YMiniMediaListenerService" tools:node="remove" />
         <provider android:name="com.yagay.YNFC.ConfigProvider" tools:node="remove" />
 
         <service

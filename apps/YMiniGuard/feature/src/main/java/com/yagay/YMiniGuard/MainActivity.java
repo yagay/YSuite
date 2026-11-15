@@ -29,6 +29,7 @@ public final class MainActivity extends Activity {
 
     private TextView engineStatus;
     private TextView diagnosticsStatus;
+    private TextView mediaStatus;
     private Button diagnosticsExport;
 
     @Override
@@ -185,6 +186,8 @@ public final class MainActivity extends Activity {
                 getString(R.string.ymg_media_enabled),
                 getString(R.string.ymg_media_enabled_desc),
                 ConfigKeys.MEDIA_BRIDGE_ENABLED);
+        mediaStatus = YViewLayout.statusLine(this, "Checking media listener...");
+        card.addView(mediaStatus);
         YViewLayout.navigationRow(card,
                 getString(R.string.ymg_media_access_title),
                 getString(R.string.ymg_media_access_desc),
@@ -318,6 +321,14 @@ public final class MainActivity extends Activity {
             }
         }
         refreshDiagnosticsStatus();
+        if (mediaStatus != null) {
+            String status = YMiniMediaBridge.status(this);
+            YViewLayout.setStatus(mediaStatus, status,
+                    status.startsWith("Media card:") ? YViewStatusTone.Good
+                    : status.startsWith("Listener connected") ? YViewStatusTone.Warning
+                    : YViewStatusTone.Error);
+            YMiniMediaBridge.refresh(this);
+        }
     }
 
     private void refreshDiagnosticsStatus() {

@@ -11,6 +11,7 @@ import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
+import android.view.KeyEvent;
 import android.os.Handler;
 import android.os.Looper;
 import java.util.ArrayList;
@@ -37,9 +38,13 @@ final class YMiniMediaCard {
             }
             @Override public void onPlay() {
                 if (allowed(PlaybackState.ACTION_PLAY)) source.getTransportControls().play();
+                else if (source.getPlaybackState() == null)
+                    YMiniMediaBridge.dispatchMediaButton(source, KeyEvent.KEYCODE_MEDIA_PLAY);
             }
             @Override public void onPause() {
                 if (allowed(PlaybackState.ACTION_PAUSE)) source.getTransportControls().pause();
+                else if (source.getPlaybackState() == null)
+                    YMiniMediaBridge.dispatchMediaButton(source, KeyEvent.KEYCODE_MEDIA_PAUSE);
             }
             @Override public void onSkipToPrevious() {
                 if (allowed(PlaybackState.ACTION_SKIP_TO_PREVIOUS))
@@ -57,9 +62,9 @@ final class YMiniMediaCard {
         session.setActive(true);
     }
 
-    void publish() {
+    void publish(boolean audioFallback) {
         PlaybackState state = source.getPlaybackState();
-        if (state == null || notificationManager == null) return;
+        if ((state == null && !audioFallback) || notificationManager == null) return;
         MediaMetadata sourceMetadata = source.getMetadata();
         String title = sourceMetadata == null ? null
                 : sourceMetadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
@@ -69,7 +74,8 @@ final class YMiniMediaCard {
         if (title == null || title.isEmpty()) title = appLabel();
         String artist = sourceMetadata == null ? null
                 : sourceMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
-        if (artist == null || artist.isEmpty()) artist = appLabel();
+        if (artist == null || artist.isEmpty())
+            artist = audioFallback ? "Background audio · metadata unavailable" : appLabel();
         MediaMetadata.Builder meta = new MediaMetadata.Builder()
                 .putString(MediaMetadata.METADATA_KEY_TITLE, title)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, artist);
@@ -88,17 +94,29 @@ final class YMiniMediaCard {
             }
         }
         session.setMetadata(meta.build());
-        long available = state.getActions();
+        long available = state == null ? 0 : state.getActions();
         long forwarded = available & (PlaybackState.ACTION_PLAY
                 | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_SEEK_TO
                 | PlaybackState.ACTION_SKIP_TO_PREVIOUS
                 | PlaybackState.ACTION_SKIP_TO_NEXT);
-        session.setPlaybackState(new PlaybackState.Builder()
-                .setState(state.getState(), state.getPosition(), state.getPlaybackSpeed(),
-                        state.getLastPositionUpdateTime())
-                .setActions(forwarded)
-                .setBufferedPosition(state.getBufferedPosition())
-                .build());
+        if (audioFallback) {
+            // The source did not report a position/duration. Do not display
+            // a fabricated seek bar. The play/pause command is a media button
+            // sent to the *original* session's registered receiver.
+            session.setPlaybackState(new PlaybackState.Builder()
+                    .setState(PlaybackState.STATE_PLAYING,
+                            PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1.0f)
+                    .setActions(PlaybackState.ACTION_PAUSE
+                            | PlaybackState.ACTION_PLAY)
+                    .build());
+        } else {
+            session.setPlaybackState(new PlaybackState.Builder()
+                    .setState(state.getState(), state.getPosition(),
+                            state.getPlaybackSpeed(), state.getLastPositionUpdateTime())
+                    .setActions(forwarded)
+                    .setBufferedPosition(state.getBufferedPosition())
+                    .build());
+        }
 
         notificationManager.createNotificationChannel(new NotificationChannel(
                 CHANNEL, "YMini media", NotificationManager.IMPORTANCE_LOW));
@@ -124,14 +142,16 @@ final class YMiniMediaCard {
         if (artwork != null) builder.setLargeIcon(artwork);
 
         List<Integer> compact = new ArrayList<>();
-        if ((available & PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0)
+        if (!audioFallback && (available & PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0)
             add(builder, compact, 3, android.R.drawable.ic_media_previous, "Previous");
-        if (state.getState() == PlaybackState.STATE_PLAYING
+        if (audioFallback)
+            add(builder, compact, 2, android.R.drawable.ic_media_pause, "Pause");
+        else if (state.getState() == PlaybackState.STATE_PLAYING
                 && (available & PlaybackState.ACTION_PAUSE) != 0)
             add(builder, compact, 2, android.R.drawable.ic_media_pause, "Pause");
         else if ((available & PlaybackState.ACTION_PLAY) != 0)
             add(builder, compact, 1, android.R.drawable.ic_media_play, "Play");
-        if ((available & PlaybackState.ACTION_SKIP_TO_NEXT) != 0)
+        if (!audioFallback && (available & PlaybackState.ACTION_SKIP_TO_NEXT) != 0)
             add(builder, compact, 4, android.R.drawable.ic_media_next, "Next");
 
         Notification.MediaStyle style = new Notification.MediaStyle()

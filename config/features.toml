@@ -116,6 +116,7 @@ lifecycle = "managed"
 notification_listener_bridge = "com.yagay.YMiniGuard.YMiniMediaBridge"
 replaced_components = [
   { type = "provider", class = "com.yagay.YMiniGuard.EngineStatusProvider" },
+  { type = "service", class = "com.yagay.YMiniGuard.YMiniMediaListenerService" },
 ]
 hooks = [{ id = "yminiguard/main", class = "com.yagay.YMiniGuard.GuardModule" }]
 
