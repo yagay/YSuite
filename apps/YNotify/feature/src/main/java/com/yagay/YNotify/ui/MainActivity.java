@@ -21,11 +21,13 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatEditText;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.yagay.YNotify.YNotifyApp;
+import com.yagay.YNotify.YNotifyRuntime;
 import com.yagay.YNotify.R;
 import com.yagay.YNotify.collector.UiAccessibilityService;
 import com.yagay.YNotify.data.AppSummary;
@@ -35,6 +37,7 @@ import com.yagay.YNotify.data.EventTypes;
 import com.yagay.YNotify.data.HistoryRepairEngine;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.data.NotifyDatabase;
+import com.yagay.YNotify.data.PopupSettings;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.chip.ChipGroup;
@@ -184,7 +187,8 @@ public class MainActivity extends AppCompatActivity {
                         getString(R.string.ynotify_filter_toast),
                         getString(R.string.ynotify_filter_dialog),
                         getString(R.string.ynotify_filter_popup),
-                        getString(R.string.ynotify_filter_snackbar)),
+                        getString(R.string.ynotify_filter_snackbar),
+                        getString(R.string.ynotify_filter_system_popups)),
                 0);
         chipGroup = filterBar.group;
         filterScroll = filterBar.view;
@@ -211,6 +215,33 @@ public class MainActivity extends AppCompatActivity {
         runtimeStatus.setTextIsSelectable(true);
         runtime.body.addView(runtimeStatus);
         YViewLayout.addSection(settingsRoot, runtime);
+
+        YViewSection popupControls = YViewLayout.section(
+                this,
+                getString(R.string.ynotify_popups_title),
+                getString(R.string.ynotify_popups_desc));
+        SwitchCompat monitorPopups = new SwitchCompat(this);
+        monitorPopups.setText(R.string.ynotify_popups_monitor);
+        monitorPopups.setChecked(PopupSettings.captureEnabled(this));
+        monitorPopups.setOnCheckedChangeListener((view, enabled) -> {
+            PopupSettings.setCaptureEnabled(this, enabled);
+            YNotifyRuntime.syncPopupControls(this);
+        });
+        popupControls.body.addView(monitorPopups);
+
+        SwitchCompat hideClipboard = new SwitchCompat(this);
+        hideClipboard.setText(R.string.ynotify_popups_hide_clipboard);
+        hideClipboard.setChecked(PopupSettings.hideClipboardEnabled(this));
+        hideClipboard.setOnCheckedChangeListener((view, enabled) -> {
+            PopupSettings.setHideClipboardEnabled(this, enabled);
+            YNotifyRuntime.syncPopupControls(this);
+        });
+        popupControls.body.addView(hideClipboard);
+        popupControls.body.addView(YViewLayout.caption(
+                this,
+                getString(R.string.ynotify_popups_clipboard_note),
+                13));
+        YViewLayout.addSection(settingsRoot, popupControls);
 
         YViewSection diagnostics = YViewLayout.section(
                 this,
@@ -579,6 +610,7 @@ public class MainActivity extends AppCompatActivity {
             case 6 -> EventTypes.DIALOG;
             case 7 -> EventTypes.POPUP;
             case 8 -> EventTypes.SNACKBAR;
+            case 9 -> EventTypes.SYSTEM_UI;
             default -> FILTER_ALL;
         };
     }
