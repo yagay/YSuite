@@ -85,7 +85,7 @@ final class CircleActiveBorderOverlay {
         }
         lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
 
-        if (!host.add(view, lp, "circle_active_border")) {
+        if (!host.addFollowingIconLayer(view, lp, "circle_active_border")) {
             DiagnosticLog.i(app, "CIRCLE_BORDER", "overlay add failed");
             return;
         }

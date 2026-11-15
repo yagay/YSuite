@@ -44,7 +44,7 @@ public final class RegionOverlay {
         lp.gravity = Gravity.TOP | Gravity.START;
         lp.x = content.left - display.left;
         lp.y = content.top - display.top;
-        if (!host.add(view, lp, "region_selector")) {
+        if (!host.addFollowingIconLayer(view, lp, "region_selector")) {
             if (screen != null && !screen.isRecycled()) screen.recycle();
             throw new IllegalStateException("unable to attach region selector");
         }

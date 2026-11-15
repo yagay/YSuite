@@ -39,8 +39,11 @@ public final class EditableRegionOverlay {
                         | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
-        if (host.add(view, lp, "editable_region")) {
+        if (host.addFollowingIconLayer(view, lp, "editable_region")) {
             active = view;
+            DiagnosticLog.i(app, "FL_OVERLAY_LAYER",
+                    "editable_region attached type=" + lp.type
+                    + " a11y=" + host.isAccessibilityHosted(view));
             return;
         }
         Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_98208f885cc7), Toast.LENGTH_LONG).show();

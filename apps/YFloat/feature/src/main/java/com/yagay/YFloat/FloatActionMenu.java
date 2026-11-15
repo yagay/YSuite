@@ -195,7 +195,7 @@ public final class FloatActionMenu {
         lp.gravity = Gravity.TOP | Gravity.START;
         lp.x = pos[0];
         lp.y = pos[1];
-        if (host.add(root, lp, "float_action_menu")) {
+        if (host.addFollowingIconLayer(root, lp, "float_action_menu")) {
             activeHost = host;
             activeView = root;
             activeParams = lp;

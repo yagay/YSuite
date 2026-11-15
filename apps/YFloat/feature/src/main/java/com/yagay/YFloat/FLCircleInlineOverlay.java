@@ -69,7 +69,7 @@ final class FLCircleInlineOverlay {
 
         WorkspaceView view = new WorkspaceView(app, host, lp, frame,
                 onClosed, !shadeExpanded);
-        if (!host.add(view, lp, "fl_circle_inline")) return false;
+        if (!host.addFollowingIconLayer(view, lp, "fl_circle_inline")) return false;
 
         active = view;
         OverlayRegistry.register("circle_workspace", OVERLAY_OWNER);

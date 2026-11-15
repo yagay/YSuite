@@ -10,7 +10,7 @@ import android.view.WindowManager;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-/** Shared YFloat WindowManager host for ordinary overlay surfaces. */
+/** Shared, policy-controlled WindowManager host for all YFloat overlay surfaces. */
 final class FlOverlayWindowHost {
     private final Context context;
     private final WindowManager appWindowManager;
@@ -23,22 +23,18 @@ final class FlOverlayWindowHost {
         appWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
     }
 
+    /**
+     * General entrypoint for transient screenshot, selection, result-action,
+     * border and pointer surfaces. All follow the same user-visible layer
+     * preference instead of silently selecting a different type per module.
+     */
     boolean add(View view, WindowManager.LayoutParams lp, String tag) {
-        if (view == null || lp == null) return false;
-        LensAccessibilityService a = LensAccessibilityService.get();
-        if (a != null && a.addAccessibilityOverlay(view, lp)) {
-            remember(view, true);
-            bindToWorkflowScene(view, tag);
-            DiagnosticLog.i(context, "FL_WINDOW", tag + " host=accessibility type=" + lp.type);
-            return true;
-        }
-        return addApplication(view, lp, tag);
+        return addFollowingIconLayer(view, lp, tag);
     }
 
     /**
-     * Persistent controls prefer TYPE_APPLICATION_OVERLAY when permission is available.
-     * Accessibility overlays are retained as a fallback only. This avoids coordinate-space drift
-     * observed when AccessibilityService window metrics lag behind rapid display rotations.
+     * Explicit ordinary-window host, retained for opt-out icons and narrow
+     * edge-wakeup input strips; transient visual overlays use add().
      */
     boolean addStable(View view, WindowManager.LayoutParams lp, String tag) {
         if (view == null || lp == null) return false;
@@ -59,12 +55,10 @@ final class FlOverlayWindowHost {
     }
 
     /**
-     * High-layer opt-in for the persistent YFloat icon ONLY. Unlike a root
-     * WindowManager policy hook, the accessibility overlay is an Android
-     * sanctioned window with an actual AccessibilityService token.
-     *
-     * Do not use for arbitrary menus/screens or for protected system pages.
-     * A failed 2032 add always returns to the existing ordinary app overlay.
+     * Higher-layer YFloat window using the Android-sanctioned AccessibilityService
+     * token. No global WindowManager or system-server Z-order policy is changed.
+     * Protected system pages retain their own system-enforced overlay policy.
+     * A failed 2032 add falls back to the ordinary 2038 application overlay.
      */
     boolean addElevated(View view, WindowManager.LayoutParams lp, String tag) {
         if (view == null || lp == null) return false;
@@ -88,12 +82,20 @@ final class FlOverlayWindowHost {
         return false;
     }
 
-    /** Match the user's floating-icon layer preference for YFloat selection surfaces.
-     *  This is evaluated only on attachment, never during touch/move frames. */
+    /**
+     * One preference for all YFloat-owned overlay windows. Evaluate it once
+     * per attachment; never consult preferences during drag or render frames.
+     * Invisible edge-wakeup strips are always ordinary input windows, so
+     * raising screenshots and menus does not capture system edge gestures.
+     */
     boolean addFollowingIconLayer(View view, WindowManager.LayoutParams lp, String tag) {
-        return new FloatSettings(context).elevatedIconOverlay()
-                ? addElevated(view, lp, tag)
-                : addStable(view, lp, tag);
+        boolean enabled = new FloatSettings(context).elevatedIconOverlay();
+        boolean elevated = FlOverlayLayerPolicy.elevate(tag, enabled);
+        DiagnosticLog.i(context, "FL_OVERLAY_LAYER",
+                "attach tag=" + tag + " requested=" + (elevated ? "2032" : "2038")
+                + " setting=" + enabled
+                + " a11y=" + LensAccessibilityService.ready());
+        return elevated ? addElevated(view, lp, tag) : addStable(view, lp, tag);
     }
 
     boolean addApplication(View view, WindowManager.LayoutParams lp, String tag) {

@@ -63,6 +63,6 @@
     <string name="yfloat_scan_phase_timeout">Hook scan timed out</string>
     <string name="yfloat_google_scan_timeout_no_callback">No scan callback arrived from the Google process. LSPosed scope is configured, but target injection and bridge IPC cannot be distinguished without module logs. Check YSuite.Xposed and YFloat-GoogleV2 in LSPosed logs.</string>
     <string name="yfloat_google_scan_timeout_after_progress">Google Hook entered %1$s (%2$d/%3$d) but did not finish. Check LSPosed module logs for the Google target process.</string>
-    <string name="yfloat_elevated_icon_overlay">Prefer high layer for YFloat overlays</string>
-    <string name="yfloat_elevated_icon_overlay_desc">Keep the floating icon, crosshair, selection hints and native Circle workspace on the accessibility overlay (2032) when available. Fallback to the ordinary app overlay (2038). Protected system screens may still hide overlays.</string>
+    <string name="yfloat_elevated_icon_overlay">Prefer high layer for YFloat windows</string>
+    <string name="yfloat_elevated_icon_overlay_desc">Place YFloat floating icon, crosshair, screenshot selection/crop windows, Circle workspaces, selection frames and action menus in accessibility overlay (2032) when available. Falls back to normal overlay (2038). Result dialogs are Android Activity windows and cannot be moved by this switch; protected system screens may still hide overlays.</string>
 </resources>
