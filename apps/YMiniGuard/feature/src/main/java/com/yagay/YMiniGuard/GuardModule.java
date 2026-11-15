@@ -720,12 +720,14 @@ public final class GuardModule extends XposedModule {
                         for (int i = 0; i < signature.length && i < args.size(); i++) {
                             if (signature[i] == String.class) {
                                 reason = (String) args.get(i);
-                            } else if (resumingActivity == null
-                                    && "com.android.server.wm.ActivityRecord"
+                            } else if ("com.android.server.wm.ActivityRecord"
                                     .equals(signature[i].getName())) {
-                                // First ActivityRecord is the resuming candidate.
-                                // The extra ActivityRecord in the 5-arg OEM path
-                                // must NOT overwrite this (it may be the pausing one).
+                                // Firmware wrapper (ZZ, ActivityRecord, String)
+                                // supplies mResumedActivity as the FIRST record
+                                // to its five-arg overload. That is the pausing
+                                // record, not the candidate. Use the LAST record
+                                // for resumingPackage, or we would misclassify
+                                // cross-app transitions as same-package navigation.
                                 resumingActivity = args.get(i);
                             }
                         }
