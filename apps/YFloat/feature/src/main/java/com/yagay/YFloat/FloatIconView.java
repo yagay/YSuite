@@ -46,12 +46,7 @@ public class FloatIconView extends View {
     private final FloatIconRenderer renderer;
     private final Callback cb;
     private final Runnable directSelectionRunnable;
-    private final Runnable directPrewarmRunnable = () -> {
-        if (!directTimerArmed || directSelectionActive || longPressActionTriggered
-                || positionMoveMode || selectionEngine == null || session.multiTouch) return;
-        targetPrewarmTriggered = true;
-        selectionEngine.warmTargetsForDirect();
-    };
+    private final Runnable directPrewarmRunnable;
     private final float directRearmSlopPx;
 
     private FloatSettings fs;
@@ -81,6 +76,12 @@ public class FloatIconView extends View {
     public FloatIconView(Context c, Callback cb) {
         super(c);
         this.cb = cb;
+        directPrewarmRunnable = () -> {
+            if (!directTimerArmed || directSelectionActive || longPressActionTriggered
+                    || positionMoveMode || selectionEngine == null || session.multiTouch) return;
+            targetPrewarmTriggered = true;
+            selectionEngine.warmTargetsForDirect();
+        };
         renderer = new FloatIconRenderer(this);
         directRearmSlopPx = Math.max(1f,
                 FL_DIRECT_MOVE_START_DP * getResources().getDisplayMetrics().density);
