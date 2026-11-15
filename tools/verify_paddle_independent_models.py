@@ -684,7 +684,7 @@ if "OcrV3Workspace." in v4_controller:
     problems.append("Retired V3 workspace still reachable")
 for marker in ("OcrV3MlLayout.scan(", "new OcrV4Selection(words)",
                "OcrV3Paddle.recognizeRegion(", "OcrV4Region.line(",
-               "selection.nextUnreadyLine()", "owner.acceptLine(",
+               "for(int lineId:selection.requiredLines())", "owner.acceptLine(",
                "selection.text()", "selection.highlights()",
                "ImageShareUtils.copyToClipboard(",
                "ResultSurfaceRouter.showScreenshot("):
@@ -723,14 +723,30 @@ for marker in ("private final Map<Integer,WordSource> wordSource",
                "if(local.aligned.reliable)"):
     if marker not in v4_document:
         problems.append("V4 independent Paddle word fallback unsafe or missing: "+marker)
-for marker in ("int completeSelectedWord()", "boolean acceptWord("):
+for marker in ("int completeSelectedWord()", "List<Integer> completeSelectedWords()",
+               "boolean acceptWord(", "boolean wordReady(", "boolean lineReadyForWord("):
     if marker not in v4_selection:
         problems.append("V4 full-word fallback not connected to ML selection: "+marker)
 for marker in ("private void requestWord(", "OcrV4Region.word(",
-               "selection.completeSelectedWord()", "selection.text()",
+               "selection.completeSelectedWords()", "selection.text()",
+               "selection.lineReadyForWord(word)", "attemptedWords.add(word)",
                "owner.acceptWord("):
     if marker not in v4_workspace:
         problems.append("V4 must try separate Paddle word ROI after failed LINE: "+marker)
+# New multiword fallback must never use unverified ML words as content.
+# Each complete Element supplies its own independently recognized Paddle
+# transcription; partial-character selections cannot bypass line alignment.
+for marker in ("selectedFullWordText(start,end,id)",
+               "if(firstUnit!=head.firstUnit || lastUnit!=tail.lastUnit)return",
+               "WordSource recognized=wordSource.get(id)",
+               "if(recognized==null)return",
+               "return result.toString()"):
+    if marker not in v4_document:
+        problems.append("V4 multiword fallback lost exact Paddle provenance: "+marker)
+for marker in ("finishTextSelectionAction(app, \"copy\")",
+               "OcrV4Workspace.dismissActive(\"text_action_\" + reason)"):
+    if marker not in (java / "FloatActionMenu.java").read_text():
+        problems.append("V4 text action does not exit circle workflow: "+marker)
 if "static OcrV4Region word(" not in v4_region:
     problems.append("V4 word crop must not reuse failed ML LINE bounds")
 for name in ("OcrV4AlignmentTest.java","OcrV4DocumentTest.java",
