@@ -163,4 +163,13 @@
     <string name="ynotify_reason_assistant_cancel">Notification assistant cancelled it</string>
     <string name="ynotify_reason_unknown">Unknown</string>
     <string name="ynotify_reason_system">System reason %1$d</string>
+    <string name="ynotify_filter_system_popups">System popups</string>
+    <string name="ynotify_popups_title">Popup capture and cleanup</string>
+    <string name="ynotify_popups_desc">Detect app dialogs, temporary UI, and supported SystemUI overlays</string>
+    <string name="ynotify_popups_monitor">Record detected popup events</string>
+    <string name="ynotify_popups_hide_clipboard">Hide clipboard preview</string>
+    <string name="ynotify_popups_clipboard_note">Clipboard content is never saved. Hiding affects the floating preview only, not copy and paste. Requires an active SystemUI LSPosed hook; OEM implementations may vary.</string>
+    <string name="ynotify_popup_text_unavailable">Popup (no accessible text)</string>
+    <string name="ynotify_clipboard_popup_shown">Clipboard preview displayed</string>
+    <string name="ynotify_clipboard_popup_suppressed">Clipboard preview blocked</string>
 </resources>
