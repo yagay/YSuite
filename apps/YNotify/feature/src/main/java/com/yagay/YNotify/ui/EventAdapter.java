@@ -90,6 +90,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
         if (EventTypes.CUSTOM_TOAST_MARKER.equals(value)) {
             return c.getString(R.string.ynotify_custom_toast);
         }
+        if (EventTypes.EMPTY_UI_MARKER.equals(value))
+            return c.getString(R.string.ynotify_popup_text_unavailable);
+        if (EventTypes.CLIPBOARD_SHOWN_MARKER.equals(value))
+            return c.getString(R.string.ynotify_clipboard_popup_shown);
+        if (EventTypes.CLIPBOARD_SUPPRESSED_MARKER.equals(value))
+            return c.getString(R.string.ynotify_clipboard_popup_suppressed);
         return value;
     }
 
