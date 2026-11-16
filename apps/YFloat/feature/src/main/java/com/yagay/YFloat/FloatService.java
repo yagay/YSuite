@@ -391,10 +391,30 @@ public class FloatService extends Service implements android.content.SharedPrefe
         safeUpdate(view, lp);
     }
 
+    private boolean unstableHighIconHost() {
+        return FlOverlayLayerPolicy.requiresStableIconHost(
+                android.os.Build.MANUFACTURER,
+                android.os.Build.MODEL,
+                android.os.Build.DEVICE,
+                android.os.Build.VERSION.SDK_INT);
+    }
+
+    private boolean forceApplicationIconHost;
+
     private boolean addIconWindow(View view, WindowManager.LayoutParams lp) {
-        return iconHost != null && (fs.elevatedIconOverlay()
+        if (iconHost == null) return false;
+        boolean useAccessibility = preferAccessibilityIconHost(
+                LensAccessibilityService.ready());
+        if (!useAccessibility && fs.elevatedIconOverlay()) {
+            DiagnosticLog.i(this, "FL_ICON_LAYER",
+                    "persistent icon stable 2038 compatibility reason="
+                    + (unstableHighIconHost() ? "oneplus_cph2747_mismatched_input_bounds"
+                       : forceApplicationIconHost ? "runtime_touch_origin_mismatch"
+                       : "accessibility_unavailable"));
+        }
+        return useAccessibility
                 ? iconHost.addElevated(view, lp, "float_icon")
-                : iconHost.addStable(view, lp, "float_icon"));
+                : iconHost.addStable(view, lp, "float_icon");
     }
 
     private void removeIconWindow(View view) {
@@ -499,10 +519,37 @@ public class FloatService extends Service implements android.content.SharedPrefe
     }
 
     private boolean preferAccessibilityIconHost(boolean accessibilityAvailable) {
-        // If the user has no ordinary overlay permission, 2032 is the only
-        // viable host. Otherwise honor the explicit icon layer preference.
-        return accessibilityAvailable && (fs.elevatedIconOverlay()
-                || !Settings.canDrawOverlays(this));
+        // 2038 keeps the real touchable icon at the saved physical edge on
+        // affected OEM builds. 2032 remains available for non-interactive
+        // screenshot/selection/menus and as the only host when 2038 is denied.
+        boolean ordinaryAllowed = Settings.canDrawOverlays(this);
+        return accessibilityAvailable && (!ordinaryAllowed
+                || (fs.elevatedIconOverlay() && !forceApplicationIconHost
+                    && !unstableHighIconHost()));
+    }
+
+    boolean isAccessibilityIconHosted(FloatIconView icon) {
+        return icon != null && iconHost != null && iconHost.isAccessibilityHosted(icon);
+    }
+
+    void onIconTouchOriginMismatch(FloatIconView icon, float rawX, float rawY,
+                                   int ownerX, int ownerY) {
+        if (icon == null || iconHost == null || !iconHost.isAccessibilityHosted(icon)) return;
+        if (!FlOverlayLayerPolicy.touchOutsideIconBounds(
+                rawX, rawY, ownerX, ownerY, icon.getWidth(), icon.getHeight())) return;
+        if (forceApplicationIconHost) return;
+        forceApplicationIconHost = true;
+        DiagnosticLog.i(this, "FL_ICON_LAYER",
+                "bad_2032_touch_origin raw=" + Math.round(rawX) + "," + Math.round(rawY)
+                + " expected=" + ownerX + "," + ownerY
+                + " icon=" + icon.getWidth() + "x" + icon.getHeight()
+                + " fallback=2038");
+        mainHandler.post(() -> {
+            if (instance == this && Settings.canDrawOverlays(this)) {
+                rehostIconWindows(false);
+                verifyCurrentIconPlacements("touch_origin_fallback");
+            }
+        });
     }
 
     private void refreshIconWindowHost() {

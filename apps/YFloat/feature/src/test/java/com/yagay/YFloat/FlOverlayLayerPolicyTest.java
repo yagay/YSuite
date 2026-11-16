@@ -21,6 +21,24 @@ public class FlOverlayLayerPolicyTest {
         }
     }
 
+    @Test public void onePlusCph2747KeepsTheIconAtThePhysicalEdge() {
+        assertTrue(FlOverlayLayerPolicy.requiresStableIconHost(
+                "OnePlus", "CPH2747", "CPH2747", 37));
+        assertFalse(FlOverlayLayerPolicy.requiresStableIconHost(
+                "OnePlus", "CPH9999", "CPH9999", 37));
+        assertFalse(FlOverlayLayerPolicy.requiresStableIconHost(
+                "Google", "CPH2747", "CPH2747", 37));
+    }
+
+    @Test public void offset2032TouchFrameCausesAutomaticFallback() {
+        assertTrue(FlOverlayLayerPolicy.touchOutsideIconBounds(
+                719, 1520, 1222, 668, 131, 131));
+        assertFalse(FlOverlayLayerPolicy.touchOutsideIconBounds(
+                1250, 735, 1222, 668, 131, 131));
+        assertFalse(FlOverlayLayerPolicy.touchOutsideIconBounds(
+                1206, 735, 1222, 668, 131, 131));
+    }
+
     @Test public void invisibleSystemEdgeWakeStripsNeverRiseAboveSystemUi() {
         assertFalse(FlOverlayLayerPolicy.elevate("edge_wake_left", true));
         assertFalse(FlOverlayLayerPolicy.elevate("edge_wake_right", true));

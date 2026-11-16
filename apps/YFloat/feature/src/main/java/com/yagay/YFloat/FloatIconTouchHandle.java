@@ -15,6 +15,7 @@ import android.view.View;
 final class FloatIconTouchHandle extends View {
     private final FloatIconView target;
     private final int[] targetLocation = new int[2];
+    private boolean blockedMismatchedGesture;
 
     FloatIconTouchHandle(Context context, FloatIconView target) {
         super(context);
@@ -26,6 +27,13 @@ final class FloatIconTouchHandle extends View {
 
     @Override public boolean onTouchEvent(MotionEvent event) {
         if (target == null || event == null) return false;
+        if (blockedMismatchedGesture) {
+            if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                blockedMismatchedGesture = false;
+            }
+            return true;
+        }
         // Only DOWN needs local coordinates relative to the real icon:
         // SelectionPointTransformer captures the initial window origin
         // once. Every subsequent MOVE/UP is processed using RAW screen
@@ -37,6 +45,19 @@ final class FloatIconTouchHandle extends View {
         MotionEvent forwarded = MotionEvent.obtainNoHistory(event);
         try {
             target.getLocationOnScreen(targetLocation);
+            FloatService service = FloatService.get();
+            if (service != null && service.isAccessibilityIconHosted(target)
+                    && FlOverlayLayerPolicy.touchOutsideIconBounds(
+                        event.getRawX(), event.getRawY(),
+                        targetLocation[0], targetLocation[1],
+                        target.getWidth(), target.getHeight())) {
+                // A bad accessibility touch hit must not start OCR/drag.
+                // Restore the stable window host instead.
+                service.onIconTouchOriginMismatch(target, event.getRawX(),
+                        event.getRawY(), targetLocation[0], targetLocation[1]);
+                blockedMismatchedGesture = true;
+                return true;
+            }
             forwarded.setLocation(
                     event.getRawX() - targetLocation[0],
                     event.getRawY() - targetLocation[1]);
