@@ -340,6 +340,10 @@ public class FloatService extends Service implements android.content.SharedPrefe
         if (!ActionId.NONE.equals(action)) ActionExecutor.execute(this, action);
     }
 
+    public void toggleAppShortcuts() {
+        ShortcutAppOverlay.toggle(this, Math.round(lastActionX), Math.round(lastActionY));
+    }
+
     public void armPositionMove() {
         positionMoveArmed = true;
         DiagnosticLog.i(this, "POSITION", "explicit move mode armed");
@@ -970,6 +974,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
     }
 
     @Override public void onDestroy() {
+        ShortcutAppOverlay.dismiss();
         mainHandler.removeCallbacks(rebuildIconsRunnable);
         geometryRecoveryScheduled = false;
         // Only an explicit user drag may persist the canonical floating position. Service teardown
