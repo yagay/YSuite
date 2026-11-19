@@ -32,6 +32,10 @@ public final class ActionExecutor {
                 OcrEngine.invalidatePending(c, "circle_start");
                 FLCircleController.show(c);
             }
+            case ActionId.OPEN_YSUITE -> ExternalGestureActionBridge.openSuite(c);
+            case ActionId.GOOGLE_CIRCLE -> ExternalGestureActionBridge.googleCircle(c);
+            case ActionId.ATLAS_WINDOW -> ExternalGestureActionBridge.openAtlasPanel(c);
+            case ActionId.NEXTEP_TOGGLE -> ExternalGestureActionBridge.toggleNeXtep(c);
             case ActionId.MOVE_ICON -> {
                 FloatService f = FloatService.get();
                 if (f != null) f.armPositionMove();
