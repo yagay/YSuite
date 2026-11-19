@@ -1,9 +1,12 @@
 package com.yagay.YFloat;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -12,9 +15,13 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.ArrayList;
 import java.util.List;
 
-/** A compact vertical list next to the YFloat icon, never a full-screen activity. */
+/**
+ * Transparent, compact vertical icon + name launcher beside the active float icon.
+ * No framed popup, card surface, title bar or oversized touch panel.
+ */
 final class ShortcutAppOverlay {
     private static FlOverlayWindowHost host;
     private static View surface;
@@ -30,33 +37,52 @@ final class ShortcutAppOverlay {
             Toast.makeText(context, R.string.yfloat_shortcuts_empty, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        final int iconSize = ScreenGeometry.dp(context, 26);
+        final int itemGap = ScreenGeometry.dp(context, 5);
+        final int inset = ScreenGeometry.dp(context, 3);
+        final int rowHeight = ScreenGeometry.dp(context, 38);
+        final int maxWidth = ScreenGeometry.dp(context, 198);
         Rect usable = ScreenGeometry.usableBounds(context);
-        int width = Math.min(ScreenGeometry.dp(context, 236),
-                Math.max(ScreenGeometry.dp(context, 130), usable.width() - ScreenGeometry.dp(context, 24)));
-        int rowHeight = ScreenGeometry.dp(context, 50);
-        int maxHeight = Math.max(rowHeight, Math.min(
-                ScreenGeometry.dp(context, 420), usable.height() * 2 / 3));
-        LinearLayout body = FloatingMenuUi.root(context);
+        LinearLayout body = new LinearLayout(context);
         body.setOrientation(LinearLayout.VERTICAL);
+        body.setBackgroundColor(Color.TRANSPARENT);
+        body.setPadding(0, 0, 0, 0);
+
+        int measuredWidth = ScreenGeometry.dp(context, 56);
         int count = 0;
         for (String pkg : packages) {
             try {
                 var pm = context.getPackageManager();
                 if (pm.getLaunchIntentForPackage(pkg) == null) continue;
-                CharSequence appName = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0));
+                String name = String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)));
                 Drawable icon = pm.getApplicationIcon(pkg);
-                TextView item = FloatingMenuUi.row(context, appName.toString(), icon);
-                item.setSingleLine(true);
-                item.setEllipsize(android.text.TextUtils.TruncateAt.END);
-                item.setContentDescription(appName);
-                item.setOnClickListener(v -> {
+                icon.setBounds(0, 0, iconSize, iconSize);
+                TextView row = new TextView(context);
+                row.setText(name);
+                row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+                row.setTextColor(Color.WHITE);
+                row.setShadowLayer(ScreenGeometry.dp(context, 2), 0, 1,
+                        0xD9000000);
+                row.setSingleLine(true);
+                row.setEllipsize(TextUtils.TruncateAt.END);
+                row.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+                row.setPadding(inset, 0, inset, 0);
+                row.setCompoundDrawablePadding(itemGap);
+                row.setCompoundDrawables(icon, null, null, null);
+                row.setBackgroundColor(Color.TRANSPARENT);
+                row.setContentDescription(name);
+                row.setOnClickListener(v -> {
                     dismiss();
                     if (!ShortcutAppStore.launch(context, pkg)) {
                         Toast.makeText(context, R.string.yfloat_shortcuts_launch_failed,
                                 Toast.LENGTH_SHORT).show();
                     }
                 });
-                body.addView(item, new LinearLayout.LayoutParams(-1, rowHeight));
+                body.addView(row, new LinearLayout.LayoutParams(-1, rowHeight));
+                int desired = (int) Math.ceil(row.getPaint().measureText(name))
+                        + iconSize + itemGap + inset * 2 + ScreenGeometry.dp(context, 2);
+                measuredWidth = Math.max(measuredWidth, desired);
                 count++;
             } catch (Exception e) {
                 DiagnosticLog.i(context, "APP_SHORTCUTS", "skip package=" + pkg);
@@ -66,27 +92,34 @@ final class ShortcutAppOverlay {
             Toast.makeText(context, R.string.yfloat_shortcuts_empty, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        int maxHeight = Math.max(rowHeight,
+                Math.min(ScreenGeometry.dp(context, 380), usable.height() * 2 / 3));
+        int width = Math.min(maxWidth, Math.min(measuredWidth,
+                Math.max(ScreenGeometry.dp(context, 80), usable.width() - ScreenGeometry.dp(context, 16))));
+        int height = Math.min(count * rowHeight, maxHeight);
         ScrollView scroll = new ScrollView(context);
+        scroll.setBackgroundColor(Color.TRANSPARENT);
         scroll.setFillViewport(false);
-        scroll.setVerticalScrollBarEnabled(count * rowHeight > maxHeight);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         scroll.addView(body);
-        scroll.setOnTouchListener((v,e) -> {
+        scroll.setOnTouchListener((v, e) -> {
             if (e.getActionMasked() == MotionEvent.ACTION_OUTSIDE) {
                 dismiss();
                 return true;
             }
             return false;
         });
-        int height = Math.min(count * rowHeight, maxHeight);
-        int gap = ScreenGeometry.dp(context, 8);
-        int left = anchorX + gap;
-        if (left + width > usable.right - gap)
-            left = anchorX - width - gap;
+        int gap = ScreenGeometry.dp(context, 7);
+        // Prefer the side facing the screen centre and never cover the floating handle.
+        int left = anchorX < usable.centerX() ? anchorX + gap : anchorX - width - gap;
         int x = ScreenGeometry.clamp(left, usable.left + gap,
                 Math.max(usable.left + gap, usable.right - width - gap));
         int y = ScreenGeometry.clamp(anchorY - height / 2,
                 usable.top + gap,
                 Math.max(usable.top + gap, usable.bottom - height - gap));
+
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 width, height,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -102,7 +135,8 @@ final class ShortcutAppOverlay {
         if (nextHost.add(scroll, lp, TAG)) {
             host = nextHost;
             surface = scroll;
-            DiagnosticLog.i(context, "APP_SHORTCUTS", "shown count=" + count
+            DiagnosticLog.i(context, "APP_SHORTCUTS", "compact transparent show count="
+                    + count + " width=" + width + " height=" + height
                     + " x=" + x + " y=" + y);
         } else {
             Toast.makeText(context, R.string.yfloat_shortcuts_overlay_failed,
