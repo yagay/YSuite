@@ -256,9 +256,7 @@ final class UnifiedResultPanel {
         if (session.hasText()) {
             String value = selection.editor().getText().toString();
             if (value.isBlank()) value = session.displayText();
-            ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-            if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("YFloat", value));
-            Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e84b8e9c556), Toast.LENGTH_SHORT).show();
+            YFloatClipboardWriter.copyText(context, value, "result_panel");
             return;
         }
 
