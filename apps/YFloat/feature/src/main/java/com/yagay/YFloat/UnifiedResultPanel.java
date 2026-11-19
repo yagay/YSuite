@@ -1,14 +1,11 @@
 package com.yagay.YFloat;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Rect;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 /**
  * The one visual implementation for every YFloat result.
@@ -231,9 +228,7 @@ final class UnifiedResultPanel {
         if (session.hasText()) {
             String value = selection.editor().getText().toString();
             if (value.isBlank()) value = session.displayText();
-            ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-            if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("YFloat", value));
-            Toast.makeText(context, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e84b8e9c556), Toast.LENGTH_SHORT).show();
+            YFloatClipboardWriter.copyText(context, value, "result_panel");
             return;
         }
 
