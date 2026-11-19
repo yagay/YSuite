@@ -5,9 +5,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.database.ContentObserver
+import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.UserManager
 import android.util.Log
+import com.yagay.yui.YUiLocaleBridge
 import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureRuntimeManager
 import com.yagay.suite.core.FeatureStateStore
@@ -19,12 +24,40 @@ import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
 
 class YSuiteApp : Application() {
+    override fun attachBaseContext(base: Context) {
+        YUiLocaleBridge.install(SuiteLocaleController::localizedContext)
+        super.attachBaseContext(SuiteLocaleController.localizedContext(base))
+    }
+
     @Volatile
     private var initialized = false
     private var unlockReceiver: BroadcastReceiver? = null
+    private val recoveryHandler = Handler(Looper.getMainLooper())
+    private var brokerRegistered = false
+    private var brokerRetryCount = 0
+    private var startupRetryCount = 0
+    private var mediaTaskRouter: YMiniMediaTaskRouter? = null
+    private var mediaPanelObserver: ContentObserver? = null
 
     override fun onCreate() {
         super.onCreate()
+
+        // OxygenOS may restore an existing YSuite/YMini task instead of
+        // sending onNewIntent when the user taps its proxy media card.
+        // Register before feature initialization; no additional Xposed Hook.
+        runCatching {
+            val router = YMiniMediaTaskRouter(this)
+            registerActivityLifecycleCallbacks(router)
+            mediaTaskRouter = router
+            val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean) {
+                    router.onMediaPanelSignal()
+                }
+            }
+            contentResolver.registerContentObserver(
+                Uri.parse("content://$packageName.engine_status"), false, observer)
+            mediaPanelObserver = observer
+        }.onFailure { Log.w(TAG, "Media task router registration failed", it) }
 
         runCatching { SuiteCrashTracker.install(this) }
             .onFailure { Log.e(TAG, "Crash tracker initialization failed safely", it) }
@@ -36,6 +69,9 @@ class YSuiteApp : Application() {
             return
         }
 
+        runCatching { SuiteLocaleController.initializeLegacyDelegates(this) }
+            .onFailure { Log.w(TAG, "Locale delegate startup failed safely", it) }
+
         runCatching { initializeUnlockedHost() }
             .onFailure { Log.e(TAG, "YSuite host bootstrap failed safely", it) }
     }
@@ -43,8 +79,6 @@ class YSuiteApp : Application() {
     @Synchronized
     private fun initializeUnlockedHost() {
         if (initialized || !isUserUnlockedSafely()) return
-        initialized = true
-
         unlockReceiver?.let { receiver -> runCatching { unregisterReceiver(receiver) } }
         unlockReceiver = null
 
@@ -54,9 +88,7 @@ class YSuiteApp : Application() {
 
         // Each process-global subsystem is isolated. A missing/broken LSPosed service, Root backend,
         // OEM package service or post-update reload path must never prevent the shell from opening.
-        safeHostStep("xposed-broker") {
-            SuiteXposedServiceBroker.takeOwnership(this)
-        }
+        ensureXposedBrokerRegistered()
         safeHostStep("root-manager") {
             RootManager.initialize(this)
         }
@@ -66,7 +98,8 @@ class YSuiteApp : Application() {
 
         val states = runCatching { FeatureStateStore(this) }
             .getOrElse { error ->
-                Log.e(TAG, "Feature state store unavailable; skipping feature bootstrap", error)
+                Log.e(TAG, "Feature state store unavailable; retrying host bootstrap", error)
+                scheduleHostStartupRetry()
                 return
             }
         val included = runCatching { FeatureRegistry.included() }
@@ -116,6 +149,7 @@ class YSuiteApp : Application() {
                 }
         }
 
+        initialized = true
         safeSuiteLog(
             SuiteContract.HOST_MODULE_ID,
             "YSuite host initialized; version=$versionName($versionCode); contract=${SuiteContract.REVISION}; " +
@@ -123,7 +157,74 @@ class YSuiteApp : Application() {
         )
     }
 
+    /** Also retry after returning to the app when the initial bounded boot retries expired. */
+    fun retryHostRegistrationOnForeground() {
+        recoveryHandler.removeCallbacksAndMessages(null)
+        brokerRetryCount = 0
+        startupRetryCount = 0
+        if (initialized) {
+            ensureXposedBrokerRegistered()
+            // Initial feature initialization can fail independently of the app shell.
+            // Reattach only enabled but missing managed runtimes when returning to YSuite.
+            // Otherwise their FeatureHostRegistry entries stay missing indefinitely,
+            // and a Root-granted app appears unprivileged to a single module.
+            runCatching {
+                val states = FeatureStateStore(this)
+                FeatureRegistry.included().forEach { feature ->
+                    if (states.isEnabled(feature) &&
+                        !FeatureRuntimeManager.isRuntimeEnabled(feature.id)
+                    ) {
+                        // A failure in one feature must not prevent another module
+                        // (for example TaskManager) from recovering its Root host.
+                        FeatureRuntimeManager.enable(this, feature)
+                            .onSuccess {
+                                safeSuiteLog(feature.id, "managed feature runtime recovered on foreground")
+                            }
+                            .onFailure { error ->
+                                safeSuiteError(feature.id, "foreground managed feature recovery failed", error)
+                            }
+                    }
+                }
+            }.onFailure {
+                safeSuiteError(SuiteContract.HOST_MODULE_ID, "foreground feature recovery failed", it)
+            }
+        } else {
+            runCatching { initializeUnlockedHost() }
+                .onFailure { safeSuiteError(SuiteContract.HOST_MODULE_ID, "foreground host retry failed", it) }
+        }
+    }
+
+    private fun ensureXposedBrokerRegistered() {
+        if (brokerRegistered) return
+        runCatching {
+            SuiteXposedServiceBroker.takeOwnership(this)
+        }.onSuccess {
+            brokerRegistered = true
+            brokerRetryCount = 0
+        }.onFailure { error ->
+            safeSuiteError(SuiteContract.HOST_MODULE_ID, "LSPosed broker registration failed; will retry", error)
+            if (brokerRetryCount++ < MAX_RECOVERY_ATTEMPTS) {
+                val delayMs = (1L shl brokerRetryCount.coerceAtMost(5)) * 1_000L
+                recoveryHandler.postDelayed({ ensureXposedBrokerRegistered() }, delayMs)
+            }
+        }
+    }
+
+    private fun scheduleHostStartupRetry() {
+        if (startupRetryCount++ >= MAX_RECOVERY_ATTEMPTS) return
+        val delayMs = (1L shl startupRetryCount.coerceAtMost(5)) * 1_000L
+        recoveryHandler.postDelayed({
+            runCatching { initializeUnlockedHost() }
+                .onFailure { safeSuiteError(SuiteContract.HOST_MODULE_ID, "host startup retry failed", it) }
+        }, delayMs)
+    }
+
     override fun onTerminate() {
+        mediaPanelObserver?.let { runCatching { contentResolver.unregisterContentObserver(it) } }
+        mediaPanelObserver = null
+        mediaTaskRouter?.let { runCatching { unregisterActivityLifecycleCallbacks(it) } }
+        mediaTaskRouter = null
+        recoveryHandler.removeCallbacksAndMessages(null)
         runCatching { FeatureRuntimeManager.destroyAll(this) }
             .onFailure { Log.e(TAG, "Feature runtime shutdown failed safely", it) }
         super.onTerminate()
@@ -175,5 +276,6 @@ class YSuiteApp : Application() {
 
     private companion object {
         const val TAG = "YSuite.App"
+        const val MAX_RECOVERY_ATTEMPTS = 5
     }
 }

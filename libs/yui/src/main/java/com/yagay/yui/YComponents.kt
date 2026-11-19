@@ -27,32 +27,20 @@ import androidx.compose.ui.unit.dp
 fun YScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(
-        horizontal = YDimens.ScreenHorizontal,
-        vertical = YDimens.ScreenVertical,
+        horizontal = LocalYAppearance.current.screenPaddingDp.dp,
+        vertical = LocalYAppearance.current.pageVerticalPaddingDp.dp,
     ),
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(YDimens.SectionGap),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.sectionSpacingDp.dp),
         content = content,
     )
 }
 
-@Composable
-fun YSection(
-    title: String,
-    modifier: Modifier = Modifier,
-    subtitle: String? = null,
-    content: @Composable () -> Unit,
-) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap)) {
-        YSectionTitle(title, subtitle)
-        content()
-    }
-}
-
+/** All sections are rendered by the role-aware YSection in YUnifiedDesign.kt. */
 @Composable
 fun YStatusCard(
     title: String,
@@ -69,6 +57,7 @@ fun YStatusCard(
     }
 }
 
+/** Legacy settings-row API routed to the same content and sizing as YListItem. */
 @Composable
 fun YSettingRow(
     title: String,
@@ -76,30 +65,15 @@ fun YSettingRow(
     subtitle: String? = null,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = YDimens.TouchTarget).padding(vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-    ) {
-        Column(Modifier.weight(1f)) { YSettingCopy(title, subtitle) }
-        trailing()
-    }
+    YListItem(
+        title = title,
+        modifier = modifier,
+        subtitle = subtitle,
+        trailing = { Row { trailing() } },
+    )
 }
 
-@Composable
-private fun YSettingCopy(title: String, subtitle: String?) {
-    Text(title, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-    if (!subtitle.isNullOrBlank()) {
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
+/** Legacy switch-row API routed through the canonical setting row. */
 @Composable
 fun YSwitchRow(
     title: String,
@@ -108,22 +82,18 @@ fun YSwitchRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     enabled: Boolean = true,
-) {
-    YSettingRow(title = title, subtitle = subtitle, modifier = modifier) {
-        YCompactSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
-    }
-}
+) = YSwitchItem(title, checked, onCheckedChange, modifier, subtitle, enabled)
 
 @Composable
 fun YBottomActionBar(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
-    Surface(modifier = modifier.fillMaxWidth(), tonalElevation = 2.dp, shadowElevation = 1.dp) {
+    Surface(modifier = modifier.fillMaxWidth(), tonalElevation = YUiGeometry.cardElevation(), shadowElevation = YUiGeometry.cardElevation()) {
         Row(
             modifier = Modifier.fillMaxWidth().navigationBarsPadding()
-                .padding(horizontal = YDimens.ScreenHorizontal, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap, Alignment.End),
+                .padding(horizontal = YUiGeometry.pagePadding(), vertical = YUiGeometry.compactGap()),
+            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
@@ -134,9 +104,9 @@ fun YBottomActionBar(
 fun YLoadingState(text: String? = null, modifier: Modifier = Modifier) {
     val resolvedText = text ?: stringResource(R.string.yui_loading)
     Column(
-        modifier = modifier.fillMaxWidth().padding(vertical = 24.dp),
+        modifier = modifier.fillMaxWidth().padding(vertical = YUiGeometry.sectionGap()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.gap()),
     ) {
         CircularProgressIndicator()
         Text(resolvedText, style = MaterialTheme.typography.bodyMedium)

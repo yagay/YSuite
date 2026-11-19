@@ -1,6 +1,7 @@
 package com.yagay.YEntryCleaner.data;
 
 import com.yagay.suite.api.FeatureServices;
+import com.yagay.suite.api.HostRootProbe;
 import com.yagay.suite.api.HostBinaryCommandResult;
 import java.nio.charset.StandardCharsets;
 
@@ -32,13 +33,13 @@ public final class ComponentRootCommand {
 
     /** Read-only check for each explicit batch; authorization is owned by the shared Root host. */
     public static void requireRoot() {
-        final Result result;
-        try {
-            result = run("test \"$(id -u)\" = 0");
-        } catch (Exception failure) {
-            throw new RootAccessException(RootFailureReason.UNAVAILABLE, failure);
+        HostRootProbe.Result probe = HostRootProbe.probe(SERVICES, 6L);
+        switch (probe.getStatus()) {
+            case GRANTED -> { return; }
+            case UNPRIVILEGED -> throw new RootAccessException(RootFailureReason.DENIED);
+            case HOST_MISSING, NOT_DECLARED, TRANSIENT_FAILURE ->
+                    throw new RootAccessException(RootFailureReason.UNAVAILABLE);
         }
-        verifyRoot(result);
     }
 
     static void verifyRoot(Result result) {

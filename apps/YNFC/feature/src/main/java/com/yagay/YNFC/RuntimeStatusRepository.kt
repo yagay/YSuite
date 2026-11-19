@@ -35,9 +35,12 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
 
     fun read(includeRootPid: Boolean = false): RuntimeStatus {
         val map = readProviderMap()
-        val rootPid = if (includeRootPid) nfcSystemService.currentNfcPid().toIntOrNull() else null
+        val rootPid = if (includeRootPid) currentNfcPid() else null
         return decode(map, rootPid)
     }
+
+    /** Low-frequency Root verification; absence is unknown, never proof NFC stopped. */
+    fun currentNfcPid(): Int? = nfcSystemService.currentNfcPid().toIntOrNull()?.takeIf { it > 0 }
 
     fun isCurrentCommandGeneration(generation: Long): Boolean =
         readProviderMap()[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull() == generation
@@ -75,9 +78,36 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             controllerEpoch = controllerEpoch,
             rfControllerEpoch = rfControllerEpoch
         )
+        // Last manual RF evidence remains stale. A newer lifecycle request
+        // can be displayed separately only while its generation, PID and
+        // controller epoch are still current.
+        val ownNciRecoveryRequested =
+            RuntimePresentationPolicy.currentUidRestore(map, currentPid, controllerEpoch)
         val restartTransition = map[ConfigProvider.KEY_COMMAND_STATUS] == "RESTART_REQUIRED" &&
             map[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull() == map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull()
-        val lifecycleReverifyPending = rfFresh &&
+        // A current-generation terminal FAILED result is authoritative command
+        // metadata, not RF proof. It must stay visible even when controller RF
+        // evidence has a stale epoch, e.g. ColorOS Type-A permission denial.
+        val currentCommandGeneration = map[ConfigProvider.KEY_COMMAND_GENERATION]?.toLongOrNull()
+        val terminalFailureVisible = currentPid > 0 && commandPid == currentPid &&
+            currentCommandGeneration != null && currentCommandGeneration > 0L &&
+            map[ConfigProvider.KEY_COMMAND_STATUS] == "FAILED" &&
+            map[ConfigProvider.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
+            map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
+            map[ConfigProvider.KEY_OPERATION_STATE] == "FAILED"
+        // NO_OVERRIDE is terminal in-process command evidence, not a native
+        // RF proof. Keep its explanatory UI visible across an unrelated
+        // controller epoch update without claiming a verified UID/stock RF.
+        val noOverrideVisible = currentPid > 0 && commandPid == currentPid &&
+            currentCommandGeneration != null && currentCommandGeneration > 0L &&
+            map[ConfigProvider.KEY_COMMAND_STATUS] == "NO_OVERRIDE" &&
+            map[ConfigProvider.KEY_COMMAND_HANDLED_GENERATION]?.toLongOrNull() == currentCommandGeneration &&
+            map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() == currentCommandGeneration
+        // A terminal NO_OVERRIDE STOP is *command* evidence that no UID write
+        // happened, not an RF readback. Old lifecycle refresh metadata must
+        // never transform that terminal IDLE into REVERIFY_PENDING and cause
+        // the upper layer to restart an unchanged NFC process.
+        val lifecycleReverifyPending = !noOverrideVisible && rfFresh &&
             map[ConfigProvider.KEY_REFRESH_TRIGGER_STATUS] in setOf(
                 "LIFECYCLE_INVALIDATED",
                 "LIFECYCLE_REPLAY_WAIT",
@@ -85,16 +115,21 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             )
         val visibleRfStatus = when {
             rawRfStatus == "IDLE" -> "IDLE"
+            terminalFailureVisible || noOverrideVisible -> rawRfStatus
+            ownNciRecoveryRequested -> "UID_RECOVERY_REQUESTED_UNVERIFIED"
             rfFresh -> rawRfStatus
             restartTransition -> "RESETTING($rawRfStatus)"
             rfPid == 0 && rawRfStatus in setOf("WAITING", "APPLYING", "STOPPING") -> rawRfStatus
             else -> "STALE($rawRfStatus)"
         }
-        val semanticVisible = rfFresh || rfPid == 0 || restartTransition
+        val semanticVisible = rfFresh || rfPid == 0 || restartTransition ||
+            terminalFailureVisible || noOverrideVisible || ownNciRecoveryRequested
         val rawOperation = map[ConfigProvider.KEY_OPERATION_STATE] ?: "IDLE"
         return RuntimeStatus(
             appBuild = map[ConfigProvider.KEY_APP_BUILD]?.toIntOrNull() ?: 0,
             hookBuild = hookBuild,
+            hookImplementationRevision = map["hook_impl_revision"]?.toIntOrNull() ?: 0,
+            hookImplementationPid = map["hook_impl_revision_pid"]?.toIntOrNull() ?: 0,
             currentPid = currentPid,
             runtimePid = runtimePid,
             scopePid = scopePid,
@@ -112,6 +147,7 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             commandPid = commandPid,
             operationState = when {
                 !semanticVisible -> "STALE"
+                ownNciRecoveryRequested -> "RECOVERY_REQUESTED"
                 lifecycleReverifyPending && rawOperation == "IDLE" -> "REVERIFY_PENDING"
                 else -> rawOperation
             },
@@ -120,16 +156,35 @@ class RuntimeStatusRepository(context: Context, private val nfcSystemService: Nf
             rfAccepted = rfFresh && providerAccepted,
             rfStatus = visibleRfStatus,
             rfUid = if (rfFresh) map[ConfigProvider.KEY_RF_UID]?.takeIf { it.isNotBlank() } else null,
-            rfSource = if (rfFresh) map[ConfigProvider.KEY_RF_SOURCE]?.takeIf { it.isNotBlank() } else null,
+            rfSource = if (rfFresh || terminalFailureVisible || noOverrideVisible) map[ConfigProvider.KEY_RF_SOURCE]?.takeIf { it.isNotBlank() } else null,
             rfResult = if (rfFresh) map[ConfigProvider.KEY_RF_RESULT]?.takeIf { it.isNotBlank() } else null,
             rfNativeResult = if (rfFresh) map[ConfigProvider.KEY_RF_NATIVE_RESULT]?.takeIf { it.isNotBlank() } else null,
             rfNativeResultType = if (rfFresh) map[ConfigProvider.KEY_RF_NATIVE_RESULT_TYPE]?.takeIf { it.isNotBlank() } else null,
-            rfError = if (rfFresh) map[ConfigProvider.KEY_RF_ERROR]?.takeIf { it.isNotBlank() } else null,
+            rfError = if (rfFresh || terminalFailureVisible) map[ConfigProvider.KEY_RF_ERROR]?.takeIf { it.isNotBlank() } else null,
             rfPid = rfPid,
             rfGeneration = map[ConfigProvider.KEY_RF_GENERATION]?.toLongOrNull() ?: 0L,
-            rfVerification = if (rfFresh) map[ConfigProvider.KEY_RF_VERIFICATION]?.takeIf { it.isNotBlank() } else if (restartTransition) "LIFECYCLE_PENDING" else null,
+            rfVerification = if (rfFresh || terminalFailureVisible || noOverrideVisible) map[ConfigProvider.KEY_RF_VERIFICATION]?.takeIf { it.isNotBlank() } else if (restartTransition) "LIFECYCLE_PENDING" else null,
             fullDiagStage = map[ConfigProvider.KEY_FULL_DIAG_STAGE]?.takeIf { it.isNotBlank() },
-            fullDiagSummary = map[ConfigProvider.KEY_FULL_DIAG_SUMMARY]?.takeIf { it.isNotBlank() }
+            fullDiagSummary = map[ConfigProvider.KEY_FULL_DIAG_SUMMARY]?.takeIf { it.isNotBlank() },
+            pollingDisabled = map[ConfigProvider.KEY_POLLING_DISABLED].toBoolean(),
+            pollingGuardStatus = run {
+                val status = map[ConfigProvider.KEY_POLLING_GUARD_STATUS] ?: "UNKNOWN"
+                val pid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0
+                val capabilitiesPid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0
+                val reported = if (currentPid <= 0 || pid <= 0 || pid != currentPid ||
+                    capabilitiesPid != currentPid) "STALE($status)" else status
+                RuntimePresentationPolicy.pollingStatus(
+                    map[ConfigProvider.KEY_POLLING_DISABLED].toBoolean(),
+                    reported, if (reported.startsWith("STALE(")) null
+                    else map[ConfigProvider.KEY_POLLING_CAPABILITIES]
+                )
+            },
+            pollingGuardPid = map[ConfigProvider.KEY_POLLING_GUARD_PID]?.toIntOrNull() ?: 0,
+            pollingGuardDetail = map[ConfigProvider.KEY_POLLING_GUARD_DETAIL]
+                ?.takeIf { it.isNotBlank() },
+            pollingCapabilitySummary = map[ConfigProvider.KEY_POLLING_CAPABILITIES]
+                ?.takeIf { it.isNotBlank() },
+            ownNciRecoveryRequested = ownNciRecoveryRequested
         )
     }
 }

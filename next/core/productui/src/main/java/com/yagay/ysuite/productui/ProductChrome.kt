@@ -11,12 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.yagay.yui.YUiScaffold
+import com.yagay.yui.YUiText as Text
+import com.yagay.yui.YCustomTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,17 +38,10 @@ fun YSuiteProductTopBar(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Column(modifier = modifier) {
-        TopAppBar(
+        YCustomTopBar(
             title = title,
             navigationIcon = navigationIcon,
             actions = actions,
-            colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor =
-                        MaterialTheme.colorScheme.background,
-                    scrolledContainerColor =
-                        MaterialTheme.colorScheme.surfaceContainer,
-                ),
         )
         HorizontalDivider(
             color =
@@ -72,13 +64,12 @@ fun YSuiteProductScaffold(
         ),
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
+    YUiScaffold(
         modifier = modifier.fillMaxSize(),
         topBar = topBar,
         bottomBar = bottomBar,
         floatingActionButton = floatingActionButton,
         contentWindowInsets = contentWindowInsets,
-        containerColor = MaterialTheme.colorScheme.background,
         content = content,
     )
 }

@@ -18,9 +18,18 @@ import java.util.concurrent.Executors;
 /** OPlus FlexibleWindow control panel. */
 public final class MainActivity extends Activity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // A heartbeat may arrive after the Activity is first shown; refresh while visible.
+    private final Runnable statusTicker = new Runnable() {
+        @Override public void run() {
+            if (engineStatus == null || !engineStatus.isAttachedToWindow()) return;
+            refreshStatus();
+            engineStatus.postDelayed(this, 2_000L);
+        }
+    };
 
     private TextView engineStatus;
     private TextView diagnosticsStatus;
+    private TextView mediaStatus;
     private Button diagnosticsExport;
 
     @Override
@@ -36,6 +45,7 @@ public final class MainActivity extends Activity {
         addEngineCard(root);
         addAppListsCard(root);
         addForegroundCard(root);
+        addMediaCard(root);
         addDiagnosticsCard(root);
         refreshStatus();
     }
@@ -44,6 +54,16 @@ public final class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         refreshStatus();
+        if (engineStatus != null) {
+            engineStatus.removeCallbacks(statusTicker);
+            engineStatus.postDelayed(statusTicker, 2_000L);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        if (engineStatus != null) engineStatus.removeCallbacks(statusTicker);
+        super.onPause();
     }
 
     @Override
@@ -71,7 +91,23 @@ public final class MainActivity extends Activity {
         Button reload = YViewLayout.primaryButton(this, getString(R.string.ymg_reload_now));
         reload.setOnClickListener(v -> {
             if (!GuardApp.isHotReloadAvailable()) {
-                Toast.makeText(this, R.string.ymg_hot_reload_unavailable, Toast.LENGTH_LONG).show();
+                EngineStatusProvider.Status heartbeat = GuardApp.getEngineStatus();
+                long loadedTarget = GuardApp.getSystemTargetLoadedVersionCode();
+                long expected = GuardApp.getExpectedVersionCode();
+                int messageRes = heartbeat.startedAt <= 0 || !heartbeat.isFromCurrentBoot()
+                        ? (loadedTarget > 0 && loadedTarget != expected
+                            ? R.string.ymg_restart_old_bootstrap
+                            : R.string.ymg_restart_no_heartbeat)
+                        : R.string.ymg_hot_reload_unavailable;
+                String detail = messageRes == R.string.ymg_restart_old_bootstrap
+                        ? getString(messageRes, loadedTarget, expected)
+                        : getString(messageRes);
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle(R.string.ymg_reboot_title)
+                        .setMessage(detail)
+                        .setPositiveButton(R.string.ymg_recheck, (dialog, which) -> refreshStatus())
+                        .setNegativeButton(android.R.string.ok, null)
+                        .show();
                 return;
             }
 
@@ -140,6 +176,23 @@ public final class MainActivity extends Activity {
                 ConfigKeys.SYSTEM_HAS_RESUMED);
         addSwitch(card, getString(R.string.ymg_block_cleanup), getString(R.string.ymg_block_cleanup_desc),
                 ConfigKeys.SYSTEM_BLOCK_REMOVE_KILL);
+    }
+
+    private void addMediaCard(LinearLayout parent) {
+        LinearLayout card = YViewLayout.card(parent,
+                getString(R.string.ymg_media_title),
+                getString(R.string.ymg_media_desc));
+        addSwitch(card,
+                getString(R.string.ymg_media_enabled),
+                getString(R.string.ymg_media_enabled_desc),
+                ConfigKeys.MEDIA_BRIDGE_ENABLED);
+        mediaStatus = YViewLayout.statusLine(this, "Checking media listener...");
+        card.addView(mediaStatus);
+        YViewLayout.navigationRow(card,
+                getString(R.string.ymg_media_access_title),
+                getString(R.string.ymg_media_access_desc),
+                v -> startActivity(new Intent(
+                        android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
     }
 
     private void addDiagnosticsCard(LinearLayout parent) {
@@ -242,11 +295,40 @@ public final class MainActivity extends Activity {
                         getString(R.string.ymg_engine_old, loaded, expected),
                         YViewStatusTone.Warning);
             } else {
-                YViewLayout.setStatus(engineStatus,
-                        getString(R.string.ymg_engine_no_heartbeat), YViewStatusTone.Error);
+                EngineStatusProvider.Status heartbeat = GuardApp.getEngineStatus();
+                String reason;
+                if (heartbeat.startedAt <= 0) {
+                    long loadedTarget = GuardApp.getSystemTargetLoadedVersionCode();
+                    reason = loadedTarget > 0 && loadedTarget != expected
+                            ? getString(R.string.ymg_restart_old_bootstrap, loadedTarget, expected)
+                            : getString(R.string.ymg_engine_no_heartbeat);
+                } else if (!heartbeat.isFromCurrentBoot()) {
+                    long ageMs = System.currentTimeMillis() - heartbeat.startedAt;
+                    reason = getString(R.string.ymg_engine_stale_heartbeat,
+                            Math.max(0L, ageMs / 1000L));
+                } else if (heartbeat.versionCode <= 0) {
+                    reason = getString(R.string.ymg_engine_load_failed,
+                            heartbeat.reloadMessage.isEmpty()
+                                    ? getString(R.string.ymg_engine_unknown_error)
+                                    : heartbeat.reloadMessage);
+                } else if (heartbeat.hookCount <= 0) {
+                    reason = getString(R.string.ymg_engine_no_hooks);
+                } else {
+                    reason = getString(R.string.ymg_engine_invalid_heartbeat,
+                            heartbeat.pid, heartbeat.versionCode, heartbeat.hookCount);
+                }
+                YViewLayout.setStatus(engineStatus, reason, YViewStatusTone.Error);
             }
         }
         refreshDiagnosticsStatus();
+        if (mediaStatus != null) {
+            String status = YMiniMediaBridge.status(this);
+            YViewLayout.setStatus(mediaStatus, status,
+                    status.startsWith("Media card:") ? YViewStatusTone.Good
+                    : status.startsWith("Listener connected") ? YViewStatusTone.Warning
+                    : YViewStatusTone.Error);
+            YMiniMediaBridge.refresh(this);
+        }
     }
 
     private void refreshDiagnosticsStatus() {

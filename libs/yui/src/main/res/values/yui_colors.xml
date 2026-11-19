@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="yui_primary">#3451B2</color>
-    <color name="yui_on_primary">#FFFFFF</color>
-    <color name="yui_primary_container">#DDE2FF</color>
-    <color name="yui_on_primary_container">#00174F</color>
-    <color name="yui_secondary">#585E71</color>
-    <color name="yui_on_secondary">#FFFFFF</color>
-    <color name="yui_surface">#FBF8FF</color>
-    <color name="yui_on_surface">#1B1B1F</color>
-    <color name="yui_surface_variant">#E3E2E9</color>
-    <color name="yui_on_surface_variant">#46464F</color>
-    <color name="yui_outline">#777680</color>
-    <color name="yui_error">#BA1A1A</color>
+    <color name="yui_primary">@color/yui_palette_primary</color>
+    <color name="yui_on_primary">@color/yui_palette_on_primary</color>
+    <color name="yui_primary_container">@color/yui_palette_primary_container</color>
+    <color name="yui_on_primary_container">@color/yui_palette_on_primary_container</color>
+    <color name="yui_secondary">@color/yui_palette_secondary</color>
+    <color name="yui_on_secondary">@color/yui_palette_on_secondary</color>
+    <color name="yui_surface">@color/yui_palette_surface</color>
+    <color name="yui_on_surface">@color/yui_palette_on_surface</color>
+    <color name="yui_surface_variant">@color/yui_palette_surface_variant</color>
+    <color name="yui_on_surface_variant">@color/yui_palette_on_surface_variant</color>
+    <color name="yui_outline">@color/yui_palette_outline</color>
+    <color name="yui_error">@color/yui_palette_error</color>
 </resources>

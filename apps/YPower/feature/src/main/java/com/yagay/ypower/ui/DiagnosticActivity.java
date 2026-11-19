@@ -1,6 +1,6 @@
 package com.yagay.ypower.ui;
 
-import android.app.AlertDialog;
+import com.yagay.yui.YViewDialogs;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -163,13 +163,26 @@ public class DiagnosticActivity extends AppCompatActivity {
 
         output = YViewLayout.text(
                 this,
-                getString(R.string.yp_usage_steps),
-                14,
-                false);
+                getString(R.string.yp_usage_steps));
         output.setTextIsSelectable(true);
         output.setPadding(0, Math.max(1, YView.controlGap(this) / 2), 0, YView.controlGap(this));
         ScrollView scroll = YViewLayout.scrollPage(this, output);
-        result.addView(scroll, new LinearLayout.LayoutParams(-1, dp(420)));
+        // Window height can shrink on split-screen, taskbar changes and floating windows.
+        // Do not reserve 2/3 of the physical display for an inner diagnostic panel.
+        LinearLayout.LayoutParams reportLayout = new LinearLayout.LayoutParams(
+                -1, Math.max(YView.touchTarget(this), YView.rowHeight(this) * 3));
+        result.addView(scroll, reportLayout);
+        getWindow().getDecorView().addOnLayoutChangeListener(
+                (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                    int windowHeight = Math.max(0, bottom - top);
+                    if (windowHeight <= 0) return;
+                    int nextHeight = Math.max(YView.touchTarget(this),
+                            windowHeight * 2 / 3);
+                    if (reportLayout.height != nextHeight) {
+                        reportLayout.height = nextHeight;
+                        scroll.setLayoutParams(reportLayout);
+                    }
+                });
     }
 
     private void startSession() {
@@ -314,10 +327,10 @@ public class DiagnosticActivity extends AppCompatActivity {
                 || "NOT_HIT".equalsIgnoreCase(value);
     }
 
-    private static void applyRed(SpannableStringBuilder styled, int start, int end) {
+    private void applyRed(SpannableStringBuilder styled, int start, int end) {
         if (start < 0 || end <= start || end > styled.length()) return;
         styled.setSpan(
-                new ForegroundColorSpan(Color.RED),
+                new ForegroundColorSpan(YView.color(this, android.R.attr.colorError, YView.warning(this))),
                 start,
                 end,
                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -330,7 +343,7 @@ public class DiagnosticActivity extends AppCompatActivity {
             return;
         }
 
-        new AlertDialog.Builder(this)
+        YViewDialogs.builder(this)
                 .setTitle(R.string.yp_export_json)
                 .setItems(
                         new String[]{

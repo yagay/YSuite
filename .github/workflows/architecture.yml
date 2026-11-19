@@ -2,7 +2,7 @@ name: Validate YSuite Architecture
 
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild/material3-full-ui, refactor/yfloat-google-v2, refactor/yfloat-circle-native, refactor/yfloat-cts-session, experiment/yfloat-google-lens-image-bridge]
   pull_request:
   workflow_dispatch:
 
@@ -63,14 +63,56 @@ jobs:
       - name: Verify unified UI framework
         run: python3 tools/verify_ui_framework.py
 
+      - name: Verify live YUI visual contracts
+        run: python3 tools/verify_yui_visual_contracts.py
+
       - name: Verify YUI single source for current and future features
         run: python3 tools/verify_yui_single_source.py
 
       - name: Verify YEntryCleaner unified UI
         run: python3 tools/verify_yentry_unified_ui.py
 
+      - name: Verify shared Material3 controls across all modules
+        run: python3 tools/verify_yui_controls.py
+
+      - name: Verify YUI content and responsive layouts
+        run: python3 tools/verify_yui_content_compatibility.py
+
+      - name: Verify UI overflow and extreme appearance settings
+        run: python3 tools/verify_yui_overflow_contracts.py
+
+      - name: Verify YUI settings actually control component appearance
+        run: python3 tools/verify_yui_setting_coverage.py
+
+      - name: Reject local button size and line-count overrides in all modules
+        run: python3 tools/verify_yui_intrinsic_actions.py
+
+      - name: Verify shared application inventory and app icons
+        run: python3 tools/verify_shared_app_catalog.py
+
+      - name: Verify TaskManager unified UI and callbacks
+        run: python3 tools/verify_taskmanager_ui.py
+
+      - name: Verify lazy list and Root sampling performance contracts
+        run: python3 tools/verify_list_performance_contracts.py
+
+      - name: Audit shared platform reads across every module
+        run: python3 tools/audit_shared_platform_reads.py
+
+      - name: Verify cross-module YUI card/row alignment
+        run: python3 tools/verify_yui_row_alignment.py
+
       - name: Verify repository UI screen ownership
         run: python3 tools/verify_ui_screen_ownership.py
+
+      - name: Audit every YSuite source for non-YUI visual constants
+        run: >-
+          python3 tools/audit_yui_repository.py
+          --json build/reports/yui-source-audit.json
+          --markdown build/reports/yui-source-audit.md
+
+      - name: Ensure Paddle model weights stay optional per model
+        run: python3 tools/verify_paddle_independent_models.py
 
       - name: Verify YSuite host ownership
         run: python3 tools/verify_host_ownership.py
@@ -78,5 +120,19 @@ jobs:
       - name: Verify standalone runtime ownership boundaries
         run: python3 tools/verify_runtime_ownership.py
 
+      - name: Verify embedded host IPC and health recovery contracts
+        run: python3 tools/verify_host_runtime_contracts.py
+
       - name: Scan feature integration hazards
         run: python3 tools/scan_feature_integration.py --root . --fail-on-high-risk
+
+      - name: Upload complete YUI source audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yui-full-source-audit
+          path: |
+            build/reports/yui-source-audit.json
+            build/reports/yui-source-audit.md
+          if-no-files-found: warn
+          retention-days: 14

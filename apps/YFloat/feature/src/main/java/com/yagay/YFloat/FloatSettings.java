@@ -33,10 +33,12 @@ public final class FloatSettings {
     public static final String K_CIRCLE_BORDER_WIDTH_DP = "circle_active_border_width_dp_v1";
     /** Legacy migration source for the earlier one-switch hybrid OCR experiment. */
     public static final String K_CIRCLE_HYBRID_OCR = "circle_hybrid_ocr_v1";
-    /** 0=ML Kit, 1=PP Tiny, 2=PP Small, 3=PP Medium. */
+    /** 0=ML Kit, 1=PP Tiny, 2=PP Small, 3=PP Medium, 4=Google Lens. */
     public static final String K_CIRCLE_FULL_OCR_ENGINE = "circle_full_ocr_engine_v1";
     /** 0=disabled, 1=PP Tiny, 2=PP Small, 3=PP Medium. */
     public static final String K_CIRCLE_CORRECTION_ENGINE = "circle_correction_engine_v1";
+    /** 0=Paddle geometry, 1=Paddle text+ML Kit geometry, 2=visual comparison. */
+    public static final String K_CIRCLE_TEXT_GEOMETRY_MODE = "circle_text_geometry_mode_v1";
     public static final int DEFAULT_CIRCLE_BORDER_COLOR = 0xFF4285F4;
     public static final String K_STYLE = "float_icon_style";
     public static final String K_GRAVITY = "float_gravity";
@@ -45,6 +47,8 @@ public final class FloatSettings {
     public static final String K_GLOBAL_DEFAULT_HIDE = "global_app_default_hide";
     public static final String K_HIDE_ICON_NO_NOTIFY = "hide_icon_no_notify";
     public static final String K_HIDE_FULLSCREEN = "hide_icon_when_full_screen";
+    /** Prefer the higher accessibility window for ONLY the icon and its touch handle. */
+    public static final String K_ICON_ELEVATED_OVERLAY = "float_icon_elevated_overlay_v1";
     public static final String K_CLICK_UNDER = "action_click_screen_under_icon";
     public static final String K_LINE_ALPHA = "float_line_alpha";
     public static final String K_LINE_WIDTH = "float_line_width_2";
@@ -71,6 +75,24 @@ public final class FloatSettings {
     public static final String K_IME_AVOID = "ime_avoid_icon";
     public static final String K_QUICK_MOVE = "quickMoveIcon";
     public static final String K_DIAGNOSTIC = "diagnostic_logging";
+    /** YFloat-only Google CTS drawing controls; YUI supplies the editor widgets. */
+    public static final String K_GOOGLE_FRAME_RADIUS_DP = "google_frame_radius_dp_v1";
+    public static final String K_GOOGLE_FRAME_OUTLINE_DP = "google_frame_outline_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_WIDTH_DP = "google_frame_glow_width_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_BLUR_DP = "google_frame_glow_blur_dp_v1";
+    public static final String K_GOOGLE_FRAME_GLOW_ALPHA = "google_frame_glow_alpha_v1";
+    public static final String K_GOOGLE_FRAME_SCRIM_ALPHA = "google_frame_scrim_alpha_v1";
+    public static final String K_GOOGLE_FRAME_TRAIL_WIDTH_DP = "google_frame_trail_width_dp_v1";
+    public static final String K_GOOGLE_FRAME_USE_YUI_COLOR = "google_frame_use_yui_color_v1";
+    /** Recognition/window geometry, never added to the global YUI design tokens. */
+    public static final String K_NODE_IMAGE_MIN_DP = "node_image_min_dp_v1";
+    public static final String K_NODE_GENERIC_MIN_DP = "node_generic_min_dp_v1";
+    public static final String K_EDGE_WAKE_WIDTH_DP = "edge_wake_width_dp_v1";
+    public static final String K_TEXT_HANDLE_HIT_DP = "text_handle_hit_dp_v1";
+    public static final String K_TEXT_HANDLE_SNAP_DP = "text_handle_snap_dp_v1";
+    public static final String K_CROP_MIN_DP = "crop_min_dp_v1";
+    public static final String K_CROP_DRAG_SLOP_DP = "crop_drag_slop_dp_v1";
+
     public static final String K_GOOGLE_CTS_ACTIVE_SESSION = "google_cts_active_session_v1";
     public static final String K_GOOGLE_CTS_ACTIVE_UNTIL = "google_cts_active_until_elapsed_v1";
 
@@ -115,6 +137,7 @@ public final class FloatSettings {
     public FloatSettings(Context c) {
         context = c.getApplicationContext();
         p = context.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        YFloatVisualSettings.migrateGoogleFrame(context, p);
     }
 
     private int legacyInt(String key, int def) {
@@ -126,46 +149,57 @@ public final class FloatSettings {
         return FloatingPositionMath.basisPointsFromY(y, availableHeight, 3333);
     }
 
-    public float alpha() { return clamp(p.getInt(K_ALPHA, 62), 10, 100) / 100f; }
-    public int sizeDp() { return clamp(p.getInt(K_SIZE, 48), 24, 96); }
-    public int showPercentage() { return clamp(p.getInt(K_SHOW_PERCENT, 72), 10, 100); }
+    public float alpha() { return YFloatVisualSettings.readInt(context, K_ALPHA, 62) / 100f; }
+    public int sizeDp() { return YFloatVisualSettings.readInt(context, K_SIZE, 48); }
+    public int showPercentage() { return YFloatVisualSettings.readInt(context, K_SHOW_PERCENT, 72); }
     public int hiddenPercent() { return 100 - showPercentage(); }
-    public int longPressMs() { return clamp(p.getInt(K_LONG_PRESS, 300), 100, 1500); }
-    public int doubleTapMs() { return clamp(p.getInt(K_DOUBLE_TAP, 200), 120, 800); }
-    public int tapMaxMs() { return clamp(p.getInt(K_TAP_MAX_MS, 150), 80, 400); }
-    public int downShortDistance() { return clamp(p.getInt(K_DOWN_SHORT_DISTANCE, 200), 30, 900); }
-    public int sideShortDistance() { return clamp(p.getInt(K_SIDE_SHORT_DISTANCE, 320), 30, 1200); }
-    public int gestureStartDistance() { return clamp(p.getInt(K_GESTURE_START_DISTANCE, 30), 5, 100); }
+    public int longPressMs() { return clamp(p.getInt(K_LONG_PRESS, 300), 50, 2500); }
+    public int doubleTapMs() { return clamp(p.getInt(K_DOUBLE_TAP, 200), 50, 1500); }
+    public int tapMaxMs() { return clamp(p.getInt(K_TAP_MAX_MS, 150), 40, 1000); }
+    public int downShortDistance() { return clamp(p.getInt(K_DOWN_SHORT_DISTANCE, 200), 0, 1500); }
+    public int sideShortDistance() { return clamp(p.getInt(K_SIDE_SHORT_DISTANCE, 320), 0, 1500); }
+    public int gestureStartDistance() { return clamp(p.getInt(K_GESTURE_START_DISTANCE, 30), 1, 300); }
     public float verticalBias() { return clamp(p.getInt(K_VERTICAL_BIAS, 120), 100, 300) / 100f; }
-    public int style() { return clamp(p.getInt(K_STYLE, 0), 0, 4); }
+    public int style() { return YFloatVisualSettings.readInt(context, K_STYLE, 0); }
 
     public float downShortDistancePx(float density) { return downShortDistance() * density; }
     public float sideShortDistancePx(float density) { return sideShortDistance() * density; }
 
     public boolean snap() { return p.getBoolean(K_SNAP, true); }
     public boolean vibrate() { return p.getBoolean(K_VIBRATE, true); }
-    public boolean track() { return p.getBoolean(K_TRACK, false); }
+    public boolean track() { return YFloatVisualSettings.readBoolean(context, K_TRACK, false); }
     public boolean bothSide() { return p.getBoolean(K_BOTH_SIDE, false); }
     public boolean showOnLock() { return p.getBoolean(K_SHOW_ON_LOCK, true); }
     public boolean keepInScreenshot() { return p.getBoolean(K_KEEP_IN_SCREENSHOT, false); }
     public boolean keepStatusBarInScreenshot() { return p.getBoolean(K_KEEP_STATUS_BAR, true); }
     public boolean keepNavigationBarInScreenshot() { return p.getBoolean(K_KEEP_NAVIGATION_BAR, false); }
     public boolean accessibilityScreenshot() { return p.getBoolean(K_ACCESSIBILITY_SCREENSHOT, true); }
-    public int circleEngine() { return clamp(p.getInt(K_CIRCLE_ENGINE, 0), 0, 1); }
-    public boolean circleBorderEnabled() { return p.getBoolean(K_CIRCLE_BORDER_ENABLED, true); }
-    public int circleBorderColor() { return p.getInt(K_CIRCLE_BORDER_COLOR, DEFAULT_CIRCLE_BORDER_COLOR); }
-    public int circleBorderWidthDp() { return clamp(p.getInt(K_CIRCLE_BORDER_WIDTH_DP, 3), 1, 8); }
+    /** Legacy Google mode (1) is migrated to the native circle. */
+    public int circleEngine() { return 0; }
+    public boolean circleBorderEnabled() { return YFloatVisualSettings.readBoolean(context, K_CIRCLE_BORDER_ENABLED, true); }
+    public int circleBorderColor() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_COLOR, DEFAULT_CIRCLE_BORDER_COLOR); }
+    Context contextForAppearance() { return context; }
+    public int circleBorderWidthDp() { return YFloatVisualSettings.readInt(context, K_CIRCLE_BORDER_WIDTH_DP, 3); }
     public boolean circleHybridOcr() { return circleCorrectionEngine() != 0; }
+    /** Paddle remains the only recognized text source in all three modes. */
+    public int circleTextGeometryMode() {
+        Object raw=p.getAll().get(K_CIRCLE_TEXT_GEOMETRY_MODE);
+        return raw instanceof Number n ? clamp(n.intValue(),0,2) : 1;
+    }
     public int circleFullOcrEngine() {
         Object raw = p.getAll().get(K_CIRCLE_FULL_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 3);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 3); } catch (Throwable ignored) {} }
-        return 0;
+        int stored=5;
+        if(raw instanceof Number n)stored=n.intValue();
+        else if(raw instanceof String v){
+            try{stored=Integer.parseInt(v.trim());}catch(NumberFormatException ignored){}
+        }
+        // Old Circle mode 0 was ML Kit; migrate it to Paddle Auto.
+        return stored<1||stored>5?5:stored;
     }
     public int circleCorrectionEngine() {
         Object raw = p.getAll().get(K_CIRCLE_CORRECTION_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 3);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 3); } catch (Throwable ignored) {} }
+        if (raw instanceof Number n) return clamp(n.intValue(), 0, 4);
+        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 4); } catch (Throwable ignored) {} }
         return p.getBoolean(K_CIRCLE_HYBRID_OCR, true) ? 2 : 0;
     }
     public boolean rootScreenshot() { return p.getBoolean(K_ROOT_SCREENSHOT, false); }
@@ -176,6 +210,62 @@ public final class FloatSettings {
     public boolean defaultHideByApp() { return p.getBoolean(K_GLOBAL_DEFAULT_HIDE, false); }
     public boolean hideWithoutNotify() { return p.getBoolean(K_HIDE_ICON_NO_NOTIFY, false); }
     public boolean edgeSwipeRecallEnabled() { return p.getBoolean(K_HIDE_MAIN_SWIPE, true); }
+
+    public int googleFrameRadiusDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_RADIUS_DP, 8); }
+    public int googleFrameOutlineDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_OUTLINE_DP, 1); }
+    public int googleFrameGlowWidthDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_GLOW_WIDTH_DP, 1); }
+    public int googleFrameGlowBlurDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_GLOW_BLUR_DP, 20); }
+    public int googleFrameGlowAlpha() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_GLOW_ALPHA, 235); }
+    public int googleFrameScrimAlpha() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_SCRIM_ALPHA, 102); }
+    public int googleFrameTrailWidthDp() { return YFloatVisualSettings.readInt(context, K_GOOGLE_FRAME_TRAIL_WIDTH_DP, 3); }
+    public boolean googleFrameUseYuiColor() { return YFloatVisualSettings.readBoolean(context, K_GOOGLE_FRAME_USE_YUI_COLOR, true); }
+    public int imageRecognitionMinDp() { return clamp(p.getInt(K_NODE_IMAGE_MIN_DP, 12), 1, 64); }
+    public int genericRecognitionMinDp() { return clamp(p.getInt(K_NODE_GENERIC_MIN_DP, 20), 1, 96); }
+    public int edgeWakeWidthDp() { return clamp(p.getInt(K_EDGE_WAKE_WIDTH_DP, 18), 1, 64); }
+    public int textHandleHitDp() { return clamp(p.getInt(K_TEXT_HANDLE_HIT_DP, 28), 8, 80); }
+    public int textHandleSnapDp() { return clamp(p.getInt(K_TEXT_HANDLE_SNAP_DP, 96), 16, 240); }
+    public int cropMinDp() { return clamp(p.getInt(K_CROP_MIN_DP, 24), 4, 96); }
+    public int cropDragSlopDp() { return clamp(p.getInt(K_CROP_DRAG_SLOP_DP, 24), 4, 96); }
+
+    public static boolean isGoogleVisualKey(String key) {
+        return key != null && key.startsWith("google_frame_");
+    }
+
+    public void resetAdvancedSelectionSettings() {
+        resetAdvancedSelectionSettings(true);
+    }
+
+    public void resetAdvancedSelectionSettings(boolean resetVisuals) {
+        p.edit()
+                .remove(K_GOOGLE_FRAME_RADIUS_DP)
+                .remove(K_GOOGLE_FRAME_OUTLINE_DP)
+                .remove(K_GOOGLE_FRAME_GLOW_WIDTH_DP)
+                .remove(K_GOOGLE_FRAME_GLOW_BLUR_DP)
+                .remove(K_GOOGLE_FRAME_GLOW_ALPHA)
+                .remove(K_GOOGLE_FRAME_SCRIM_ALPHA)
+                .remove(K_GOOGLE_FRAME_TRAIL_WIDTH_DP)
+                .remove(K_GOOGLE_FRAME_USE_YUI_COLOR)
+                .remove(K_NODE_IMAGE_MIN_DP)
+                .remove(K_NODE_GENERIC_MIN_DP)
+                .remove(K_EDGE_WAKE_WIDTH_DP)
+                .remove(K_TEXT_HANDLE_HIT_DP)
+                .remove(K_TEXT_HANDLE_SNAP_DP)
+                .remove(K_CROP_MIN_DP)
+                .remove(K_CROP_DRAG_SLOP_DP)
+                .apply();
+        if (resetVisuals) {
+            com.yagay.yui.YAppearanceStore store = new com.yagay.yui.YAppearanceStore(context);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_RADIUS, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_OUTLINE, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_WIDTH, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_BLUR, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_GLOW_ALPHA, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_SCRIM_ALPHA, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_TRAIL_WIDTH, YFloatVisualSettings.MODULE);
+            store.inherit(com.yagay.yui.YSettingKey.GOOGLE_FRAME_YUI_COLOR, YFloatVisualSettings.MODULE);
+        }
+        LsposedStatusManager.syncRuntimeConfigAsync();
+    }
 
     public boolean enhancedMode() { return p.getBoolean(K_ENHANCED_MODE, false); }
     public boolean rootEnabled() { return p.getBoolean(K_ROOT_ENABLED, false); }
@@ -199,53 +289,80 @@ public final class FloatSettings {
         return 0;
     }
     public boolean hideWhenFullscreen() { return fullscreenHideMode() != 0; }
+    public boolean elevatedIconOverlay() { return p.getBoolean(K_ICON_ELEVATED_OVERLAY, true); }
     public boolean clickScreenUnderIcon() { return p.getBoolean(K_CLICK_UNDER, false); }
-    public int lineAlpha() { return clamp(p.getInt(K_LINE_ALPHA, 80), 10, 100); }
-    public int lineWidthDp() { return clamp(p.getInt(K_LINE_WIDTH, 6), 1, 24); }
-    public int lineStyle() { return clamp(p.getInt(K_LINE_STYLE, 0), 0, 2); }
-    public String lineColors() { return p.getString(K_LINE_COLORS, "#FFFFFF"); }
-    public boolean lineGradient() { return p.getBoolean(K_LINE_GRADIENT, false); }
+    public int lineAlpha() { return YFloatVisualSettings.readInt(context, K_LINE_ALPHA, 80); }
+    public int lineWidthDp() { return YFloatVisualSettings.readInt(context, K_LINE_WIDTH, 6); }
+    public int lineStyle() { return YFloatVisualSettings.readInt(context, K_LINE_STYLE, 0); }
+    public String lineColors() { return YFloatVisualSettings.readString(context, K_LINE_COLORS, "#FFFFFF"); }
+    public boolean lineGradient() { return YFloatVisualSettings.readBoolean(context, K_LINE_GRADIENT, false); }
     public boolean ocrShowText() { return p.getBoolean(K_OCR_SHOW_TEXT, true); }
     public boolean ocrShowImage() { return p.getBoolean(K_OCR_SHOW_IMAGE, true); }
     public boolean ocrCollapse() { return p.getBoolean(K_OCR_COLLAPSE, false); }
     public int ocrType() { return clamp(p.getInt(K_OCR_TYPE, 0), 0, 1); }
     public int ocrEngineMode() {
+        // 4 was the retired network PP-StructureV3 entry. Migrate it to offline auto.
         Object raw = p.getAll().get(K_OCR_ENGINE);
-        if (raw instanceof Number n) return clamp(n.intValue(), 0, 3);
-        if (raw instanceof String v) { try { return clamp(Integer.parseInt(v.trim()), 0, 3); } catch (Throwable ignored) {} }
-        return 0;
+        int mode = 0;
+        if (raw instanceof Number n) mode = n.intValue();
+        else if (raw instanceof String v) {
+            try { mode = Integer.parseInt(v.trim()); } catch (NumberFormatException ignored) {}
+        }
+        // Retired cloud (4) and ML Kit (3) both migrate to local Paddle Auto.
+        return mode==3||mode==4?0:clamp(mode,0,6);
     }
     public String customIconUri() { return p.getString(K_CUSTOM_ICON, ""); }
     public String slidePics() { return p.getString(K_SLIDE_PICS, ""); }
-    public int slideIntervalMs() { return clamp(p.getInt(K_SLIDE_INTERVAL, 3000), 500, 60000); }
+    public int slideIntervalMs() { return clamp(p.getInt(K_SLIDE_INTERVAL, 3000), 100, 600000); }
     public String action(String key, String def) { return p.getString(key, def); }
     public String hiddenPackagesRaw() { return p.getString(K_HIDE_PACKAGES, ""); }
     public int circleCancelXBp() { return p.getInt(K_CIRCLE_CANCEL_X_BP, -1); }
     public int circleCancelYBp() { return p.getInt(K_CIRCLE_CANCEL_Y_BP, -1); }
 
     public void armGoogleCtsSession(String token, long untilElapsed) {
-        p.edit()
-                .putString(K_GOOGLE_CTS_ACTIVE_SESSION, token == null ? "" : token)
-                .putLong(K_GOOGLE_CTS_ACTIVE_UNTIL, Math.max(0L, untilElapsed))
-                .commit();
+        synchronized (FloatSettings.class) {
+            p.edit()
+                    .putString(K_GOOGLE_CTS_ACTIVE_SESSION, token == null ? "" : token)
+                    .putLong(K_GOOGLE_CTS_ACTIVE_UNTIL, Math.max(0L, untilElapsed))
+                    .commit();
+        }
     }
 
+    /** An old callback must never clear the next Google CTS session. */
+    public boolean clearGoogleCtsSession(String expectedToken) {
+        if(expectedToken==null||expectedToken.isBlank())return false;
+        synchronized (FloatSettings.class) {
+            if(!expectedToken.equals(p.getString(K_GOOGLE_CTS_ACTIVE_SESSION,"")))
+                return false;
+            return p.edit()
+                    .remove(K_GOOGLE_CTS_ACTIVE_SESSION)
+                    .remove(K_GOOGLE_CTS_ACTIVE_UNTIL)
+                    .commit();
+        }
+    }
+
+    /** Retained for administrative reset paths. */
     public void clearGoogleCtsSession() {
-        p.edit()
-                .remove(K_GOOGLE_CTS_ACTIVE_SESSION)
-                .remove(K_GOOGLE_CTS_ACTIVE_UNTIL)
-                .apply();
+        synchronized (FloatSettings.class) {
+            p.edit()
+                    .remove(K_GOOGLE_CTS_ACTIVE_SESSION)
+                    .remove(K_GOOGLE_CTS_ACTIVE_UNTIL)
+                    .commit();
+        }
     }
 
     public void setBoolean(String key, boolean value) {
+        if (YFloatVisualSettings.writeBoolean(context, key, value)) return;
         if (key != null && !key.isBlank()) p.edit().putBoolean(key, value).apply();
     }
 
     public void setInt(String key, int value) {
+        if (YFloatVisualSettings.writeInt(context, key, value)) return;
         if (key != null && !key.isBlank()) p.edit().putInt(key, value).apply();
     }
 
     public void setString(String key, String value) {
+        if (YFloatVisualSettings.writeString(context, key, value)) return;
         if (key != null && !key.isBlank()) p.edit().putString(key, value == null ? "" : value).apply();
     }
 
@@ -293,12 +410,14 @@ public final class FloatSettings {
 
     /** Compound icon selection stays atomic so URI and style cannot drift apart. */
     public void selectCustomIcon(String uri) {
-        p.edit().putString(K_CUSTOM_ICON, uri == null ? "" : uri).putInt(K_STYLE, 3).apply();
+        p.edit().putString(K_CUSTOM_ICON, uri == null ? "" : uri).apply();
+        YFloatVisualSettings.writeInt(context, K_STYLE, 3);
     }
 
     /** Compound slideshow selection stays atomic so URI list and style cannot drift apart. */
     public void selectSlideIcons(String joinedUris) {
-        p.edit().putString(K_SLIDE_PICS, joinedUris == null ? "" : joinedUris).putInt(K_STYLE, 4).apply();
+        p.edit().putString(K_SLIDE_PICS, joinedUris == null ? "" : joinedUris).apply();
+        YFloatVisualSettings.writeInt(context, K_STYLE, 4);
     }
 
     public Set<String> hiddenPackages() {

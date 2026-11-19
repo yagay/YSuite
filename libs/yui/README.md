@@ -53,3 +53,22 @@ If a visual or layout behavior is reusable by more than one feature, change YUI 
 ## CI contract
 
 A change under `libs/yui/` is treated as a shared dependency change, so standalone CI rebuilds every enabled feature. Architecture checks also reject feature-owned normal-screen Material navigation and feature-local UI systems.
+
+## Runtime appearance preferences
+
+YSuite includes an in-app appearance settings centre, backed by
+`YAppearanceStore` in `libs/yui`. It exposes validated and versioned
+parameters for theme, dynamic color, standard/compact/comfortable spacing,
+button radius and padding, and text scaling. Default values preserve the prior
+Material 3 standard layout; all touch targets remain at least 48dp.
+
+The same store can resolve overrides for individual integrated modules using
+`YAppearanceStore.MODULE_EXTRA` on their launch intents. Overrides fall
+back to global values when not present. Shared Compose Activities automatically
+subscribe to preference changes through `YTheme`. Feature business preferences
+and Root/LSPosed configuration are not moved or cleared.
+
+The JSON import/export operation only covers YUI appearance and home interactions;
+the document is validated fully before replacement. Standalone APKs maintain
+their own private preferences and are not silently synced across Android packages.
+Legacy View/XML surfaces need an explicit migration to consume the new controls.

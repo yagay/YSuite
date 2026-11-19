@@ -7,14 +7,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.yagay.YEntryCleaner.R
 import com.yagay.yui.YActionSpec
 import com.yagay.yui.YActionStyle
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YFullScreenDialog
 import com.yagay.yui.YListItem
 import com.yagay.yui.YNotice
@@ -55,9 +57,9 @@ internal fun ScopeDialog(status: ModuleStatus, requestScope: () -> Unit, refresh
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = YDimens.ScreenHorizontal)
+                .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+            verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) {
             Text(
                 stringResource(R.string.scope_intro),

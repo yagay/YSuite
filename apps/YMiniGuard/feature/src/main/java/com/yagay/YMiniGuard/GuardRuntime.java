@@ -27,6 +27,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
             ConfigKeys.SYSTEM_IMPORTANCE_TOP,
             ConfigKeys.SYSTEM_HAS_RESUMED,
             ConfigKeys.SYSTEM_BLOCK_REMOVE_KILL,
+            ConfigKeys.MEDIA_BRIDGE_ENABLED,
             ConfigKeys.DIAGNOSTICS_ACTIVE
     };
 
@@ -149,9 +150,37 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
         return getFrameworkScope().contains("system");
     }
 
+    /**
+     * A running LSPosed target is not proof the MiniGuard hook installed,
+     * but its loaded build can identify a stale system_server bootstrap.
+     */
+    static long getSystemTargetLoadedVersionCode() {
+        XposedService current = service;
+        if (current == null) return -1L;
+        try {
+            for (var target : current.getRunningTargets()) {
+                if ("system".equals(target.getProcessName())
+                        || "android".equals(target.getProcessName())) {
+                    return target.getLoadedVersionCode();
+                }
+            }
+        } catch (Throwable error) {
+            SERVICES.warn("Failed to read system_server Hook build", error);
+        }
+        return -1L;
+    }
+
     static EngineStatusProvider.Status getEngineStatus() {
         GuardRuntime runtime = instance;
-        return EngineStatusProvider.read(runtime == null ? null : runtime.context);
+        EngineStatusProvider.Status status =
+                EngineStatusProvider.read(runtime == null ? null : runtime.context);
+        com.yagay.suite.api.FeatureHookEvidence.publish(
+                "yminiguard", "system", status.pid, status.versionCode,
+                status.isFromCurrentBoot() && status.hookCount > 0,
+                "hooks=" + status.hookCount + " bootstrap=" + status.bootstrapVersionCode
+                        + " " + status.reloadMessage,
+                20_000L);
+        return status;
     }
 
     static long getLoadedEngineVersionCode() { return getEngineStatus().versionCode; }
@@ -159,7 +188,12 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     static int getEnginePid() { return getEngineStatus().pid; }
     static int getEngineHookCount() { return getEngineStatus().hookCount; }
     static long getBootstrapVersionCode() { return getEngineStatus().bootstrapVersionCode; }
-    static boolean isHotReloadAvailable() { return getEngineStatus().hotReload; }
+    static boolean isHotReloadAvailable() {
+        EngineStatusProvider.Status status = getEngineStatus();
+        return service != null && hasSystemScope()
+                && status.isFromCurrentBoot() && status.pid > 0
+                && status.hookCount > 0 && status.versionCode > 0 && status.hotReload;
+    }
     static long getEngineGeneration() { return getEngineStatus().generation; }
     static String getEngineReloadMessage() { return getEngineStatus().reloadMessage; }
     static int getEngineActiveSessions() { return getEngineStatus().activeSessions; }
@@ -212,6 +246,8 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     static void putBoolean(String key, boolean value) {
         localPrefs().edit().putBoolean(key, value).apply();
         syncAll();
+        GuardRuntime runtime = instance;
+        if (runtime != null) YMiniMediaBridge.refresh(runtime.context);
     }
 
     static void putInt(String key, int value) {
@@ -236,6 +272,8 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
                 key,
                 value == null ? Collections.emptySet() : new HashSet<>(value)).apply();
         syncAll();
+        GuardRuntime runtime = instance;
+        if (runtime != null) YMiniMediaBridge.refresh(runtime.context);
     }
 
     static boolean packageSelected(String key, String packageName) {
@@ -243,6 +281,7 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     }
 
     static boolean requestEngineReload() {
+        if (!isHotReloadAvailable()) return false;
         int seq = getInt(ConfigKeys.ENGINE_RELOAD_SEQ) + 1;
         localPrefs().edit().putInt(ConfigKeys.ENGINE_RELOAD_SEQ, seq).apply();
         return syncAll();
@@ -251,6 +290,8 @@ public final class GuardRuntime implements XposedServiceHelper.OnServiceListener
     static void resetDefaults() {
         localPrefs().edit().clear().commit();
         syncAll();
+        GuardRuntime runtime = instance;
+        if (runtime != null) YMiniMediaBridge.refresh(runtime.context);
     }
 
     static synchronized boolean syncAll() {

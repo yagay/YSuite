@@ -1,0 +1,7 @@
+{
+  "type": "NFC_A",
+  "name": "My NFC-A test card",
+  "uid": "C1B0BC1B",
+  "atqa": "0004",
+  "sak": "08"
+}

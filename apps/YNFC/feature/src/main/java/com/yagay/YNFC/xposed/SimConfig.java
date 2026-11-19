@@ -6,6 +6,9 @@ final class SimConfig {
     final boolean active;
     final boolean diagnostics;
     final String uid;
+    final String sak;
+    final String atqa;
+    final String backend;
     final String commandAction;
     final String commandStatus;
     final long generation;
@@ -14,12 +17,23 @@ final class SimConfig {
     final long controllerEpoch;
     final int commandPid;
 
-    SimConfig(boolean initialized, boolean active, String uid, boolean diagnostics, long generation,
+    boolean useVendorTypeA() { return "VENDOR".equals(backend); }
+    boolean useInterceptTypeA() { return "INTERCEPT".equals(backend); }
+    /** Native NFC/NCI uses an independent backend, never an OEM wallet/HCE fallback. */
+    boolean useNativeNci() { return "NATIVE".equals(backend); }
+
+    SimConfig(boolean initialized, boolean active, String uid, String sak, String atqa,
+              String backend, boolean diagnostics, long generation,
               long consumedGeneration, long handledGeneration, String commandAction,
               String commandStatus, int commandPid, long controllerEpoch) {
         this.initialized = initialized;
         this.active = active;
         this.uid = uid;
+        this.sak = sak;
+        this.atqa = atqa;
+        this.backend = "VENDOR".equals(backend) ? "VENDOR" :
+                ("INTERCEPT".equals(backend) ? "INTERCEPT" :
+                ("NATIVE".equals(backend) ? "NATIVE" : "RF"));
         this.diagnostics = diagnostics;
         this.generation = generation;
         this.consumedGeneration = consumedGeneration;
@@ -31,12 +45,13 @@ final class SimConfig {
     }
 
     SimConfig withControllerEpoch(long epoch) {
-        return new SimConfig(initialized, active, uid, diagnostics, generation, consumedGeneration,
-                handledGeneration, commandAction, commandStatus, commandPid, epoch);
+        return new SimConfig(initialized, active, uid, sak, atqa, backend, diagnostics, generation,
+                consumedGeneration, handledGeneration, commandAction,
+                commandStatus, commandPid, epoch);
     }
 
     static SimConfig uninitialized() {
-        return new SimConfig(false, false, null, false, 0L, Long.MIN_VALUE,
-                Long.MIN_VALUE, "", "", 0, 0L);
+        return new SimConfig(false, false, null, null, null, "RF", false, 0L,
+                Long.MIN_VALUE, Long.MIN_VALUE, "", "", 0, 0L);
     }
 }

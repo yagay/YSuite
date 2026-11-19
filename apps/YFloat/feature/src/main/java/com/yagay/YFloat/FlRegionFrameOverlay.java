@@ -3,6 +3,7 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import com.yagay.yui.YOverlayTokens;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
@@ -76,8 +77,8 @@ final class FlRegionFrameOverlay {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeJoin(Paint.Join.ROUND);
             paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setStrokeWidth(dp(c, 2f));
-            paint.setColor(SelectionVisuals.FL_CONFIRMED_COLOR);
+            paint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
+            paint.setColor(YOverlayTokens.success(c));
         }
 
         void setScreenRect(Rect rect) {

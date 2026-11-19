@@ -16,6 +16,7 @@ import com.yagay.YEntryCleaner.R
 import com.yagay.YEntryCleaner.domain.CustomOpenDefinition
 import com.yagay.YEntryCleaner.domain.OpenPreset
 import com.yagay.YEntryCleaner.domain.OpenTypeConfig
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YActionSpec
 import com.yagay.yui.YActionStyle
 import com.yagay.yui.YFormDialog
@@ -64,7 +65,7 @@ internal fun CustomOpenTypeDialog(
         ),
     ) {
         YNotice(stringResource(R.string.custom_open_help))
-        LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
+        LazyColumn(modifier = Modifier.heightIn(max = (LocalYAppearance.current.rowHeightDp * 7.5f).dp)) {
             items(OpenPreset.CUSTOM_SLOTS, key = { it.name }) { slot ->
                 val definition = config.customDefinitions[slot]
                 val summary = if (definition == null) {
@@ -165,7 +166,7 @@ private fun CustomOpenTypeEditor(
             label = stringResource(R.string.custom_open_mime_label),
             supportingText = stringResource(R.string.custom_open_mime_example),
             singleLine = false,
-            modifier = Modifier.heightIn(min = 96.dp),
+            modifier = Modifier.heightIn(min = (LocalYAppearance.current.rowHeightDp * 1.75f).dp),
         )
         YTextField(
             value = extensionText,
@@ -173,7 +174,7 @@ private fun CustomOpenTypeEditor(
             label = stringResource(R.string.custom_open_extension_label),
             supportingText = stringResource(R.string.custom_open_extension_example),
             singleLine = false,
-            modifier = Modifier.heightIn(min = 96.dp),
+            modifier = Modifier.heightIn(min = (LocalYAppearance.current.rowHeightDp * 1.75f).dp),
         )
         errorRes?.let {
             YNotice(

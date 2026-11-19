@@ -16,6 +16,8 @@ package com.paddle.ocr
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Rect
+import com.paddle.ocr.model.OCRResult
 import com.paddle.ocr.engine.OCREngine
 import com.paddle.ocr.engine.OCREngineResult
 import com.paddle.ocr.model.OCRBox
@@ -59,6 +61,7 @@ class PaddleOCR private constructor(
             detModelAssetPath: String,
             recModelAssetPath: String,
             recConfigAssetPath: String,
+            textLineOrientationModelPath: String? = null,
         ): PaddleOCR {
             val appContext = context.applicationContext
             return withContext(Dispatchers.IO) {
@@ -67,6 +70,7 @@ class PaddleOCR private constructor(
                     detModelAsset = detModelAssetPath,
                     recModelAsset = recModelAssetPath,
                     recConfigAsset = recConfigAssetPath,
+                    textLineOrientationModelPath = textLineOrientationModelPath,
                 )
                 PaddleOCR(engine)
             }
@@ -80,12 +84,33 @@ class PaddleOCR private constructor(
         return recognizeResult { engine.run(bitmap) }
     }
 
+    /**
+     * Circle fast path shares the existing ONNX sessions; only detector
+     * resolution is capped. Recognition crops stay at source resolution and
+     * coordinates still describe the original bitmap.
+     */
+    suspend fun recognizeFast(bitmap:Bitmap,maxDetectionSide:Int=1920):OCRRunResult {
+        if(bitmap.width<=0||bitmap.height<=0)throw OCRError.InvalidImage()
+        return recognizeResult {engine.runFast(bitmap,maxDetectionSide)}
+    }
+
     /** Detection-only entry used when another recognizer owns text decoding. */
     suspend fun detect(bitmap: Bitmap): List<OCRBox> {
         if (bitmap.width == 0 || bitmap.height == 0) {
             throw OCRError.InvalidImage()
         }
         return withContext(Dispatchers.IO) { engine.detect(bitmap).boxes }
+    }
+
+    /**
+     * Detection-free local recognition for an already located on-screen word.
+     * Rect is in ORIGINAL bitmap coordinates. It does not run DB detection,
+     * change the OCR model, or get text from the geometry provider.
+     */
+    suspend fun recognizeRegion(bitmap: Bitmap, rect: Rect): OCRResult? {
+        if (bitmap.isRecycled || bitmap.width <= 0 || bitmap.height <= 0)
+            throw OCRError.InvalidImage()
+        return withContext(Dispatchers.IO) { engine.recognizeRegion(bitmap,rect) }
     }
 
     suspend fun recognize(imageBytes: ByteArray): OCRRunResult {

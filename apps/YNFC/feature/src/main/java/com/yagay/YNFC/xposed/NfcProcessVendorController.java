@@ -1,7 +1,13 @@
 package com.yagay.YNFC.xposed;
 
+import android.os.Build;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.IBinder;
+import java.util.Locale;
 import android.os.Parcel;
+import dalvik.system.PathClassLoader;
+import java.io.File;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -14,8 +20,20 @@ final class NfcProcessVendorController {
     private static final String VENDOR_NAME = "vendor";
     private static final String VENDOR_DESCRIPTOR = "com.vendor.nfc.IVendorNfcAdapter";
     private static final String VENDOR_STUB = "com.vendor.nfc.IVendorNfcAdapter$Stub";
+    // ColorOS 17 exposes a separate OEM AIDL service alongside the older vendor path.
+    private static final String OPLUS_SERVICE_NAME = "oplus_nfc_service";
+    private static final String OPLUS_DESCRIPTOR = "com.oplus.nfc.IVendorNfcAdapter";
+    private static final String OPLUS_STUB = "com.oplus.nfc.IVendorNfcAdapter$Stub";
+    // Confirmed in NFC Service 17: setHceTypeAConfig enforces this OEM permission.
+    private static final String OPLUS_NFC_ACCESS_PERMISSION = "com.oplus.permission.safe.NFC";
     private static final int STARTUP_RETRY_COUNT = 30;
     private static final long STARTUP_RETRY_DELAY_MS = 100L;
+    private static final String VENDOR_CLIENT = "com.vendor.nfc.VendorNfcAdapter";
+    private static final String[] VENDOR_JARS = {
+            "/system_ext/framework/nfcvendorlib.jar",
+            "/system_ext/framework/oplusex/com.oplus.NfcNci/nfcvendorlib.jar",
+            "/system_ext/framework/com.vendor.nfc.jar"
+    };
 
     static final class Result {
         final boolean success;
@@ -28,6 +46,343 @@ final class NfcProcessVendorController {
             this.stage = stage;
             this.detail = detail;
             this.vendorDescriptor = vendorDescriptor;
+        }
+    }
+
+    /**
+     * Read-only capability discovery. A vendor Binder descriptor or a known
+     * NFCC string alone does NOT establish that arbitrary Type-A configuration
+     * transactions are supported. Only a real callable method exposed by the
+     * running OEM implementation qualifies for the direct backend.
+     */
+    Result probeTypeA() {
+        try {
+            StringBuilder trace = new StringBuilder();
+            Boolean oplusPermission = checkOplusNfcAccessPermission(trace);
+            IBinder oplus = findVerifiedOplusBinder(trace);
+            if (oplus != null) {
+                Object local = oplus.queryLocalInterface(OPLUS_DESCRIPTOR);
+                Object proxy = asInterface(OPLUS_STUB, oplus);
+                if (hasTypeAApi(local) || hasTypeAApi(proxy)) {
+                    if (Boolean.FALSE.equals(oplusPermission)) {
+                        return new Result(false, "TYPE_A_PERMISSION_DENIED",
+                                "ColorOS Type-A AIDL method exists, but NFC process lacks "
+                                        + OPLUS_NFC_ACCESS_PERMISSION + "; " + trace,
+                                OPLUS_DESCRIPTOR);
+                    }
+                    return new Result(true, "TYPE_A_OPLUS_AIDL_PRESENT",
+                            "ColorOS native Type-A method found; controller/reader unverified; " + trace,
+                            OPLUS_DESCRIPTOR);
+                }
+                appendTrace(trace, "oplus-stub-not-callable");
+            }
+            IBinder main = lookupService(NFC_SERVICE_NAME, trace);
+            if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
+                // A registered service (visible in 'service list') can still be invisible
+                // to this process through ServiceManager/SELinux/hidden-API restrictions.
+                // Preserve both probes and method visibility instead of blaming NFC state.
+                String descriptor = safeDescriptor(main);
+                appendTrace(trace, "nfc-descriptor=" + descriptor);
+                Class<?> oplusApi = loadVendorClass(OPLUS_STUB);
+                appendTrace(trace, "oplus-AIDL-stub=" + (oplusApi == null ? "missing" : "loadable"));
+                return new Result(false, "TYPE_A_BINDER_LOOKUP_FAILED",
+                        "Registered ColorOS NFC services cannot be resolved as callable Binder "
+                        + "interfaces from this process; " + trace, descriptor);
+            }
+            IBinder vendor = findVerifiedVendorBinder(main, trace);
+            if (vendor == null) {
+                Object wrapper = getOplusVendorClient(trace);
+                if (hasTypeAApi(wrapper)) {
+                    return new Result(true, "TYPE_A_WRAPPER_PRESENT",
+                            "OEM vendor client has Type-A method; Binder and RF acceptance unverified; " + trace,
+                            null);
+                }
+                return new Result(false, "TYPE_A_VENDOR_UNAVAILABLE",
+                        "No verified vendor Binder or callable OEM client: " + trace, null);
+            }
+            String descriptor = safeDescriptor(vendor);
+            if (!alive(vendor) || !VENDOR_DESCRIPTOR.equals(descriptor)) {
+                return new Result(false, "TYPE_A_DESCRIPTOR_MISMATCH",
+                        "Vendor Binder is not IVendorNfcAdapter", descriptor);
+            }
+            Object impl = vendor.queryLocalInterface(descriptor);
+            if (hasTypeAApi(impl) || hasTypeAApi(asInterface(VENDOR_STUB, vendor))) {
+                return new Result(true, "TYPE_A_API_PRESENT",
+                        "Callable Type-A method found; controller acceptance unverified; " + trace,
+                        descriptor);
+            }
+            Object wrapper = getOplusVendorClient(trace);
+            if (hasTypeAApi(wrapper)) {
+                return new Result(true, "TYPE_A_WRAPPER_PRESENT",
+                        "Callable OEM Type-A wrapper; controller acceptance unverified; " + trace,
+                        descriptor);
+            }
+            return new Result(false, "TYPE_A_UNVERIFIED",
+                    "Vendor Binder exists but no callable Type-A method; " + trace,
+                    descriptor);
+        } catch (Throwable error) {
+            return new Result(false, "TYPE_A_PROBE_FAILED",
+                    error.getClass().getSimpleName() + ": " + error.getMessage(), null);
+        }
+    }
+
+    /**
+     * Direct Vendor Type-A backend, separate from the RF_CONFIG_WRITE hook.
+     * The caller must provide explicit card parameters; never invent ATQA/SAK
+     * from a UID. A true result means OEM API accepted the request, NOT that an
+     * external reader or the NFCC has verified the over-the-air identity.
+     */
+    Result setTypeAConfig(boolean enabled, byte[] atqa, byte[] sak, byte[] uid) {
+        // Never pass null native arrays, even for disable; the OEM method may
+        // dereference them before checking the enabled flag.
+        if (atqa == null || atqa.length != 2
+                || sak == null || sak.length != 1
+                || uid == null || (uid.length != 4 && uid.length != 7 && uid.length != 10)) {
+            return new Result(false, "TYPE_A_INVALID_PARAMETERS",
+                    "Explicit ATQA(2), SAK(1), UID(4/7/10) required", null);
+        }
+        try {
+            StringBuilder trace = new StringBuilder();
+            Object[] args = new Object[]{enabled, atqa.clone(), sak.clone(), uid.clone()};
+            Class<?>[] types = new Class<?>[]{boolean.class, byte[].class, byte[].class, byte[].class};
+            IBinder oplus = findVerifiedOplusBinder(trace);
+            if (oplus != null) {
+                Boolean oplusPermission = checkOplusNfcAccessPermission(trace);
+                if (Boolean.FALSE.equals(oplusPermission)) {
+                    return new Result(false, "TYPE_A_PERMISSION_DENIED",
+                            "ColorOS enforces " + OPLUS_NFC_ACCESS_PERMISSION
+                                    + " before Type-A config; NFC process has no grant; " + trace,
+                            OPLUS_DESCRIPTOR);
+                }
+                Object local = oplus.queryLocalInterface(OPLUS_DESCRIPTOR);
+                Object proxy = asInterface(OPLUS_STUB, oplus);
+                Boolean accepted = invokeBooleanMethod(local, "setHceTypeAConfig", types, args);
+                if (accepted == null)
+                    accepted = invokeBooleanMethod(proxy, "setHceTypeAConfig", types, args);
+                if (accepted != null) {
+                    return new Result(accepted,
+                            accepted ? "TYPE_A_API_ACCEPTED" : "TYPE_A_REJECTED",
+                            (accepted ? "ColorOS Type-A method accepted; external reader verification required; "
+                                    : "ColorOS Type-A method rejected; ") + trace,
+                            OPLUS_DESCRIPTOR);
+                }
+                appendTrace(trace, "oplus-type-a-method-unavailable");
+            }
+            IBinder main = lookupService(NFC_SERVICE_NAME, trace);
+            if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
+                appendTrace(trace, "nfc-descriptor=" + safeDescriptor(main));
+                return new Result(false, "TYPE_A_BINDER_LOOKUP_FAILED",
+                        "ColorOS Type-A interface could not be resolved; " + trace, safeDescriptor(main));
+            }
+            IBinder vendor = findVerifiedVendorBinder(main, trace);
+            Object local = vendor == null ? null : vendor.queryLocalInterface(VENDOR_DESCRIPTOR);
+            Object proxy = asInterface(VENDOR_STUB, vendor);
+            Boolean accepted = invokeBooleanMethod(local, "setHceTypeAConfig", types, args);
+            if (accepted == null) accepted = invokeBooleanMethod(proxy, "setHceTypeAConfig", types, args);
+            if (accepted == null) {
+                Object wrapper = getOplusVendorClient(trace);
+                if (hasTypeAApi(wrapper)) {
+                    accepted = invokeBooleanMethod(wrapper, "setHceTypeAConfig", types, args);
+                    appendTrace(trace, "path=vendor-client-wrapper");
+                }
+            }
+            if (accepted == null) {
+                return new Result(false, "TYPE_A_API_MISSING",
+                        "No callable Type-A method; raw transaction 16 disabled; " + trace,
+                        vendor == null ? null : VENDOR_DESCRIPTOR);
+            }
+            return new Result(accepted, accepted ? "TYPE_A_API_ACCEPTED" : "TYPE_A_REJECTED",
+                    (accepted ? "OEM accepted Type-A request; external reader verification required; "
+                            : "OEM rejected Type-A request; ") + trace,
+                    vendor == null ? null : VENDOR_DESCRIPTOR);
+        } catch (SecurityException denied) {
+            // The ColorOS vendor service enforces its OEM permission against
+            // the actual Binder caller. A method being callable does not mean
+            // com.android.nfc (uid 1027 on some builds) is authorized.
+            // Report the denial, do not retry with another transaction ID.
+            return new Result(false, "TYPE_A_PERMISSION_DENIED",
+                    denied.getClass().getName() + ": " + denied.getMessage(),
+                    VENDOR_DESCRIPTOR);
+        } catch (Throwable error) {
+            return new Result(false, "TYPE_A_EXCEPTION",
+                    error.getClass().getName() + ": " + error.getMessage(), VENDOR_DESCRIPTOR);
+        }
+    }
+
+    /**
+     * Shared vendor discovery for Type-A probe and execution. Never trust an
+     * OEM transaction unless the returned interface descriptor is exact.
+     */
+    /** Read-only permission preflight; never grants or bypasses OEM permissions. */
+    private static Boolean checkOplusNfcAccessPermission(StringBuilder trace) {
+        Context context = NfcHookUtils.currentContext();
+        if (context == null) {
+            appendTrace(trace, "oplus-safe-nfc-permission=context-unavailable");
+            return null;
+        }
+        try {
+            boolean granted = context.checkSelfPermission(OPLUS_NFC_ACCESS_PERMISSION)
+                    == PackageManager.PERMISSION_GRANTED;
+            appendTrace(trace, "oplus-safe-nfc-permission=" + (granted ? "GRANTED" : "DENIED"));
+            return granted;
+        } catch (Throwable error) {
+            appendTrace(trace, "oplus-safe-nfc-permission=" + error.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    /**
+     * A read-only ColorOS service lookup. Both Android ServiceManager APIs are
+     * consulted because some firmware exposes checkService but not getService
+     * to a particular process, and vice versa. Failure is reported explicitly.
+     * A service-list entry alone is NOT Binder availability or UID write proof.
+     */
+    private static IBinder findVerifiedOplusBinder(StringBuilder trace) {
+        IBinder binder = lookupService(OPLUS_SERVICE_NAME, trace);
+        if (!alive(binder)) {
+            appendTrace(trace, "oplus_nfc_service=no-accessible-binder");
+            return null;
+        }
+        String descriptor = safeDescriptor(binder);
+        appendTrace(trace, "oplus_nfc_service-descriptor=" + descriptor);
+        if (!OPLUS_DESCRIPTOR.equals(descriptor)) {
+            appendTrace(trace, "oplus_nfc_service=descriptor-mismatch");
+            return null;
+        }
+        return binder;
+    }
+
+    private static IBinder lookupService(String name, StringBuilder trace) {
+        try {
+            Class<?> sm = Class.forName("android.os.ServiceManager");
+            for (String api : new String[] {"checkService", "getService"}) {
+                try {
+                    Method method = sm.getDeclaredMethod(api, String.class);
+                    method.setAccessible(true);
+                    Object result = method.invoke(null, name);
+                    if (result instanceof IBinder) {
+                        IBinder binder = (IBinder) result;
+                        appendTrace(trace, name + "/" + api + "=" + safeDescriptor(binder));
+                        if (alive(binder)) return binder;
+                        appendTrace(trace, name + "/" + api + "=binder-not-alive");
+                    } else {
+                        appendTrace(trace, name + "/" + api + "=null");
+                    }
+                } catch (Throwable error) {
+                    Throwable cause = error.getCause() == null ? error : error.getCause();
+                    appendTrace(trace, name + "/" + api + "=" +
+                            cause.getClass().getSimpleName() + ":" +
+                            String.valueOf(cause.getMessage()));
+                }
+            }
+        } catch (Throwable error) {
+            appendTrace(trace, name + "/service-manager=" + error.getClass().getSimpleName());
+        }
+        return null;
+    }
+
+    private static IBinder findVerifiedVendorBinder(IBinder main, StringBuilder trace) throws Exception {
+        if (!alive(main) || !INFC_DESCRIPTOR.equals(safeDescriptor(main))) {
+            appendTrace(trace, "main=NFC_BINDER_UNAVAILABLE");
+            return null;
+        }
+        Object local = null;
+        try { local = main.queryLocalInterface(INFC_DESCRIPTOR); }
+        catch (Throwable t) { appendTrace(trace, "local-error=" + t.getClass().getSimpleName()); }
+        appendTrace(trace, "local=" + (local == null ? "null" : local.getClass().getName()));
+        IBinder vendor = getVendorBinderViaProxy(local, trace);
+        if (!verifiedVendor(vendor, trace, "local")) {
+            Object platformProxy = asInterface(INFC_STUB, main);
+            appendTrace(trace, "proxy=" + (platformProxy == null ? "null" : platformProxy.getClass().getName()));
+            vendor = getVendorBinderViaProxy(platformProxy, trace);
+        }
+        if (!verifiedVendor(vendor, trace, "proxy")) {
+            int tx = resolveRequiredTransaction(INFC_STUB, "TRANSACTION_getNfcAdapterVendorInterface");
+            appendTrace(trace, "reflected-getter-tx=" + tx);
+            if (tx > 0) {
+                vendor = getVendorBinderTransact(main, tx, trace);
+            } else if (isOplusHardware()) {
+                // Compatibility probe from documented ColorOS 16. The reply
+                // MUST carry the exact OEM descriptor; never infer the vendor
+                // method table from successful tx6 alone.
+                vendor = getVendorBinderTransact(main, 6, trace);
+            } else {
+                appendTrace(trace, "tx6-skipped=not-oplus");
+            }
+        }
+        if (!verifiedVendor(vendor, trace, "transaction")) return null;
+        return vendor;
+    }
+
+    private static boolean verifiedVendor(IBinder binder, StringBuilder trace, String path) {
+        if (!alive(binder)) {
+            appendTrace(trace, path + "=no-binder");
+            return false;
+        }
+        String descriptor = safeDescriptor(binder);
+        appendTrace(trace, path + "-descriptor=" + descriptor);
+        return VENDOR_DESCRIPTOR.equals(descriptor);
+    }
+
+    private static void appendTrace(StringBuilder trace, String item) {
+        if (trace != null && trace.length() < 1400) {
+            if (trace.length() != 0) trace.append("; ");
+            trace.append(item);
+        }
+    }
+
+    private static Object getOplusVendorClient(StringBuilder trace) {
+        try {
+            Class<?> cls = loadVendorClass(VENDOR_CLIENT);
+            if (cls == null) {
+                appendTrace(trace, "vendor-client-class=missing");
+                return null;
+            }
+            Method factory = cls.getDeclaredMethod("getVendorNfcAdapter");
+            factory.setAccessible(true);
+            Object instance = factory.invoke(null);
+            appendTrace(trace, "vendor-client=" + (instance == null ? "null" : instance.getClass().getName()));
+            return instance;
+        } catch (Throwable t) {
+            appendTrace(trace, "vendor-client-error=" + t.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private static Class<?> loadVendorClass(String name) {
+        try { return Class.forName(name); }
+        catch (Throwable ignored) { }
+        // The OPlus AIDL Stub is contained in the NFC APK's own ClassLoader.
+        android.app.Application nfcApp = NfcHookUtils.currentApplication();
+        if (nfcApp != null) {
+            try { return Class.forName(name, false, nfcApp.getClassLoader()); }
+            catch (Throwable ignored) { }
+        }
+        ClassLoader thread = Thread.currentThread().getContextClassLoader();
+        if (thread != null) {
+            try { return Class.forName(name, false, thread); }
+            catch (Throwable ignored) { }
+        }
+        for (String jar : VENDOR_JARS) {
+            if (!new File(jar).isFile()) continue;
+            try {
+                ClassLoader loader = new PathClassLoader(
+                        jar, NfcProcessVendorController.class.getClassLoader());
+                return Class.forName(name, false, loader);
+            } catch (Throwable ignored) { }
+        }
+        return null;
+    }
+
+    private static boolean hasTypeAApi(Object receiver) {
+        if (receiver == null) return false;
+        try {
+            Method m = receiver.getClass().getMethod("setHceTypeAConfig",
+                    boolean.class, byte[].class, byte[].class, byte[].class);
+            return m.getReturnType() == boolean.class
+                    || m.getReturnType() == Boolean.class;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
         }
     }
 
@@ -106,50 +461,79 @@ final class NfcProcessVendorController {
         }
     }
 
+    private static boolean isOplusHardware() {
+        String brand = Build.BRAND == null ? "" : Build.BRAND.toLowerCase(Locale.ROOT);
+        String manufacturer = Build.MANUFACTURER == null
+                ? "" : Build.MANUFACTURER.toLowerCase(Locale.ROOT);
+        return brand.contains("oppo") || brand.contains("oneplus") || brand.contains("realme")
+                || manufacturer.contains("oppo") || manufacturer.contains("oneplus")
+                || manufacturer.contains("realme");
+    }
+
     private static boolean isTransient(String stage) {
         return "MAIN_BINDER".equals(stage) || "GET_VENDOR_BINDER".equals(stage) || "EXCEPTION".equals(stage);
     }
 
     private static IBinder serviceManagerBinder() {
-        try {
-            Class<?> sm = Class.forName("android.os.ServiceManager");
-            Method method = sm.getDeclaredMethod("getService", String.class);
-            method.setAccessible(true);
-            return (IBinder) method.invoke(null, NFC_SERVICE_NAME);
-        } catch (Throwable ignored) { return null; }
+        return lookupService(NFC_SERVICE_NAME, null);
     }
 
     private static Object asInterface(String stubClass, IBinder binder) {
         if (binder == null) return null;
         try {
-            Class<?> stub = Class.forName(stubClass);
+            Class<?> stub = loadVendorClass(stubClass);
+            if (stub == null) return null;
             Method m = stub.getDeclaredMethod("asInterface", IBinder.class);
             m.setAccessible(true);
             return m.invoke(null, binder);
         } catch (Throwable ignored) { return null; }
     }
 
-    private static IBinder getVendorBinderViaProxy(Object proxy) {
-        if (proxy == null) return null;
-        try {
-            for (Method m : proxy.getClass().getMethods()) {
-                if (!"getNfcAdapterVendorInterface".equals(m.getName())) continue;
-                Class<?>[] p = m.getParameterTypes();
-                if (p.length == 1 && p[0] == String.class) {
-                    m.setAccessible(true);
-                    Object result = m.invoke(proxy, VENDOR_NAME);
-                    if (result instanceof IBinder) return (IBinder) result;
-                    if (result != null) {
-                        try {
-                            Method asBinder = result.getClass().getMethod("asBinder");
-                            Object b = asBinder.invoke(result);
-                            if (b instanceof IBinder) return (IBinder) b;
-                        } catch (Throwable ignored) { }
-                    }
+    private static IBinder getVendorBinderViaProxy(Object receiver) {
+        return getVendorBinderViaProxy(receiver, null);
+    }
+
+    private static IBinder getVendorBinderViaProxy(Object receiver, StringBuilder trace) {
+        if (receiver == null) return null;
+        // The OEM getter may be inherited or declared non-public on NfcService;
+        // try exact method signatures only, never arbitrary methods or tx codes.
+        for (Class<?>[] parameters : new Class<?>[][]{{String.class}, {}}) {
+            Method method = null;
+            try { method = receiver.getClass().getMethod("getNfcAdapterVendorInterface", parameters); }
+            catch (NoSuchMethodException ignored) { }
+            if (method == null) {
+                for (Class<?> c = receiver.getClass(); c != null; c = c.getSuperclass()) {
+                    try {
+                        method = c.getDeclaredMethod("getNfcAdapterVendorInterface", parameters);
+                        break;
+                    } catch (NoSuchMethodException ignored) { }
                 }
             }
-        } catch (Throwable ignored) { }
+            if (method == null) continue;
+            try {
+                method.setAccessible(true);
+                Object result = parameters.length == 0
+                        ? method.invoke(receiver) : method.invoke(receiver, VENDOR_NAME);
+                IBinder binder = unwrapBinder(result);
+                appendTrace(trace, "getter=" + receiver.getClass().getSimpleName()
+                        + "/" + parameters.length + "-arg result="
+                        + (binder == null ? "null" : safeDescriptor(binder)));
+                if (binder != null) return binder;
+            } catch (Throwable t) {
+                appendTrace(trace, "getter-error=" + t.getClass().getSimpleName());
+            }
+        }
         return null;
+    }
+
+    private static IBinder unwrapBinder(Object result) {
+        if (result instanceof IBinder) return (IBinder) result;
+        if (result == null) return null;
+        try {
+            Method method = result.getClass().getMethod("asBinder");
+            Object b = method.invoke(result);
+            return b instanceof IBinder ? (IBinder) b : null;
+        } catch (Throwable ignored) { return null; }
     }
 
     /** Returns null when the capability/signature is absent, otherwise the boolean result. */
@@ -172,7 +556,8 @@ final class NfcProcessVendorController {
 
     private static int resolveRequiredTransaction(String stubClass, String fieldName) {
         try {
-            Class<?> c = Class.forName(stubClass);
+            Class<?> c = loadVendorClass(stubClass);
+            if (c == null) return -1;
             Field f = c.getDeclaredField(fieldName);
             f.setAccessible(true);
             return f.getInt(null);
@@ -180,19 +565,70 @@ final class NfcProcessVendorController {
     }
 
     private static IBinder getVendorBinderTransact(IBinder mainBinder, int transaction) throws Exception {
+        return getVendorBinderTransact(mainBinder, transaction, null);
+    }
+
+    private static IBinder getVendorBinderTransact(
+            IBinder mainBinder, int transaction, StringBuilder trace) throws Exception {
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
             data.writeInterfaceToken(INFC_DESCRIPTOR);
             data.writeString(VENDOR_NAME);
-            if (!mainBinder.transact(transaction, data, reply, 0)) return null;
+            boolean transacted = mainBinder.transact(transaction, data, reply, 0);
+            appendTrace(trace, "getter-tx=" + transaction + " transacted=" + transacted);
+            if (!transacted) return null;
             reply.setDataPosition(0);
-            reply.readException();
-            return reply.readStrongBinder();
+            try {
+                reply.readException();
+            } catch (Throwable error) {
+                appendTrace(trace, "getter-tx-exception=" + error.getClass().getSimpleName());
+                return null;
+            }
+            IBinder binder;
+            try {
+                binder = reply.readStrongBinder();
+            } catch (RuntimeException error) {
+                // Android 17 may have a different transaction table: a valid
+                // reply is not necessarily a Binder reply. Do not parse blindly.
+                appendTrace(trace, "getter-tx-reply-not-binder="
+                        + error.getClass().getSimpleName());
+                return null;
+            }
+            appendTrace(trace, "getter-tx-descriptor="
+                    + (binder == null ? "null" : safeDescriptor(binder)));
+            return binder;
         } finally {
             reply.recycle();
             data.recycle();
         }
+    }
+
+    private static String queryNfccIdentity(IBinder vendor) {
+        if (vendor == null || !VENDOR_DESCRIPTOR.equals(safeDescriptor(vendor))) return null;
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        try {
+            data.writeInterfaceToken(VENDOR_DESCRIPTOR);
+            // Read-only IVendorNfcAdapter.getNfcc transaction from OplusNfcTool.
+            if (!vendor.transact(2, data, reply, 0)) return null;
+            reply.setDataPosition(0);
+            reply.readException();
+            return reply.readString();
+        } catch (Throwable ignored) {
+            return null;
+        } finally {
+            reply.recycle();
+            data.recycle();
+        }
+    }
+
+    private static boolean isRecognizedOplusNfcc(String identity) {
+        if (identity == null || identity.length() < 3 || identity.length() > 100) return false;
+        String name = identity.toUpperCase(Locale.ROOT);
+        return name.contains("SN100") || name.contains("SN110")
+                || name.contains("SN220") || name.contains("NQ330")
+                || name.contains("NXP") || name.contains("ST54");
     }
 
     private static boolean transactShareMode(IBinder vendor, boolean enabled, int transaction) throws Exception {

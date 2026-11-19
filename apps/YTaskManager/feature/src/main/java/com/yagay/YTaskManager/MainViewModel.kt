@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val processShell = RootShell()
@@ -53,6 +55,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var monitorJob: Job? = null
     private var networkJob: Job? = null
+    private var resourceJob: Job? = null
+    private var detailJob: Job? = null
+    private var cpuJob: Job? = null
+    private var lastCpuSampleMs = 0L
+    private var lastDetailSampleMs = 0L
+    private val rootProbeMutex = Mutex()
+    private var consecutiveTransientRootFailures = 0
 
     init {
         viewModelScope.launch {
@@ -65,31 +74,108 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun start() {
         if (monitorJob?.isActive == true) return
+        startResourceMonitor()
         monitorJob = viewModelScope.launch {
-            val rootGranted = processShell.isRootAvailable()
-            _state.value = _state.value.copy(
-                root = RootState(
-                    checked = true,
-                    granted = rootGranted,
-                    uid = if (rootGranted) 0 else null,
-                    message = getApplication<Application>().getString(if (rootGranted) R.string.ytm_root_granted else R.string.ytm_root_denied)
-                ),
-                loading = rootGranted,
-                error = if (rootGranted) null else getApplication<Application>().getString(R.string.ytm_root_required)
-            )
-            if (!rootGranted) return@launch
-
-            refreshInternal()
-            startNetworkMonitor()
-
+            val rootGranted = updateRootStatus()
+            _state.value = _state.value.copy(loading = rootGranted, error = null)
+            // Populate CPU/RAM immediately, without waiting for privileged /proc enumeration.
+            refreshPublicSnapshot()
+            if (rootGranted) {
+                refreshInternal()
+                startNetworkMonitor()
+            }
+            var lastRootProbe = android.os.SystemClock.elapsedRealtime()
             while (isActive) {
                 val snapshot = _state.value
-                if (snapshot.autoRefresh) {
+                if (!snapshot.root.granted) {
+                    delay(1_000L)
+                    if (android.os.SystemClock.elapsedRealtime() - lastRootProbe >= 5_000L) {
+                        lastRootProbe = android.os.SystemClock.elapsedRealtime()
+                        val rootGranted = updateRootStatus()
+                        if (rootGranted) {
+                            _state.value = _state.value.copy(loading = true, error = null)
+                            refreshPublicSnapshot()
+                            refreshInternal()
+                            startNetworkMonitor()
+                        } else refreshPublicSnapshot()
+                    }
+                } else if (snapshot.autoRefresh) {
                     delay(snapshot.refreshIntervalMs)
                     if (isActive && _state.value.autoRefresh) refreshInternal()
+                    if (android.os.SystemClock.elapsedRealtime() - lastRootProbe >= 15_000L) {
+                        lastRootProbe = android.os.SystemClock.elapsedRealtime()
+                        updateRootStatus()
+                    }
                 } else {
                     delay(250L)
+                    if (android.os.SystemClock.elapsedRealtime() - lastRootProbe >= 15_000L) {
+                        lastRootProbe = android.os.SystemClock.elapsedRealtime()
+                        updateRootStatus()
+                    }
                 }
+            }
+        }
+    }
+
+    /** Brief transport interruptions must not oscillate the Root badge. */
+    private suspend fun updateRootStatus(): Boolean = rootProbeMutex.withLock {
+        val probe = processShell.probeRoot()
+        if (probe.granted || !probe.transient) consecutiveTransientRootFailures = 0
+        else consecutiveTransientRootFailures++
+        val previous = _state.value.root
+        if (probe.transient && previous.granted && consecutiveTransientRootFailures < 3) {
+            AppLogger.i("Transient Root check (" + consecutiveTransientRootFailures +
+                "/3): " + probe.detail)
+            return@withLock true
+        }
+        _state.value = _state.value.copy(
+            root = RootState(
+                checked = !probe.transient,
+                granted = probe.granted,
+                uid = if (probe.granted) 0 else null,
+                message = probe.detail,
+            ),
+        )
+        probe.granted
+    }
+
+    /**
+     * Resource telemetry has its own cadence and shell. A slow Root process scan,
+     * a paused process list, or the first /proc enumeration must not freeze graphs.
+     */
+    private fun startResourceMonitor() {
+        if (resourceJob?.isActive == true) return
+        resourceJob = viewModelScope.launch {
+            while (isActive) {
+                val root = _state.value.root.granted
+                val system = runCatching {
+                    if (root) statsRepository.read()
+                    else statsRepository.readUnprivileged(getApplication())
+                }.getOrElse {
+                    runCatching { statsRepository.readUnprivileged(getApplication()) }.getOrNull()
+                }
+                if (system != null) {
+                    val previous = _state.value
+                    _state.value = previous.copy(
+                        system = system,
+                        cpuHistory = appendHistory(previous.cpuHistory, system.cpuPercent),
+                        ramHistory = appendHistory(previous.ramHistory,
+                            percent(system.ramUsedBytes, system.ramTotalBytes)),
+                        swapHistory = appendHistory(previous.swapHistory,
+                            percent(system.swapUsedBytes, system.swapTotalBytes)),
+                    )
+                }
+                if (root) {
+                    val gpu = runCatching { gpuRepository.read() }.getOrNull()
+                    if (gpu != null) {
+                        val previous = _state.value
+                        _state.value = previous.copy(
+                            gpu = gpu,
+                            gpuHistory = appendHistory(previous.gpuHistory, gpu.usagePercent ?: 0f),
+                        )
+                    }
+                }
+                delay(2_000L)
             }
         }
     }
@@ -97,19 +183,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun startNetworkMonitor() {
         if (networkJob?.isActive == true) return
         networkJob = viewModelScope.launch {
+            // Avoid competing with initial process discovery for the Root gateway.
+            delay(5_000L)
             while (isActive) {
                 refreshNetworkInternal()
-                delay(1_000L)
+                delay(5_000L)
             }
         }
     }
 
     fun refresh() {
-        if (_state.value.root.granted) {
-            viewModelScope.launch { refreshInternal() }
-        } else {
-            start()
+        viewModelScope.launch {
+            val rootGranted = updateRootStatus()
+            if (rootGranted) {
+                startNetworkMonitor()
+                refreshInternal()
+            } else refreshPublicSnapshot()
         }
+        start()
+    }
+
+    private suspend fun refreshPublicSnapshot() {
+        val snapshot = runCatching { statsRepository.readUnprivileged(getApplication()) }.getOrNull()
+            ?: return
+        val old = _state.value
+        // The persistent Root diagnostic explains whether authorization or the host
+        // failed. Do not replace it with the generic "Root required" snackbar.
+        _state.value = old.copy(system = snapshot, loading = false)
     }
 
     fun loadProcessDetails(process: ProcessEntry, onLoaded: (ProcessEntry) -> Unit) {
@@ -201,38 +301,148 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun refreshInternal() = coroutineScope {
         runCatching {
-            val systemDeferred = async { statsRepository.read() }
+            // Prioritize the process list over slower CPU/GPU sampling. The UI should
+            // paint when ps completes instead of waiting for every telemetry source.
             val processDeferred = async {
-                val pinned = settings.pinnedProcesses
-                processRepository.listProcesses().map { process ->
-                    process.copy(isPinned = pinKey(process) in pinned)
+                runCatching {
+                    val pinned = settings.pinnedProcesses
+                    processRepository.listProcesses().map { process ->
+                        process.copy(isPinned = pinKey(process) in pinned)
+                    }
                 }
             }
-            val gpuDeferred = async { gpuRepository.read() }
 
-            val system = systemDeferred.await()
-            val rawProcesses = processDeferred.await()
-            val gpu = gpuDeferred.await()
+            val processResult = processDeferred.await()
+            // Use the post-await snapshot. The background CPU/network jobs
+            // may have completed while the process-list command was running.
+            val snapshot = _state.value
+            val quickProcesses = processResult.getOrElse { snapshot.processes }
+                .ifEmpty { snapshot.processes }
+            val previousByPid = snapshot.processes.associateBy { it.pid }
+            val rawProcesses = quickProcesses.map { quick ->
+                val previous = previousByPid[quick.pid]?.takeIf { it.uid == quick.uid }
+                if (previous == null ||
+                    (quick.cpuStartTicks != 0L && previous.cpuStartTicks != 0L &&
+                        quick.cpuStartTicks != previous.cpuStartTicks)) quick
+                else quick.copy(
+                    cpuPercent = if (quick.cpuSampled) quick.cpuPercent else previous.cpuPercent,
+                    cpuSampled = quick.cpuSampled || previous.cpuSampled,
+                    cpuStartTicks = quick.cpuStartTicks.takeIf { it > 0L } ?: previous.cpuStartTicks,
+                    rssKb = quick.rssKb.takeIf { it > 0L } ?: previous.rssKb,
+                    virtualMemoryKb = previous.virtualMemoryKb,
+                    threads = previous.threads,
+                    state = previous.state,
+                    nice = previous.nice,
+                    oomScoreAdj = previous.oomScoreAdj,
+                    isForeground = previous.isForeground,
+                    startTimeMillis = previous.startTimeMillis,
+                    elapsedTimeMillis = previous.elapsedTimeMillis,
+                )
+            }
+            val failed = listOfNotNull(
+                processResult.exceptionOrNull()?.let { "processes: ${it.message ?: it.javaClass.simpleName}" },
+            ).joinToString("; ")
 
-            val old = _state.value
-            val processes = applyNetworkSpeeds(rawProcesses, old.network)
-            _state.value = old.copy(
-                system = system,
-                gpu = gpu,
+            val live = _state.value
+            // A CPU update might land after we constructed rawProcesses; never
+            // overwrite it with a stale ps-derived 0 in the final state.
+            val liveByPid = live.processes.associateBy { it.pid }
+            val enriched = rawProcesses.map { process ->
+                val latest = liveByPid[process.pid]?.takeIf { it.uid == process.uid }
+                if (latest != null && latest.cpuSampled &&
+                    (process.cpuStartTicks == 0L || latest.cpuStartTicks == 0L ||
+                        process.cpuStartTicks == latest.cpuStartTicks)) {
+                    process.copy(
+                        cpuPercent = latest.cpuPercent, cpuSampled = true,
+                        cpuStartTicks = latest.cpuStartTicks,
+                    )
+                } else process
+            }
+            val processes = applyNetworkSpeeds(enriched, live.network)
+            _state.value = live.copy(
                 processes = processes,
                 processCount = processes.size,
                 threadCount = processes.sumOf { it.threads },
-                cpuHistory = appendHistory(old.cpuHistory, system.cpuPercent),
-                ramHistory = appendHistory(old.ramHistory, percent(system.ramUsedBytes, system.ramTotalBytes)),
-                swapHistory = appendHistory(old.swapHistory, percent(system.swapUsedBytes, system.swapTotalBytes)),
-                gpuHistory = appendHistory(old.gpuHistory, gpu.usagePercent ?: 0f),
                 loading = false,
-                error = null,
+                error = failed.takeIf { it.isNotBlank() }
+                    ?: if (processes.isEmpty()) "No processes returned by Root /proc or ps" else null,
             )
+            scheduleCpuSample()
+            scheduleDetailedSample()
         }.onFailure {
             _state.value = _state.value.copy(
                 loading = false,
                 error = it.message ?: it.javaClass.simpleName,
+            )
+        }
+    }
+
+    /** A failed CPU collector cannot clear the visible process list. */
+    private fun scheduleCpuSample() {
+        if (!_state.value.root.granted || cpuJob?.isActive == true) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (lastCpuSampleMs != 0L && now - lastCpuSampleMs < 2_500L) return
+        lastCpuSampleMs = now
+        cpuJob = viewModelScope.launch {
+            val pids = _state.value.processes.map { it.pid }
+            val measurements = runCatching { processRepository.sampleCpu(pids) }
+                .onFailure { AppLogger.i("CPU sampling failed: ${it.message ?: it.javaClass.simpleName}") }
+                .getOrDefault(emptyMap())
+            if (measurements.isEmpty()) return@launch
+            val old = _state.value
+            _state.value = old.copy(
+                processes = old.processes.map { process ->
+                    val cpu = measurements[process.pid] ?: return@map process
+                    when {
+                        // PID reuse must not retain another process' CPU value.
+                        process.cpuStartTicks != 0L && process.cpuStartTicks != cpu.startTicks ->
+                            process.copy(
+                                cpuPercent = cpu.percent ?: 0f,
+                                cpuSampled = cpu.percent != null,
+                                cpuStartTicks = cpu.startTicks,
+                            )
+                        cpu.percent != null -> process.copy(
+                            cpuPercent = cpu.percent, cpuSampled = true,
+                            cpuStartTicks = cpu.startTicks,
+                        )
+                        else -> process // Single baseline sample: retain last value.
+                    }
+                },
+            )
+        }
+    }
+
+    /**
+     * A rich /proc sample must never block first paint or every short refresh tick.
+     * Run it at most once per 5 seconds, merge by PID/UID and keep the fast ps list visible.
+     */
+    private fun scheduleDetailedSample() {
+        if (!_state.value.root.granted || detailJob?.isActive == true) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (lastDetailSampleMs != 0L && now - lastDetailSampleMs < 5_000L) return
+        lastDetailSampleMs = now
+        detailJob = viewModelScope.launch {
+            delay(1_200L)
+            val rich = runCatching { processRepository.listDetailedProcesses() }
+                .getOrDefault(emptyList())
+            if (rich.isEmpty()) return@launch
+            val byPid = rich.associateBy { it.pid }
+            val old = _state.value
+            val merged = old.processes.map { quick ->
+                val detail = byPid[quick.pid]?.takeIf { it.uid == quick.uid } ?: return@map quick
+                detail.copy(
+                    cpuPercent = quick.cpuPercent,
+                    cpuSampled = quick.cpuSampled,
+                    cpuStartTicks = quick.cpuStartTicks.takeIf { it > 0L } ?: detail.cpuStartTicks,
+                    isPinned = quick.isPinned,
+                    rxBytesPerSecond = quick.rxBytesPerSecond,
+                    txBytesPerSecond = quick.txBytesPerSecond,
+                    networkSampled = quick.networkSampled,
+                )
+            }
+            _state.value = old.copy(
+                processes = merged,
+                threadCount = merged.sumOf { it.threads },
             )
         }
     }
@@ -263,13 +473,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ): List<ProcessEntry> {
         if (processes.isEmpty()) return processes
         val speedByUid = network.entries.associateBy { it.uid }
-        if (speedByUid.isEmpty()) {
-            return processes.map {
-                if (it.rxBytesPerSecond == 0L && it.txBytesPerSecond == 0L) it
-                else it.copy(rxBytesPerSecond = 0L, txBytesPerSecond = 0L)
-            }
-        }
-
         val primaryPidByUid = processes
             .groupBy { it.uid }
             .mapValues { (_, group) ->
@@ -286,9 +489,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 process.copy(
                     rxBytesPerSecond = speed.rxBytesPerSecond,
                     txBytesPerSecond = speed.txBytesPerSecond,
+                    networkSampled = true,
                 )
             } else {
-                process.copy(rxBytesPerSecond = 0L, txBytesPerSecond = 0L)
+                // Per-app stats are UID totals, so only display a rate on
+                // one primary PID; other PIDs must not inherit fake zeroes.
+                process.copy(
+                    rxBytesPerSecond = 0L, txBytesPerSecond = 0L,
+                    networkSampled = primaryPidByUid[process.uid] == process.pid &&
+                        process.uid in network.observedUids,
+                )
             }
         }
     }
@@ -305,6 +515,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         monitorJob?.cancel()
         networkJob?.cancel()
+        resourceJob?.cancel()
+        cpuJob?.cancel()
+        processRepository.close()
         processShell.close()
         statsShell.close()
         gpuShell.close()

@@ -77,8 +77,8 @@ public final class ScreenSelectionModel {
     public ScreenCandidate selectAccessibilityAt(float x, float y) {
         final int px = Math.round(x), py = Math.round(y);
         for (ScreenCandidate c : accessibility) {
-            Rect r = c.bounds();
-            if (!r.isEmpty() && r.contains(px, py)) return c;
+            // Avoid allocating a Rect per candidate on every 120 Hz sample.
+            if (c.contains(px, py)) return c;
         }
         return null;
     }

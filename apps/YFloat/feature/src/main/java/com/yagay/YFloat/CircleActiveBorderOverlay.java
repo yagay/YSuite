@@ -85,7 +85,7 @@ final class CircleActiveBorderOverlay {
         }
         lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
 
-        if (!host.add(view, lp, "circle_active_border")) {
+        if (!host.addFollowingIconLayer(view, lp, "circle_active_border")) {
             DiagnosticLog.i(app, "CIRCLE_BORDER", "overlay add failed");
             return;
         }
@@ -250,8 +250,8 @@ final class CircleActiveBorderOverlay {
             context = c.getApplicationContext();
             windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
             density = getResources().getDisplayMetrics().density;
-            minFallbackRadius = 16f * density;
-            maxFallbackRadius = 32f * density;
+            minFallbackRadius = YFloatOverlayStyle.buttonRadius(c);
+            maxFallbackRadius = minFallbackRadius * 2f;
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeCap(Paint.Cap.ROUND);
             paint.setStrokeJoin(Paint.Join.ROUND);
@@ -263,9 +263,9 @@ final class CircleActiveBorderOverlay {
         }
 
         void applyStyle(int color, int widthDp) {
-            stroke = Math.max(1f, Math.max(1, Math.min(8, widthDp)) * density);
-            dashLength = Math.max(6f * density, stroke * 3.2f);
-            dashGap = Math.max(4f * density, stroke * 2.2f);
+            stroke = Math.max(1f, Math.max(0, widthDp) * density);
+            dashLength = Math.max(YFloatOverlayStyle.controlGap(context) / 2f, stroke * 3.2f);
+            dashGap = Math.max(YFloatOverlayStyle.controlGap(context) / 3f, stroke * 2.2f);
             paint.setColor(color);
             paint.setStrokeWidth(stroke);
             updateDashEffect();

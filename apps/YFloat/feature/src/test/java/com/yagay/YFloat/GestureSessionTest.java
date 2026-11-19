@@ -42,6 +42,18 @@ public class GestureSessionTest {
     }
 
     @Test
+    public void advanceTracksDragWithoutAllocatingGestureHistory() {
+        GestureSession session = new GestureSession();
+        session.begin(2f, 3f, 10L);
+        session.advance(20f, 40f);
+        assertEquals(1, session.points.size());
+        assertEquals(18f, session.dx(), 0.001f);
+        assertEquals(37f, session.dy(), 0.001f);
+        session.add(21f, 41f, 25L);
+        assertEquals(2, session.points.size());
+    }
+
+    @Test
     public void snapshotIsStableAndUnmodifiable() {
         GestureSession session = new GestureSession();
         session.begin(1f, 2f, 10L);

@@ -28,6 +28,13 @@
     <string name="ymg_support_title">Mini-window support</string>
     <string name="ymg_support_desc">Only selected apps bypass OPlus FlexibleWindow support or blacklist checks. YMiniGuard does not launch or switch an app into mini-window mode.</string>
 
+    <string name="ymg_media_title">System media card</string>
+    <string name="ymg_media_desc">Display a system media card for selected YMini apps. The existing system_server engine observes playing app UIDs (not just global volume), without adding any app Hook. Media titles and progress still require real source data.</string>
+    <string name="ymg_media_enabled">Enable media card bridge</string>
+    <string name="ymg_media_enabled_desc">Reads real MediaSession metadata, media notifications and queue items when available. Uses the app icon if no cover exists. Missing title, episode and position cannot be inferred reliably.</string>
+    <string name="ymg_media_access_title">Notification access</string>
+    <string name="ymg_media_access_desc">Grant YSuite notification access so the shared listener can read active media sessions.</string>
+
     <string name="ymg_protection_title">Runtime protection</string>
     <string name="ymg_protection_desc">Mini-window protection remains driven by OPlus state. Background-playback apps enter the protected background state only after leaving normal full-screen mode.</string>
     <string name="ymg_keep_top">Keep protected process state at TOP</string>
@@ -57,7 +64,10 @@
     <string name="ymg_engine_scope_missing">System Engine: system is missing from the scope. Actual scope: %1$s</string>
     <string name="ymg_engine_current">System Engine: code %1$d, Bootstrap %2$d, generation %3$d, tracked tasks %4$d\n%5$s</string>
     <string name="ymg_engine_old">System Engine: old Engine %1$d, installed APK %2$d\nReload the Engine. If the Bootstrap Hook changed, reboot once.</string>
-    <string name="ymg_engine_no_heartbeat">System Engine: no valid heartbeat detected</string>
+    <string name="ymg_engine_no_heartbeat">System Engine: no live heartbeat from system_server. Hot reload cannot install a missing system hook. Reboot after updating the APK, then check again.</string>
+    <string name="ymg_reboot_title">System Bootstrap needs a reboot</string>
+    <string name="ymg_restart_no_heartbeat">MiniGuard has not received a system_server Bootstrap heartbeat. Hot reload only updates an already-running engine; it cannot inject a missing Hook. Confirm the LSPosed system scope, reboot the phone normally, then check again.</string>
+    <string name="ymg_restart_old_bootstrap">system_server still has Hook build %1$d; the installed APK is build %2$d. Hot reload cannot replace this Bootstrap. Reboot the phone normally to load the new build.</string>
 
     <string name="ymg_target_force_title">Force OPlus mini-window</string>
     <string name="ymg_target_background_title">Background-playback apps</string>
@@ -72,4 +82,9 @@
     <string name="ymg_app_list_failed_title">Failed to open app list</string>
     <string name="ymg_app_list_failed_detail">%1$s\n%2$s\n\nThe error was written to the diagnostic log.</string>
     <string name="ymg_system_app_suffix">, system app</string>
+    <string name="ymg_engine_stale_heartbeat">System Engine: heartbeat expired (%1$d seconds ago). Check system scope and reboot if the Bootstrap Hook changed.</string>
+    <string name="ymg_engine_load_failed">System Engine: bootstrap reports a heartbeat, but engine loading failed.\n%1$s</string>
+    <string name="ymg_engine_unknown_error">Check diagnostics for the engine loading error.</string>
+    <string name="ymg_engine_no_hooks">System Engine: heartbeat received but no system hooks are installed. Check LSPosed system scope.</string>
+    <string name="ymg_engine_invalid_heartbeat">System Engine: invalid heartbeat (PID %1$d, engine %2$d, hooks %3$d).</string>
 </resources>

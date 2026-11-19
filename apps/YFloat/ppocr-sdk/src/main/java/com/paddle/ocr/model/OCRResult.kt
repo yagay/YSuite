@@ -13,6 +13,8 @@ data class OCRResult(
     val confidence: Float,
     /** Character-level geometry aligned from the CTC recognition time axis. */
     val characters: List<OCRCharacter> = emptyList(),
-    /** Backward-compatible geometry-only view of characters. */
-    val wordBoxes: List<OCRBox>? = characters.map { it.box }.takeIf { it.isNotEmpty() },
+    /** Explicit CTC-derived words, never mistaken for raw character boxes. */
+    val words: List<OCRWord> = OCRWordSegmenter.segment(characters),
+    /** Kept for API compatibility; now contains genuine grouped word quads. */
+    val wordBoxes: List<OCRBox>? = words.map {it.box}.takeIf {it.isNotEmpty()},
 )

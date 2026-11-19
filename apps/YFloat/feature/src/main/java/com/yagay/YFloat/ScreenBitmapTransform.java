@@ -84,6 +84,13 @@ final class ScreenBitmapTransform {
         return viewToScreenMapper(viewWidth, viewHeight).unmapRectF(new RectF(screenRect));
     }
 
+    /** Keep fractional OCR highlight geometry instead of rounding through Rect. */
+    RectF screenToView(RectF screenRect,int viewWidth,int viewHeight){
+        if(screenRect==null||screenRect.isEmpty()||viewWidth<=0||viewHeight<=0)
+            return new RectF();
+        return viewToScreenMapper(viewWidth,viewHeight).unmapRectF(screenRect);
+    }
+
     Rect viewToScreen(RectF viewRect, int viewWidth, int viewHeight) {
         if (viewRect == null || viewRect.isEmpty() || viewWidth <= 0 || viewHeight <= 0) {
             return new Rect();

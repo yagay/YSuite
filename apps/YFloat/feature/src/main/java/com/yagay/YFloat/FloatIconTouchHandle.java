@@ -15,6 +15,7 @@ import android.view.View;
 final class FloatIconTouchHandle extends View {
     private final FloatIconView target;
     private final int[] targetLocation = new int[2];
+    private boolean blockedMismatchedGesture;
 
     FloatIconTouchHandle(Context context, FloatIconView target) {
         super(context);
@@ -26,20 +27,44 @@ final class FloatIconTouchHandle extends View {
 
     @Override public boolean onTouchEvent(MotionEvent event) {
         if (target == null || event == null) return false;
+        if (blockedMismatchedGesture) {
+            if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                blockedMismatchedGesture = false;
+            }
+            return true;
+        }
+        // Only DOWN needs local coordinates relative to the real icon:
+        // SelectionPointTransformer captures the initial window origin
+        // once. Every subsequent MOVE/UP is processed using RAW screen
+        // coordinates. Repeated getLocationOnScreen() while that icon is
+        // being moved forces needless view-transform work on the UI thread.
+        if (event.getActionMasked() != MotionEvent.ACTION_DOWN) {
+            return target.onTouchEvent(event);
+        }
         MotionEvent forwarded = MotionEvent.obtainNoHistory(event);
         try {
             target.getLocationOnScreen(targetLocation);
-            // Keep rawX/rawY from the original screen touch, but make getX/getY match the real icon
-            // window. SelectionPointTransformer depends on raw-local to recover the icon origin.
+            FloatService service = FloatService.get();
+            if (service != null && service.isAccessibilityIconHosted(target)
+                    && FlOverlayLayerPolicy.touchOutsideIconBounds(
+                        event.getRawX(), event.getRawY(),
+                        targetLocation[0], targetLocation[1],
+                        target.getWidth(), target.getHeight())) {
+                // A bad accessibility touch hit must not start OCR/drag.
+                // Restore the stable window host instead.
+                service.onIconTouchOriginMismatch(target, event.getRawX(),
+                        event.getRawY(), targetLocation[0], targetLocation[1]);
+                blockedMismatchedGesture = true;
+                return true;
+            }
             forwarded.setLocation(
                     event.getRawX() - targetLocation[0],
                     event.getRawY() - targetLocation[1]);
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                DiagnosticLog.i(getContext(), "FL_HANDLE", "DOWN raw="
-                        + Math.round(event.getRawX()) + "," + Math.round(event.getRawY())
-                        + " owner=" + targetLocation[0] + "," + targetLocation[1]
-                        + " local=" + Math.round(forwarded.getX()) + "," + Math.round(forwarded.getY()));
-            }
+            DiagnosticLog.i(getContext(), "FL_HANDLE", "DOWN raw="
+                    + Math.round(event.getRawX()) + "," + Math.round(event.getRawY())
+                    + " owner=" + targetLocation[0] + "," + targetLocation[1]
+                    + " local=" + Math.round(forwarded.getX()) + "," + Math.round(forwarded.getY()));
             return target.onTouchEvent(forwarded);
         } finally {
             forwarded.recycle();

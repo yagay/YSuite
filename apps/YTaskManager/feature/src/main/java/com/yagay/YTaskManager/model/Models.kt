@@ -65,6 +65,8 @@ data class NetworkSnapshot(
     val totalRxBytesPerSecond: Long = 0,
     val totalTxBytesPerSecond: Long = 0,
     val backend: String = "Not sampled",
+    val uidCountersAvailable: Boolean = false,
+    val observedUids: Set<Int> = emptySet(),
     val timestampMs: Long = 0L,
 )
 
@@ -87,6 +89,10 @@ data class ProcessEntry(
     val executablePath: String? = null,
     val cgroup: String? = null,
     val threads: Int = 0,
+    /** True only after a real interval of process CPU ticks was measured. */
+    val cpuSampled: Boolean = false,
+    /** /proc/[pid]/stat start ticks distinguish PID reuse. */
+    val cpuStartTicks: Long = 0L,
     val startTimeMillis: Long = 0L,
     val elapsedTimeMillis: Long = 0L,
     val oomScoreAdj: Int? = null,
@@ -99,6 +105,8 @@ data class ProcessEntry(
     val isPinned: Boolean = false,
     val rxBytesPerSecond: Long = 0L,
     val txBytesPerSecond: Long = 0L,
+    /** True only when a real UID counter was sampled. */
+    val networkSampled: Boolean = false,
 ) {
     val displayName: String
         get() = appLabel?.takeIf { it.isNotBlank() }

@@ -14,6 +14,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.datastore:datastore-preferences:1.2.1")
+    implementation(project(":ui"))
+    implementation(project(":core"))
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 }

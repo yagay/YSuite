@@ -25,11 +25,15 @@ open class ConfigProvider : ContentProvider() {
 
         const val METHOD_PUBLISH_COMMAND = "publish_command"
         const val METHOD_SET_DIAGNOSTIC_LOGGING = "set_diagnostic_logging"
+        const val METHOD_SET_POLLING_DISABLED = "set_polling_disabled"
         const val METHOD_CONFIRM_STOCK_RESTART = "confirm_stock_restart"
+        const val METHOD_REPORT_OWN_NCI_INVALID_PARAM = "report_own_nci_invalid_param"
+        const val METHOD_REPORT_OWN_NCI_ACCEPTED = "report_own_nci_accepted"
         const val EXTRA_ENABLED = "enabled"
         const val EXTRA_UID = "uid"
         const val EXTRA_SAK = "sak"
         const val EXTRA_ATQA = "atqa"
+        const val EXTRA_BACKEND = "simulation_backend"
         const val EXTRA_GENERATION = "generation"
         const val EXTRA_PID = "pid"
         const val RESULT_GENERATION = "generation"
@@ -41,9 +45,15 @@ open class ConfigProvider : ContentProvider() {
         const val KEY_HOOK_BUILD = "hook_build"
         const val KEY_SIMULATION_ENABLED = "simulation_enabled"
         const val KEY_DIAGNOSTIC_LOGGING_ENABLED = "diagnostic_logging_enabled"
+        const val KEY_POLLING_DISABLED = "polling_disabled"
+        const val KEY_POLLING_GUARD_STATUS = "polling_guard_status"
+        const val KEY_POLLING_GUARD_PID = "polling_guard_pid"
+        const val KEY_POLLING_GUARD_DETAIL = "polling_guard_detail"
+        const val KEY_POLLING_CAPABILITIES = "polling_capabilities"
         const val KEY_UID = "uid"
         const val KEY_SAK = "sak"
         const val KEY_ATQA = "atqa"
+        const val KEY_BACKEND = "simulation_backend"
 
         const val KEY_COMMAND_GENERATION = "command_generation"
         const val KEY_COMMAND_CONSUMED_GENERATION = "command_consumed_generation"
@@ -128,7 +138,7 @@ open class ConfigProvider : ContentProvider() {
             KEY_REFRESH_TRIGGER_GENERATION, KEY_REFRESH_TRIGGER_RF_CONFIRMED,
             KEY_FULL_DIAG_STAGE, KEY_FULL_DIAG_SUMMARY
         )
-        private val TERMINAL_COMMAND_STATUSES = setOf("SUCCESS", "FAILED")
+        private val TERMINAL_COMMAND_STATUSES = setOf("SUCCESS", "FAILED", "NO_OVERRIDE", "UNVERIFIED")
         private val TERMINAL_OWNED_KEYS = setOf(
             KEY_COMMAND_CONSUMED_GENERATION, KEY_COMMAND_HANDLED_GENERATION, KEY_COMMAND_ACTION,
             KEY_COMMAND_STATUS, KEY_COMMAND_DETAIL, KEY_COMMAND_PID,
@@ -249,6 +259,14 @@ open class ConfigProvider : ContentProvider() {
                 val uid = extras?.getString(EXTRA_UID)
                 val sak = extras?.getString(EXTRA_SAK)
                 val atqa = extras?.getString(EXTRA_ATQA)
+                // New APPLY commands always use the main RF_CONFIG_WRITE Hook.
+                // Require STOP before migrating an already-active legacy session.
+                val backend = "RF"
+                val previousBackend = prefs().getString(KEY_BACKEND, "RF") ?: "RF"
+                if (enabled && prefs().getBoolean(KEY_SIMULATION_ENABLED, false) && backend != previousBackend) {
+                    Log.w("NfcConfigProvider", "Backend switch rejected while simulation active; STOP first")
+                    return Bundle().apply { putBoolean(RESULT_SUCCESS, false) }
+                }
                 val previous = (prefs().all[KEY_COMMAND_GENERATION] as? Number)?.toLong() ?: 0L
                 val generation = maxOf(previous + 1L, System.currentTimeMillis())
                 val action = if (enabled) "APPLY" else "STOP"
@@ -256,6 +274,7 @@ open class ConfigProvider : ContentProvider() {
                     put(KEY_APP_BUILD, APP_BUILD)
                     put(KEY_STATE_GENERATION, generation)
                     put(KEY_SIMULATION_ENABLED, enabled)
+                    if (enabled) put(KEY_BACKEND, backend)
                     if (enabled && !uid.isNullOrBlank()) {
                         put(KEY_UID, uid)
                         put(KEY_SAK, sak.orEmpty())
@@ -288,10 +307,105 @@ open class ConfigProvider : ContentProvider() {
                     putLong(RESULT_GENERATION, generation)
                 }
             }
+            METHOD_REPORT_OWN_NCI_ACCEPTED -> {
+                // App-owned read-only HAL trace evidence. Never promote this
+                // to RF accepted/verified: a reader must check the emitted UID.
+                val generation = extras?.getLong(EXTRA_GENERATION, 0L) ?: 0L
+                val pid = extras?.getInt(EXTRA_PID, 0) ?: 0
+                val current = prefs()
+                val eligible = Binder.getCallingUid() == Process.myUid() &&
+                    generation > 0L && pid > 0 &&
+                    (current.all[KEY_COMMAND_GENERATION] as? Number)?.toLong() == generation &&
+                    (current.all[KEY_COMMAND_HANDLED_GENERATION] as? Number)?.toLong() == generation &&
+                    (current.all[KEY_RF_GENERATION] as? Number)?.toLong() == generation &&
+                    current.getString(KEY_COMMAND_STATUS, "") == "UNVERIFIED" &&
+                    current.getString(KEY_COMMAND_ACTION, "") == "APPLY" &&
+                    current.getString(KEY_RF_SOURCE, "") == "own-nci-0x33" &&
+                    current.getString(KEY_RF_STATUS, "") == "OWN_NCI_UID_REQUESTED" &&
+                    current.getBoolean(KEY_SIMULATION_ENABLED, false) &&
+                    (current.all[KEY_COMMAND_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_RUNTIME_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_RF_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_CONTROLLER_EPOCH] as? Number)?.toLong() ==
+                        (current.all[KEY_RF_CONTROLLER_EPOCH] as? Number)?.toLong()
+                if (!eligible) {
+                    Bundle().apply { putBoolean(RESULT_SUCCESS, false) }
+                } else {
+                    val detail = "NFCC accepted LA_NFCID1 (0x33); over-the-air UID remains unverified"
+                    val saved = current.edit()
+                        .putString(KEY_COMMAND_DETAIL, detail)
+                        .putString(KEY_OPERATION_STATE, "NCI_ACCEPTED_RF_UNVERIFIED")
+                        .putString(KEY_VERIFICATION_CONFIDENCE, "NCI_ACCEPTED_RF_UNVERIFIED")
+                        .putString(KEY_RF_VERIFICATION, "NCI_ACCEPTED_EXTERNAL_RF_NOT_VERIFIED")
+                        .putString(KEY_FULL_DIAG_STAGE, "NCI_ACCEPTED_RF_UNVERIFIED")
+                        .putString(KEY_FULL_DIAG_SUMMARY, detail)
+                        .commit()
+                    if (saved) context?.contentResolver?.notifyChange(URI, null)
+                    Bundle().apply { putBoolean(RESULT_SUCCESS, saved) }
+                }
+            }
+            METHOD_REPORT_OWN_NCI_INVALID_PARAM -> {
+                // A read-only trace may finalize an earlier void JNI write.
+                // Only the app process can submit this report. Strict same
+                // generation, PID, source, and UNVERIFIED checks prevent stale
+                // logcat data from corrupting a newer APPLY or STOP.
+                val generation = extras?.getLong(EXTRA_GENERATION, 0L) ?: 0L
+                val pid = extras?.getInt(EXTRA_PID, 0) ?: 0
+                val current = prefs()
+                val accepted = Binder.getCallingUid() == Process.myUid() &&
+                    generation > 0L && pid > 0 &&
+                    (current.all[KEY_COMMAND_GENERATION] as? Number)?.toLong() == generation &&
+                    (current.all[KEY_COMMAND_HANDLED_GENERATION] as? Number)?.toLong() == generation &&
+                    (current.all[KEY_RF_GENERATION] as? Number)?.toLong() == generation &&
+                    current.getString(KEY_COMMAND_STATUS, "") == "UNVERIFIED" &&
+                    current.getString(KEY_COMMAND_ACTION, "") == "APPLY" &&
+                    current.getString(KEY_RF_SOURCE, "") == "own-nci-0x33" &&
+                    current.getString(KEY_RF_STATUS, "") == "OWN_NCI_UID_REQUESTED" &&
+                    current.getBoolean(KEY_SIMULATION_ENABLED, false) &&
+                    (current.all[KEY_COMMAND_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_RUNTIME_PID] as? Number)?.toInt() == pid &&
+                    (current.all[KEY_RF_PID] as? Number)?.toInt() == pid
+                if (!accepted) {
+                    Bundle().apply { putBoolean(RESULT_SUCCESS, false) }
+                } else {
+                    val detail = "NFCC rejected LA_NFCID1 (0x33): NCI CORE_SET_CONFIG_RSP " +
+                        "STATUS_INVALID_PARAM (0x09); custom UID was NOT accepted"
+                    val saved = current.edit()
+                        .putString(KEY_COMMAND_STATUS, "FAILED")
+                        .putString(KEY_COMMAND_DETAIL, detail)
+                        .putString(KEY_OPERATION_STATE, "FAILED")
+                        .putString(KEY_EFFECTIVE_STATE, "UNKNOWN")
+                        .putString(KEY_VERIFICATION_CONFIDENCE, "NCI_INVALID_PARAM")
+                        .putString(KEY_RF_STATUS, "OWN_NCI_UID_REJECTED")
+                        .putString(KEY_RF_ERROR, detail)
+                        .putString(KEY_RF_VERIFICATION, "REJECTED_BY_NFCC")
+                        .putBoolean(KEY_RF_ACCEPTED, false)
+                        .putString(KEY_FULL_DIAG_STAGE, "OWN_NCI_UID_REJECTED")
+                        .putString(KEY_FULL_DIAG_SUMMARY, detail)
+                        .commit()
+                    if (saved) {
+                        Log.w("NfcConfigProvider", "Own NCI UID rejected generation=$generation pid=$pid: 0x09/0x33")
+                        context?.contentResolver?.notifyChange(URI, null)
+                    }
+                    Bundle().apply { putBoolean(RESULT_SUCCESS, saved) }
+                }
+            }
             METHOD_SET_DIAGNOSTIC_LOGGING -> {
                 val enabled = extras?.getBoolean(EXTRA_ENABLED, false) == true
                 insert(URI, ContentValues().apply { put(KEY_DIAGNOSTIC_LOGGING_ENABLED, enabled) })
                 Bundle().apply { putBoolean(RESULT_SUCCESS, true) }
+            }
+            METHOD_SET_POLLING_DISABLED -> {
+                // Persist synchronously in device-protected storage before acknowledging.
+                val disabled = extras?.getBoolean(EXTRA_ENABLED, false) == true
+                val saved = prefs().edit()
+                    .putBoolean(KEY_POLLING_DISABLED, disabled)
+                    .putString(KEY_POLLING_GUARD_STATUS, "PENDING")
+                    .putInt(KEY_POLLING_GUARD_PID, 0)
+                    .putString(KEY_POLLING_GUARD_DETAIL, "Awaiting NFC discovery hook")
+                    .commit()
+                if (saved) context?.contentResolver?.notifyChange(URI, null)
+                Bundle().apply { putBoolean(RESULT_SUCCESS, saved) }
             }
             METHOD_CONFIRM_STOCK_RESTART -> {
                 val generation = extras?.getLong(EXTRA_GENERATION, 0L) ?: 0L

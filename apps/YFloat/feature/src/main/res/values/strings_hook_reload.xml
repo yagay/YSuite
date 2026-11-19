@@ -14,4 +14,5 @@
     <string name="yfloat_hook_state_reload">reload required</string>
     <string name="yfloat_hook_state_current">current</string>
     <string name="yfloat_hook_state_reboot">reboot required</string>
+    <string name="yfloat_google_original_frame_unavailable">Google did not return the original screenshot. No local screenshot was substituted.</string>
 </resources>

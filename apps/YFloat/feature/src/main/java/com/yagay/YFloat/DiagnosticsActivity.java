@@ -15,7 +15,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -38,7 +38,7 @@ public final class DiagnosticsActivity extends AppCompatActivity {
         YViewSection logging = YViewLayout.section(this,
                 getString(R.string.yfloat_diag_log_title),
                 getString(R.string.yfloat_diag_log_desc));
-        SwitchMaterial loggingSwitch = YViewLayout.switchRow(this,
+        MaterialSwitch loggingSwitch = YViewLayout.switchRow(this,
                 getString(R.string.yfloat_diag_logging),
                 getString(R.string.yfloat_diag_logging_desc),
                 fs.diagnosticLogging(),
@@ -65,11 +65,11 @@ public final class DiagnosticsActivity extends AppCompatActivity {
         LinearLayout row = YViewLayout.buttonRow(this);
         LinearLayout.LayoutParams leftLp = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        leftLp.setMarginEnd(YViewLayout.dp(this, 6));
+        leftLp.setMarginEnd(com.yagay.yui.YView.controlGap(this) / 2);
         row.addView(left, leftLp);
         LinearLayout.LayoutParams rightLp = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        rightLp.setMarginStart(YViewLayout.dp(this, 6));
+        rightLp.setMarginStart(com.yagay.yui.YView.controlGap(this) / 2);
         row.addView(right, rightLp);
         YViewLayout.addRow(parent, row);
     }
@@ -87,9 +87,6 @@ public final class DiagnosticsActivity extends AppCompatActivity {
                 .append(" api=").append(s.apiVersion).append("\n")
                 .append("remoteConfigReady=").append(s.remoteConfigReady)
                 .append(" provider=").append(s.remoteProviderEnabled()).append("\n")
-                .append("googleScope=").append(s.googleScopeEnabled())
-                .append(" googleLoaded=").append(s.googleTargetLoaded())
-                .append(" googleStale=").append(s.googleTargetStale()).append("\n")
                 .append("scope=").append(s.scope).append("\n")
                 .append("runningProcesses=").append(s.runningProcesses).append("\n");
         if (!s.detail.isBlank()) combined.append("detail=").append(s.detail).append("\n");

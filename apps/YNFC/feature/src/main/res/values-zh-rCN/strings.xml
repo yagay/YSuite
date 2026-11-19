@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ynfc_subtitle">NFC 门禁卡与 HCE 状态</string>
+    <string name="ynfc_polling_guard">持续禁止主动读卡（保留 HCE）</string>
+    <string name="ynfc_polling_status">NFC 发现策略</string>
+    <string name="ynfc_polling_hce_only">仅卡片模拟（已请求）</string>
+    <string name="ynfc_polling_normal">正常 NFC（已请求）</string>
+    <string name="ynfc_polling_guard_desc">NFC 保持开启；每次 NFC 发现配置及服务重启时将轮询掩码设为 0，保留 HCE 路由。须通过日志与实测确认。</string>
+    <string name="ynfc_polling_blocked_read">已开启全局禁读，请先关闭禁读再扫描卡片。</string>
+    <string name="ynfc_polling_save_failed">禁读设置保存失败。</string>
     <string name="ynfc_saved_cards">已保存卡片 (%1$d)</string>
     <string name="ynfc_saved_cards_desc">点击卡片可查看 UID、SAK 和 ATQA，并启动或停止模拟。</string>
     <string name="ynfc_no_saved_cards">暂无保存卡片。进入读卡模式后贴卡，确认信息无误再保存。</string>
@@ -10,7 +17,7 @@
     <string name="ynfc_log_enabled">已开启。正在抓取日志。</string>
     <string name="ynfc_log_disabled">已关闭。不抓取日志，减少性能影响。</string>
     <string name="ynfc_diagnostic_logs">诊断日志</string>
-    <string name="ynfc_diagnostic_logs_desc">日志区域保留高对比度控制台配色，页面结构仍由 YUI 管理。</string>
+    <string name="ynfc_diagnostic_logs_desc">诊断文件自动保存到 Download/YSuite/YNFC/，下方仍可查看实时日志。</string>
     <string name="ynfc_saving">保存中</string>
     <string name="ynfc_export_logs">导出日志</string>
     <string name="ynfc_clear_logs">清空日志</string>
@@ -43,6 +50,7 @@
 
     <string name="ynfc_sim_active">模拟已生效。UID=%1$s</string>
     <string name="ynfc_sim_failed">模拟失败。%1$s</string>
+    <string name="ynfc_sim_reapply_requested_unverified">NFC 重新初始化后已再次发送 UID %1$s；仍需外部读卡器验证。</string>
     <string name="ynfc_sim_stale">模拟已请求，但 RF 状态来自旧 NFC 进程。</string>
     <string name="ynfc_sim_applying">正在应用。状态 %1$s。UID=%2$s</string>
     <string name="ynfc_sim_stopped_lifecycle">模拟已停止。原厂 RF 已通过 NFC 生命周期恢复。</string>
@@ -58,6 +66,8 @@
     <string name="ynfc_sim_command_superseded">模拟请求被更新的命令替代</string>
     <string name="ynfc_sim_apply_failure">模拟失败 · %1$s：%2$s</string>
     <string name="ynfc_sim_waiting_rf">模拟请求已发送 · 等待 RF UID 确认</string>
+    <string name="ynfc_wallet_payment_warning">YNFC UID 模拟开启期间，钱包 NFC 刷卡及安全元件支付可能受影响。付款前请先停止模拟，确认 NFC 已恢复原厂状态。</string>
+    <string name="ynfc_own_nci_unverified">已使用原生 NCI 0x33 直接请求自定义 NFC-A UID。接口没有成功回执，请用外部读卡器核实实际 UID；停止模拟时恢复 NFC 服务。</string>
     <string name="ynfc_sim_stop_lifecycle_restored">模拟已停止 · 原厂 RF 已由 NFC 进程恢复</string>
     <string name="ynfc_sim_stop_superseded">停止请求已被更新的命令替代</string>
     <string name="ynfc_sim_stop_restored">模拟已停止 · 已恢复原厂 RF</string>
@@ -86,7 +96,65 @@
     <string name="ynfc_card_uid_subtitle">UID %1$s</string>
     <string name="ynfc_collapse_details">点击收起详情</string>
     <string name="ynfc_view_details">点击查看详情</string>
+    <string name="ynfc_quick_controls">模拟控制</string>
+    <string name="ynfc_quick_controls_desc">直接点击其他卡片即可切换 UID，无需先停止。停止时恢复原厂 NFC；必要时可能重载一次 NFC 服务。</string>
+    <string name="ynfc_selected_uid">当前选中 UID</string>
+    <string name="ynfc_stop_restore_default">停止模拟并恢复原厂 NFC</string>
+    <string name="ynfc_switch_uid">切换 UID</string>
+    <string name="ynfc_hook_problem_implementation">NFC 进程仍在使用旧版 YNFC Hook 代码。请先停止模拟，再重新加载一次 NFC 服务 Hook，无需重启手机。</string>
     <string name="ynfc_stop">停止</string>
     <string name="ynfc_simulate">模拟</string>
     <string name="ynfc_delete">删除</string>
+    <string name="ynfc_hook_problem_process">找不到 NFC 系统进程，请检查 Android NFC 是否已开启。</string>
+    <string name="ynfc_hook_problem_injection">NFC Hook 没有上报。请在 LSPosed 为 YSuite 启用 com.android.nfc 作用域，必要时仅重载 NFC 服务进程。通常不需要重启整台手机；仅有 Root 权限无法启用 Hook。</string>
+    <string name="ynfc_hook_problem_stale">Hook 属于旧的 NFC 进程。请等待新的 NFC 服务加载 Hook，无需重启整台手机。</string>
+    <string name="ynfc_hook_problem_scope">NFC 进程正常，但未确认 LSPosed 作用域。请检查 com.android.nfc 作用域，必要时仅重载 NFC 服务。</string>
+    <string name="ynfc_hook_problem_install">YNFC 已进入作用域，但 Hook 未安装。请导出聚焦的 LSPosed 日志，排查安装失败。</string>
+    <string name="ynfc_hook_problem_build">已加载的 NFC Hook 与 APK 版本不同。YNFC 会尝试仅重载 NFC 服务，通常不需要重启整台手机。</string>
+    <string name="ynfc_hook_problem_unknown">NFC Hook 尚未就绪，请检查目标进程和诊断日志。</string>
+    <string name="ynfc_vendor_type_a_mode">实验性 ColorOS Vendor Type-A</string>
+    <string name="ynfc_vendor_type_a_desc">关闭＝Root/LSPosed RF/NCI 严格 UID 置换（只替换已有的 LA_NFCID1，不追加新参数）；开启＝实验性 ColorOS Vendor Type-A，需要厂商签名/特权 NFC 权限。实际 UID 必须使用外部读卡设备验证。</string>
+    <string name="ynfc_vendor_type_a_stop_first">请先停止当前模拟，再切换执行后端。</string>
+    <string name="ynfc_vendor_api_accepted">厂商已接受 Type-A 配置请求，但尚未通过外部读卡器验证实际模拟效果。</string>
+    <string name="ynfc_vendor_permission_denied">ColorOS 拒绝了 Vendor Type-A：NFC 系统进程缺少 com.oplus.permission.safe.NFC（签名或特权权限），普通运行时授权无法解决。请先停止模拟恢复 NFC，详情见诊断日志。</string>
+    <string name="ynfc_sim_stop_no_override">当前 NFC 进程没有执行 UID 写入，已停止模拟，无需重启 NFC 服务；原厂射频状态尚未经过独立验证。</string>
+    <string name="ynfc_hook_reload_title">NFC Hook 可更新</string>
+    <string name="ynfc_hook_reload_desc">当前 NFC 服务运行的是旧版 Hook。安装 APK 不需要重启手机；只有需要使用新版 Hook 时，才手动重载 NFC 服务，期间 NFC 会短暂中断。</string>
+    <string name="ynfc_hook_reload_button">仅重载 NFC 服务</string>
+    <string name="ynfc_hook_reload_stop_first">请先停止 UID 模拟，再重载 NFC 服务。</string>
+    <string name="ynfc_hook_reload_already_current">NFC Hook 已是当前版本，无需重载。</string>
+    <string name="ynfc_hook_reload_success">NFC 服务已加载新版 Hook，无需重启手机。</string>
+    <string name="ynfc_hook_reload_failed">未能确认新版 NFC Hook。请检查 LSPosed 作用域及诊断日志；不会自动再次重启。</string>
+    <string name="ynfc_hook_manual_reload_title">手动刷新 NFC Hook</string>
+    <string name="ynfc_hook_manual_reload_desc">只有安装了更新进程内 Hook 代码的测试版才需要使用。仅重载 NFC 服务一次，不重启手机，也不会自动执行。</string>
+    <string name="ynfc_type_a_disable_failed">ColorOS 原生 NFC-A 关闭被拒绝，尚未确认恢复原厂 RF；请检查诊断日志。</string>
+    <string name="ynfc_rf_uid_writer_not_observed">UID 置换未生效：虽然刷新了 NFC 路由，但当前进程没有调用可用的 NCI UID 写入方法。RF 模式只替换已有 LA_NFCID1，不会追加新的参数。此固件可能需要先定位并验证原生 HAL 层的实际写入位置。</string>
+    <string name="ynfc_file_intercept_mode">文件驱动 NFC-A 拦截替换（实验性）</string>
+    <string name="ynfc_file_intercept_desc">仅在 ColorOS 自然调用 HceAccessCard 时替换 UID/ATQA/SAK；不会主动发送厂商 NFC-A 写入命令，需用外部读卡器验证实际 UID。</string>
+    <string name="ynfc_intercept_call_accepted">ColorOS HCE 方法使用了导入参数并返回成功，但实际射频 UID 未验证，请使用外部 NFC 读卡器确认。</string>
+    <string name="ynfc_intercept_call_waiting">尚未观察到 ColorOS Type-A 配置调用，UID 目前未替换；文件拦截保持启用，直到你手动停止。</string>
+    <string name="ynfc_intercept_reload_button">重新加载 NFC 服务以测试拦截</string>
+    <string name="ynfc_intercept_reload_complete">NFC 服务已重新加载，文件拦截保持启用；请检查新的 HCE 调用，并使用外部读卡器验证。</string>
+    <string name="ynfc_intercept_reload_not_armed">文件拦截尚未启用，请选择拦截模式并在保存的卡片上点击“模拟”。</string>
+    <string name="ynfc_profile_auto_title">自动生成 NFC-A 配置</string>
+    <string name="ynfc_profile_auto_desc">无需导入文件。选择保存的卡片并点击“模拟”，自动生成私有 JSON 并同步到 Download/YSuite/YNFC/；ColorOS HCE 仅作为实验兼容模式。</string>
+    <string name="ynfc_profile_auto_failed">自动创建 NFC-A/SN220 配置副本失败，未发送新的模拟命令；请检查 config-status.txt 和诊断日志。</string>
+    <string name="ynfc_intercept_old_hook_title">NFC 服务仍在运行旧版 Hook 代码</string>
+    <string name="ynfc_intercept_hook_reload_required">请先停止当前模拟，再手动重新加载 NFC 服务以启用最新的文件拦截 Hook。无需重启手机。</string>
+    <string name="ynfc_rf_legacy_mode_title">目前选中的是旧 RF 模式</string>
+    <string name="ynfc_rf_legacy_mode_desc">旧 RF 模式不提供独立的原生 UID 写入入口。请切换原生 NCI 分析以收集本机固件证据。</string>
+    <string name="ynfc_switch_to_intercept">切换到文件拦截</string>
+    <string name="ynfc_native_nci_mode">独立 NFC NCI/HAL（固件分析）</string>
+    <string name="ynfc_native_nci_desc">自动生成 NFC-A 配置，针对 NXP HAL 进行独立诊断，不依赖 ColorOS 钱包。当前尚未验证本机固件的 UID 写入 ABI，暂时禁止原生写入。</string>
+    <string name="ynfc_native_profile_desc">点击“模拟”后，在 Download/YSuite/YNFC/snapshots/ 内按操作生成独立的原始配置、修改配置、卡片 JSON 和 SHA-256 清单。仅修改 NFCID1，ATQA/SAK 只进行差异检查；原生 HAL 写入仍未安装。</string>
+    <string name="ynfc_native_abi_unverified">原生 NCI/HAL 尚未就绪：需要验证本机固件库和 UID 写入接口后才允许配置控制器。本次没有模拟或发送 UID；请导出诊断文件。</string>
+    <string name="ynfc_switch_to_native">切换到原生 NCI 分析</string>
+    <string name="ynfc_hal_probe_button">检查 HAL 配置加载（只读）</string>
+    <string name="ynfc_hal_probe_running">正在检查 NFC HAL…</string>
+    <string name="ynfc_hal_probe_saved">HAL 配置检查已保存：%1$s</string>
+    <string name="ynfc_hal_probe_failed">HAL 检查失败：%1$s</string>
+    <string name="ynfc_native_preview_only">SN220 配置快照已保存至 Download/YSuite/YNFC/snapshots/。仅生成配置预览，未启动 NFC UID 模拟。</string>
+    <string name="ynfc_native_preview_action">生成 SN220 配置</string>
+    <string name="ynfc_native_preview_preparing">正在生成并校验 SN220 配置快照（仅预览，不会启动 NFC 模拟）…</string>
+    <string name="ynfc_native_preview_preparing_short">正在生成…</string>
 </resources>

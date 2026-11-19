@@ -1,12 +1,17 @@
 package com.yagay.ysuite.productui.download
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,24 +33,33 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiIconButton as IconButton
+import com.yagay.yui.YUiLinearProgressIndicator as LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
+import com.yagay.yui.YUiSlider as Slider
+import com.yagay.yui.YUiSurface as Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.yagay.yui.LocalYAppearance
+import com.yagay.yui.YUiText as Text
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import com.yagay.yui.YPrimaryActionButton
 import com.yagay.yui.YSecondaryActionButton
 import com.yagay.yui.YTextActionButton
+import com.yagay.yui.YResponsiveFieldAction
+import com.yagay.yui.YResponsiveFieldPair
+import com.yagay.yui.YResponsiveActionBar
+import com.yagay.yui.YUiAlertDialog
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+import androidx.compose.ui.unit.dp
 
 data class QdmDownloadRowModel(
     val id: String,
@@ -194,7 +209,7 @@ private fun QdmDownloadItemRow(
                     } else {
                         MaterialTheme.colorScheme.primary
                     },
-                modifier = Modifier.size(YSuiteSpacing.XLarge),
+                modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
             )
             Spacer(Modifier.width(YSuiteSpacing.Medium))
             Column(
@@ -502,6 +517,15 @@ fun QdmAddDownloadDialog(
     onStart: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var speedLimitDraft by remember {
+        mutableStateOf((model.speedLimitBytesPerSecond / 1024L).toString())
+    }
+    var speedLimitFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(model.speedLimitBytesPerSecond, speedLimitFocused) {
+        if (!speedLimitFocused) {
+            speedLimitDraft = (model.speedLimitBytesPerSecond / 1024L).toString()
+        }
+    }
     Dialog(
         onDismissRequest = onDismiss,
         properties =
@@ -511,23 +535,19 @@ fun QdmAddDownloadDialog(
                 dismissOnClickOutside = false,
             ),
     ) {
+        BoxWithConstraints(Modifier.fillMaxSize().imePadding()) {
         Surface(
             modifier = Modifier
+                .align(Alignment.Center)
                 .fillMaxWidth()
-                .padding(YSuiteSpacing.Medium),
-            shape = MaterialTheme.shapes.large,
+                .padding(YSuiteSpacing.Medium)
+                .heightIn(max = maxHeight - (LocalYAppearance.current.effectiveGapDp * 2f).dp),
+            shape = RoundedCornerShape(LocalYAppearance.current.dialogRadiusDp.dp),
             tonalElevation = YSuiteSpacing.XSmall,
         ) {
             Column(
-                modifier = Modifier
-                    .verticalScroll(
-                        rememberScrollState(),
-                    )
-                    .padding(YSuiteSpacing.Large),
-                verticalArrangement =
-                    Arrangement.spacedBy(
-                        YSuiteSpacing.Small,
-                    ),
+                modifier = Modifier.padding(YSuiteSpacing.Large),
+                verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -545,6 +565,13 @@ fun QdmAddDownloadDialog(
                     }
                 }
 
+                // Long form scrolls separately from its title and actions.
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+                ) {
                 OutlinedTextField(
                     value = model.url,
                     onValueChange = onUrlChange,
@@ -553,33 +580,25 @@ fun QdmAddDownloadDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Row(
-                    horizontalArrangement =
-                        Arrangement.spacedBy(
-                            YSuiteSpacing.Small,
-                        ),
-                    verticalAlignment =
-                        Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = model.fileName,
-                        onValueChange =
-                            onFileNameChange,
-                        label = {
-                            Text(labels.fileName)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    YSecondaryActionButton(
-                        onClick = onFetch,
-                        enabled =
-                            model.url.isNotBlank() &&
-                                !model.loading,
-                    ) {
-                        Text(labels.fetch)
-                    }
-                }
+                YResponsiveFieldAction(
+                    field = { fieldModifier ->
+                        OutlinedTextField(
+                            value = model.fileName,
+                            onValueChange = onFileNameChange,
+                            label = { Text(labels.fileName) },
+                            singleLine = true,
+                            modifier = fieldModifier,
+                        )
+                    },
+                    action = {
+                        YSecondaryActionButton(
+                            onClick = onFetch,
+                            enabled = model.url.isNotBlank() && !model.loading,
+                        ) {
+                            Text(labels.fetch)
+                        }
+                    },
+                )
 
                 model.metadataText?.let {
                     Text(
@@ -668,29 +687,20 @@ fun QdmAddDownloadDialog(
                 }
 
                 OutlinedTextField(
-                    value =
-                        (
-                            model.speedLimitBytesPerSecond /
-                                1024L
-                        ).toString(),
+                    value = speedLimitDraft,
                     onValueChange = { raw ->
-                        val kbps =
-                            raw.filter(Char::isDigit)
-                                .toLongOrNull()
-                                ?: 0L
+                        speedLimitDraft = raw.filter(Char::isDigit)
+                        val kbps = speedLimitDraft.toLongOrNull() ?: 0L
                         onSpeedLimitChange(
-                            kbps
-                                .coerceAtMost(
-                                    Long.MAX_VALUE /
-                                        1024L,
-                                ) * 1024L,
+                            kbps.coerceAtMost(Long.MAX_VALUE / 1024L) * 1024L,
                         )
                     },
-                    label = {
-                        Text(labels.speedLimit)
-                    },
+                    label = { Text(labels.speedLimit) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth().onFocusChanged {
+                        speedLimitFocused = it.isFocused
+                    },
                 )
 
                 OutlinedTextField(
@@ -766,43 +776,30 @@ fun QdmAddDownloadDialog(
                     label = { Text(labels.cookies) },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(
-                    horizontalArrangement =
-                        Arrangement.spacedBy(
-                            YSuiteSpacing.Small,
-                        ),
-                ) {
-                    OutlinedTextField(
-                        value = model.username,
-                        onValueChange =
-                            onUsernameChange,
-                        label = {
-                            Text(labels.username)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedTextField(
-                        value = model.password,
-                        onValueChange =
-                            onPasswordChange,
-                        label = {
-                            Text(labels.password)
-                        },
-                        singleLine = true,
-                        visualTransformation =
-                            PasswordVisualTransformation(),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                YResponsiveFieldPair(
+                    first = { fieldModifier ->
+                        OutlinedTextField(
+                            value = model.username,
+                            onValueChange = onUsernameChange,
+                            label = { Text(labels.username) },
+                            singleLine = true,
+                            modifier = fieldModifier,
+                        )
+                    },
+                    second = { fieldModifier ->
+                        OutlinedTextField(
+                            value = model.password,
+                            onValueChange = onPasswordChange,
+                            label = { Text(labels.password) },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = fieldModifier,
+                        )
+                    },
+                )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(
-                            YSuiteSpacing.Small,
-                        ),
-                ) {
+                }
+                YResponsiveActionBar {
                     YSecondaryActionButton(
                         onClick = onAddQueue,
                         enabled =
@@ -824,6 +821,7 @@ fun QdmAddDownloadDialog(
                 }
             }
         }
+        }
     }
 }
 
@@ -840,14 +838,15 @@ fun QdmDownloadPropertiesDialog(
     closeLabel: String,
     onDismiss: () -> Unit,
 ) {
-    com.yagay.yui.YContentDialog(
-        title = title,
-        closeLabel = closeLabel,
+    YUiAlertDialog(
         onDismissRequest = onDismiss,
-    ) {
+        title = { Text(title) },
+        text = {
             Column(
-                verticalArrangement =
-                    Arrangement.spacedBy(YSuiteSpacing.Small),
+                modifier = Modifier
+                    .heightIn(max = (LocalYAppearance.current.rowHeightDp * 8f).dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
             ) {
                 properties.forEach { property ->
                     Column {
@@ -866,5 +865,11 @@ fun QdmDownloadPropertiesDialog(
                     }
                 }
             }
-    }
+        },
+        confirmButton = {
+            YTextActionButton(onClick = onDismiss) {
+                Text(closeLabel)
+            }
+        },
+    )
 }

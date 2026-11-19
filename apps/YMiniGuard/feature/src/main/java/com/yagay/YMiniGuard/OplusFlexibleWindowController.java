@@ -230,7 +230,10 @@ final class OplusFlexibleWindowController {
                             return current;
                         });
 
-        if (session.backgroundProtected) {
+        if (session.backgroundProtected
+                && !(keyguardShowing
+                    && GuardConfig.backgroundPlaybackPackage(
+                            session.packageName))) {
             session.backgroundProtected = false;
 
             log(
@@ -500,20 +503,25 @@ final class OplusFlexibleWindowController {
         if (!running) return;
 
         int armed = 0;
+        int backgroundArmed = 0;
+        boolean verifiedKeyguard = "KeyguardController.setKeyguardShown"
+                .equals(reason);
 
-        for (Session session :
-                sessions.values()) {
-            if (!session.active
-                    || !GuardConfig
-                    .foregroundPackage(
-                            session.packageName)) {
-                continue;
+        for (Session session : sessions.values()) {
+            if (!session.active) continue;
+            // The canonical KeyguardController event runs before any OEM
+            // visibility/STOP callbacks. Pre-arm only selected background apps.
+            if (verifiedKeyguard
+                    && GuardConfig.backgroundPlaybackPackage(session.packageName)
+                    && !session.backgroundProtected) {
+                session.backgroundProtected = true;
+                backgroundArmed++;
+                log("BACKGROUND_PRELOCK_ARM",
+                        "pkg=" + session.packageName
+                                + " taskId=" + session.taskId);
             }
-
-            if (!isNativeOplusWindow(
-                    session)) {
-                continue;
-            }
+            if (!GuardConfig.foregroundPackage(session.packageName)
+                    || !isNativeOplusWindow(session)) continue;
 
             if (!session.lockKeepAlive) {
                 session.lockKeepAlive = true;
@@ -524,7 +532,8 @@ final class OplusFlexibleWindowController {
         log(
                 "OPLUS_LOCK_PREARM",
                 "reason=" + reason
-                        + " armed=" + armed);
+                        + " armed=" + armed
+                        + " backgroundArmed=" + backgroundArmed);
     }
 
     void onKeyguardStateChanged(
@@ -535,10 +544,21 @@ final class OplusFlexibleWindowController {
         if (showing) {
             for (Session session :
                     sessions.values()) {
-                if (!session.active
-                        || !GuardConfig
-                        .foregroundPackage(
-                                session.packageName)) {
+                if (!session.active) {
+                    continue;
+                }
+
+                // Arm STOP/freeze protection before system_server applies its
+                // keyguard transition. This flag never authorizes lock-screen
+                // window visibility; it only preserves background playback.
+                if (GuardConfig.backgroundPlaybackPackage(session.packageName)) {
+                    session.backgroundProtected = true;
+                    log("BACKGROUND_LOCK_ARM",
+                            "pkg=" + session.packageName
+                                    + " taskId=" + session.taskId
+                                    + " keepPlayback=true allowWindowHide=true");
+                }
+                if (!GuardConfig.foregroundPackage(session.packageName)) {
                     continue;
                 }
 
@@ -611,19 +631,50 @@ final class OplusFlexibleWindowController {
             return false;
         }
 
-        if (resumingPackage != null
-                && session.packageName.equals(
-                resumingPackage)) {
-            if (session.backgroundProtected) {
-                session.backgroundProtected = false;
-                log(
-                        "BACKGROUND_PROTECTED",
-                        "pkg=" + session.packageName
-                                + " taskId=" + session.taskId
-                                + " enabled=false"
-                                + " reason=same-package-resume");
-            }
+        // Activity.onPause() is used by some video apps to stop playback.
+        // Preserve the playback lifecycle on lock, while deliberately allowing
+        // OPlus/WindowManager to hide the Activity surface and put the task to
+        // sleep. The separate shouldKeepTaskAwake() predicate excludes every
+        // background-playback package from lock visibility suppression.
+        if (LockScreenPolicy.preservePlaybackOnLock(uiSleeping, keyguardShowing)) {
+            session.backgroundProtected = true;
+            session.taskObject = task;
+            session.lastSeenElapsed = SystemClock.elapsedRealtime();
+            log("BACKGROUND_LOCK_PLAYBACK",
+                    "pkg=" + session.packageName
+                            + " taskId=" + session.taskId
+                            + " preservePlayback=true"
+                            + " suppressPause=true"
+                            + " allowWindowHide=true"
+                            + " uiSleeping=" + uiSleeping
+                            + " keyguardShowing=" + keyguardShowing);
+            return true;
+        }
+
+        // A same-package *candidate* resumingActivity is not proof the app
+        // returned to the foreground. On OxygenOS 16/Android 17, a second
+        // startPausing(same package, "makeInvisible") can arrive immediately
+        // after the launcher transition, even though the protected task is
+        // being hidden. Clearing here let Activity.onPause/onStop stop audio.
+        // Only a confirmed RESUMED capture or actual focus can disarm.
+        boolean samePackageCandidate = resumingPackage != null
+                && session.packageName.equals(resumingPackage);
+        boolean armedBackgroundTransition =
+                BackgroundPlaybackPolicy.shouldRetainArmedProtection(
+                        session.backgroundProtected, reason);
+
+        if (samePackageCandidate && !armedBackgroundTransition) {
+            // Allow ordinary in-app Activity navigation; do not revoke
+            // the background protection of another Activity in this task.
             return false;
+        }
+
+        if (samePackageCandidate && armedBackgroundTransition) {
+            log("BACKGROUND_SELF_RESUME_DEFERRED",
+                    "pkg=" + session.packageName
+                            + " taskId=" + session.taskId
+                            + " reason=" + reason
+                            + " armed=true");
         }
 
         boolean switchingPackage =
@@ -641,11 +692,24 @@ final class OplusFlexibleWindowController {
                         || reason.contains(
                                 "pauseBackTasks"));
 
+        // ColorOS may pause a real FlexibleTask with a makeInvisible reason
+        // while userLeaving and resumingPackage remain unset. Only selected
+        // background-playback apps qualify; the keyguard UI stays hideable.
+        boolean nativeMiniHidden =
+                BackgroundPlaybackPolicy.isVisibilityHide(reason)
+                && (isNativeOplusWindow(session)
+                    || armedBackgroundTransition
+                    || BackgroundPlaybackPolicy.shouldArmHiddenBackground(
+                        true, finishing, samePackageCandidate,
+                        resumingPackage, reason));
+
         if (!session.backgroundProtected
                 && !switchingPackage
                 && !explicitLeave
                 && !uiSleeping
-                && !recentsBackground) {
+                && !recentsBackground
+                && !nativeMiniHidden
+                && !armedBackgroundTransition) {
             return false;
         }
 
@@ -663,6 +727,10 @@ final class OplusFlexibleWindowController {
                         + " uiSleeping=" + uiSleeping
                         + " recentsBackground="
                         + recentsBackground
+                        + " nativeMiniHidden="
+                        + nativeMiniHidden
+                        + " armedBackgroundTransition="
+                        + armedBackgroundTransition
                         + " reason=" + reason);
 
         return true;
@@ -689,6 +757,12 @@ final class OplusFlexibleWindowController {
             return;
         }
 
+        // Focus can change under the lock screen without any real foreground
+        // resume. Preserve the process session until RESUMED is confirmed.
+        if (keyguardShowing
+                && GuardConfig.backgroundPlaybackPackage(session.packageName)) {
+            return;
+        }
         session.backgroundProtected = false;
         session.activityRecord = activityRecord;
         session.taskObject = task;
@@ -722,9 +796,15 @@ final class OplusFlexibleWindowController {
             return false;
         }
 
-        if (!session.backgroundProtected) {
-            return false;
+        if (!session.backgroundProtected && keyguardShowing) {
+            // Some OEM paths dispatch STOP directly without startPausing.
+            // This is only for a still-active, selected, non-finishing Task.
+            session.backgroundProtected = true;
+            log("BACKGROUND_STOP_LOCK_ARM",
+                    "pkg=" + session.packageName
+                            + " taskId=" + session.taskId);
         }
+        if (!session.backgroundProtected) return false;
 
         session.taskObject = task;
         session.lastSeenElapsed =
@@ -838,21 +918,17 @@ final class OplusFlexibleWindowController {
             return false;
         }
 
-        boolean oplusProtected =
-                GuardConfig.foregroundPackage(
-                        session.packageName)
-                        && (isNativeOplusWindow(session)
-                        || session.lockKeepAlive
-                        || session.edgeHung
-                        || session.edgeMinimizeRequested);
-
-        boolean backgroundProtected =
-                GuardConfig.backgroundPlaybackPackage(
-                        session.packageName)
-                        && session.backgroundProtected;
-
-        return oplusProtected
-                || backgroundProtected;
+        // This predicate is used by lock-screen visibility/sleep hooks, not
+        // by process keepalive. Background playback must never keep the UI
+        // surface visible on top of (or behind) the system keyguard.
+        // When an app is selected in both lists, privacy wins on lock.
+        return LockScreenPolicy.keepWindowVisible(
+                GuardConfig.foregroundPackage(session.packageName),
+                GuardConfig.backgroundPlaybackPackage(session.packageName),
+                isNativeOplusWindow(session),
+                session.lockKeepAlive,
+                session.edgeHung,
+                session.edgeMinimizeRequested);
     }
 
     private Session sessionForTask(Object task) {

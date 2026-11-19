@@ -1,6 +1,11 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YOverlayUi;
+import com.yagay.yui.YView;
+import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YUiGeometry;
+import com.google.android.material.button.MaterialButton;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
@@ -9,31 +14,40 @@ import android.view.Gravity;
 import android.view.ViewOutlineProvider;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.HorizontalScrollView;
+import android.widget.FrameLayout;
 import android.widget.TextView;
+import androidx.core.content.ContextCompat;
 
 /** Shared geometry and widget helpers for every result surface. */
 final class ResultUi {
-    static final int OUTER_MARGIN_DP = 12;
-    static final int BOX_HPAD_DP = 14;
-    static final int TITLE_H_DP = 38;
-    static final int ACTION_H_DP = 50;
-    static final int ROOT_VPAD_DP = 16;
+    /** Result panel uses the same live row/button metrics as normal YUI surfaces. */
+    static int titleHeight(Context c) {
+        return YView.rowHeight(YOverlayUi.scopedContext(c, "yfloat"));
+    }
 
-    /** One visible corner radius for Screenshot / View / OCR result popups. */
-    static final int POPUP_RADIUS_DP = 22;
+    static int actionHeight(Context c) {
+        return YOverlayUi.actionHeightPx(c, "yfloat");
+    }
+
+    static int verticalPadding(Context c) {
+        return YView.controlGap(YOverlayUi.scopedContext(c, "yfloat")) * 2;
+    }
 
     static LinearLayout box(Context c) {
         LinearLayout box = new LinearLayout(c);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(c, BOX_HPAD_DP), dp(c, 8), dp(c, BOX_HPAD_DP), dp(c, 8));
-        box.setBackground(popupBackground(c, YOverlayTokens.resultSurface(c)));
+        box.setPadding(YOverlayUi.contentPaddingPx(c, "yfloat"), YView.controlGap(c),
+                YOverlayUi.contentPaddingPx(c, "yfloat"), YView.controlGap(c));
+        box.setBackground(popupBackground(c,
+                YOverlayTokens.resultSurface(YOverlayUi.scopedContext(c, "yfloat"))));
         // Do not use platform elevation here. The result card fills the dialog window closely,
         // so Android clips the elevation shadow at the rectangular window bounds and leaves
         // square dark corners outside the rounded surface.
         box.setElevation(0f);
         box.setTranslationZ(0f);
         box.setStateListAnimator(null);
-        final float radius = dp(c, POPUP_RADIUS_DP);
+        final float radius = YOverlayUi.cornerRadiusPx(c, "yfloat");
         box.setOutlineProvider(new ViewOutlineProvider() {
             @Override public void getOutline(android.view.View view, android.graphics.Outline outline) {
                 if (view.getWidth() <= 0 || view.getHeight() <= 0) return;
@@ -45,38 +59,86 @@ final class ResultUi {
     }
 
     static android.graphics.drawable.Drawable popupBackground(Context c, int color) {
-        GradientDrawable background = new GradientDrawable();
-        background.setShape(GradientDrawable.RECTANGLE);
-        background.setColor(color);
-        background.setCornerRadius(dp(c, POPUP_RADIUS_DP));
-        background.setStroke(dp(c, 1), YOverlayTokens.outline(c));
-        return background;
+        return YOverlayUi.panelBackground(c, "yfloat", color, YOverlayTokens.outline(c));
     }
 
     static TextView heading(Context c, String text) {
-        TextView title = new TextView(c);
+        TextView title = new TextView(YOverlayUi.scopedContext(c, "yfloat"));
         title.setText(text == null ? "" : text);
-        title.setTextColor(YOverlayTokens.textPrimary(c));
-        title.setTextSize(17);
+        title.setTextColor(YOverlayTokens.textPrimary(YOverlayUi.scopedContext(c, "yfloat")));
+        YView.styleSectionTitle(title);
         title.setGravity(Gravity.CENTER_VERTICAL);
         return title;
     }
 
+    /**
+     * The screenshot/result dialog always presents OCR, Copy, Save, Close in
+     * one horizontal action strip. The normal selection popup is unrelated.
+     * If translated labels cannot fit, scroll horizontally instead of stacking.
+     */
     static LinearLayout actionRow(Context c) {
         LinearLayout row = new LinearLayout(c);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setGravity(Gravity.CENTER);
         return row;
     }
 
+    static HorizontalScrollView actionViewport(Context c, LinearLayout row) {
+        HorizontalScrollView viewport = new HorizontalScrollView(c);
+        viewport.setFillViewport(true);
+        viewport.setHorizontalScrollBarEnabled(false);
+        viewport.setOverScrollMode(android.view.View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        // Fill the dialog width when possible; preserve the row's minimum
+        // readable width when the screen is too narrow (horizontal scrolling).
+        viewport.addView(row, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT));
+        return viewport;
+    }
+
+    static void addResultActions(LinearLayout row, Button... buttons) {
+        // Equal-width slots distribute the icons across the dialog
+        // instead of grouping minimum-width buttons tightly at its center.
+        // Buttons themselves keep their YUI touch size, color and corner radius.
+        Context scoped = YOverlayUi.scopedContext(row.getContext(), "yfloat");
+        int buttonWidth = Math.max(YView.touchTarget(scoped),
+                YView.iconSize(scoped) + 2 * YView.buttonHorizontalPadding(scoped));
+        int slotGap = Math.max(0, YView.controlGap(scoped));
+        int minSlotWidth = buttonWidth + slotGap;
+        row.setMinimumWidth(minSlotWidth * buttons.length);
+        for (Button button : buttons) {
+            FrameLayout slot = new FrameLayout(row.getContext());
+            slot.setMinimumWidth(minSlotWidth);
+            FrameLayout.LayoutParams buttonLayout = new FrameLayout.LayoutParams(
+                    buttonWidth, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+            slot.addView(button, buttonLayout);
+            row.addView(slot, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        }
+    }
+
+    /** Icon-only button, derived from the existing YUI secondary MaterialButton. */
+    static MaterialButton iconButton(Context c, int iconRes, String label) {
+        Context scoped = YOverlayUi.scopedContext(c, "yfloat");
+        MaterialButton button = YViewLayout.secondaryButton(scoped, "");
+        button.setText("");
+        button.setGravity(Gravity.CENTER);
+        button.setIcon(ContextCompat.getDrawable(scoped, iconRes));
+        button.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
+        button.setIconPadding(0);
+        button.setIconSize(YView.iconSize(scoped));
+        button.setIconTint(button.getTextColors());
+        setActionHint(button, label);
+        return button;
+    }
+
+    static void setActionHint(Button button, String label) {
+        button.setContentDescription(label);
+        button.setTooltipText(label);
+    }
+
     static Button button(Context c, String text) {
-        Button b = new Button(c);
-        b.setText(text);
-        b.setTextSize(14);
-        b.setMinHeight(0);
-        b.setMinimumHeight(0);
-        b.setPadding(dp(c, 6), 0, dp(c, 6), 0);
-        return b;
+        return YViewLayout.secondaryButton(YOverlayUi.scopedContext(c, "yfloat"), text);
     }
 
     static Rect usableBounds(Context c) {
@@ -84,23 +146,18 @@ final class ResultUi {
     }
 
     static int standardWidth(Context c, Rect usable) {
-        int margin = dp(c, OUTER_MARGIN_DP);
-        int available = Math.max(1, usable.width() - margin * 2);
-        return Math.min(dp(c, 410), Math.max(dp(c, 220), available));
+        return YUiGeometry.overlayResultWidthPx(c, "yfloat", usable.width());
     }
 
     static int standardMaxHeight(Context c, Rect usable) {
-        int byScreen = Math.round(usable.height() * .52f);
-        int hardCap = dp(c, 430);
-        int available = Math.max(dp(c, 170), usable.height() - dp(c, OUTER_MARGIN_DP * 2));
-        return Math.min(available, Math.max(dp(c, 190), Math.min(byScreen, hardCap)));
+        return YUiGeometry.overlayResultHeightPx(c, "yfloat", usable.height());
     }
 
     static int imageHeight(Context c, Bitmap image, int width, int maxHeight) {
         if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0) return 0;
-        int innerWidth = Math.max(dp(c, 120), width - dp(c, BOX_HPAD_DP * 2));
+        int innerWidth = Math.max(1, width - YOverlayUi.contentPaddingPx(c, "yfloat") * 2);
         int h = Math.round(innerWidth * (image.getHeight() / (float) image.getWidth()));
-        return clamp(h, dp(c, 72), Math.max(dp(c, 72), maxHeight));
+        return clamp(h, 1, Math.max(1, maxHeight));
     }
 
     static int dp(Context c, int v) {

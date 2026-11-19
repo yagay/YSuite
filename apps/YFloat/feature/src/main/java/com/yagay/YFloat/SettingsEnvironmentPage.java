@@ -34,7 +34,7 @@ final class SettingsEnvironmentPage {
                 fs.hiddenPackagesRaw(),
                 false);
         edit.setGravity(Gravity.TOP | Gravity.START);
-        edit.setMinHeight(YViewLayout.dp(activity, 110));
+        edit.setMinHeight(com.yagay.yui.YView.rowHeight(activity) * 2);
         edit.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {

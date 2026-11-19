@@ -90,8 +90,8 @@ final class FLCircleTextResolver {
         FloatSettings fs = new FloatSettings(app);
         DiagnosticLog.i(app, "FL_CIRCLE_OCR", "ready workflow=" + created.workflowId
                 + " bitmap=" + frame.bitmap.getWidth() + "x" + frame.bitmap.getHeight()
-                + " fullEngine=" + CircleStableOcr.fullModeLabel(app)
-                + " correctionEngine=" + CircleStableOcr.correctionModeLabel(app)
+                + " fullEngine=" + CircleRawPaddleOcr.fullModeLabel(app)
+                + " correctionEngine=" + CircleRawPaddleOcr.correctionModeLabel(app)
                 + " fullMode=" + fs.circleFullOcrEngine()
                 + " correctionMode=" + fs.circleCorrectionEngine()
                 + " strategy=full_screen_once_plus_planned_correction"
@@ -192,10 +192,10 @@ final class FLCircleTextResolver {
         DiagnosticLog.i(state.app, "FL_CIRCLE_FULL_OCR", "start gesture=" + leaderGesture.kind
                 + " roi=" + fullRoi.toShortString()
                 + " crop=" + crop.getWidth() + "x" + crop.getHeight()
-                + " engine=" + CircleStableOcr.fullModeLabel(state.app)
+                + " engine=" + CircleRawPaddleOcr.fullModeLabel(state.app)
                 + " singleFlight=leader");
 
-        CircleStableOcr.recognizeFullScreenSelected(state.app, crop,
+        CircleRawPaddleOcr.recognizeFullScreenSelected(state.app, crop,
                 new OcrEngine.DocumentCallback() {
             @Override public void onSuccess(OcrDocument bitmapDocument) {
                 try {
@@ -243,7 +243,7 @@ final class FLCircleTextResolver {
                         state, leaderGesture, leaderCallback);
                 DiagnosticLog.i(state.app, "FL_CIRCLE_FULL_OCR", "failed gesture="
                         + delivery.gesture.kind + " engine="
-                        + CircleStableOcr.fullModeLabel(state.app)
+                        + CircleRawPaddleOcr.fullModeLabel(state.app)
                         + " error=" + safe(error)
                         + " correctionSkipped=no_selection_plan");
                 delivery.callback.onResolved(failure(frame, delivery.gesture, fullRoi, error, false));
@@ -305,13 +305,13 @@ final class FLCircleTextResolver {
         DiagnosticLog.i(state.app, "FL_CIRCLE_CORRECTION", "start gesture=" + plan.gesture.kind
                 + " roi=" + roi.toShortString()
                 + " crop=" + crop.getWidth() + "x" + crop.getHeight()
-                + " engine=" + CircleStableOcr.correctionModeLabel(state.app)
+                + " engine=" + CircleRawPaddleOcr.correctionModeLabel(state.app)
                 + " plan=" + plan.mode
                 + " planRows=" + plan.rowCount()
                 + " fullSelectionChars=" + fullSelection.chars().size()
                 + " roiOwner=CircleSelectionPlanner");
 
-        CircleStableOcr.recognizeCorrectionSelected(state.app, crop,
+        CircleRawPaddleOcr.recognizeCorrectionSelected(state.app, crop,
                 new OcrEngine.DocumentCallback() {
             @Override public void onSuccess(OcrDocument localBitmap) {
                 try {
@@ -372,7 +372,7 @@ final class FLCircleTextResolver {
                 if (!isCurrent(state, frame)) return;
                 DiagnosticLog.i(state.app, "FL_CIRCLE_CORRECTION", "failed gesture="
                         + plan.gesture.kind + " engine="
-                        + CircleStableOcr.correctionModeLabel(state.app)
+                        + CircleRawPaddleOcr.correctionModeLabel(state.app)
                         + " plan=" + plan.mode
                         + " error=" + safe(error)
                         + " fallback=planned_full");

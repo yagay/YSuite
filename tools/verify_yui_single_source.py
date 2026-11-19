@@ -120,6 +120,13 @@ def main() -> None:
         if not re.search(pattern, yfloat_manifest):
             fail(f"YFloat {activity} must explicitly use Theme.YFloat")
 
+    # Full-screen YDiag lists must use YUI page padding and spacing.
+    diag_screen = read(ROOT / MODULE_UI["YDiag"][0])
+    if diag_screen.count("YPageList(") < 4:
+        fail("YDiag screen list geometry bypasses YUI page-list rules")
+    if re.search(r"LazyColumn\(\s*modifier = Modifier\.fillMaxSize\(\)", diag_screen):
+        fail("YDiag full-screen LazyColumn reintroduces feature-owned page spacing")
+
     require_markers(YUI, REQUIRED_YUI_MARKERS)
     require_markers(YUI_ADAPTIVE, REQUIRED_ADAPTIVE_MARKERS)
     require_markers(YUI_FORMS, REQUIRED_FORM_MARKERS)
@@ -134,39 +141,113 @@ def main() -> None:
 
     generated = read(GENERATED_TOKENS)
     tokens = json.loads(read(ROOT / "libs/yui/yui_tokens.json"))
-    # A Material default-size switch is wider/taller than most setting labels. Keep
-    # its visual geometry separate from the 48dp minimum row/touch target.
+    # Standard defaults stay Material3; YUI may customize switch geometry at runtime.
     for key in (
         "switch_track_width", "switch_track_height", "switch_thumb_size",
         "switch_slot_width", "switch_slot_height",
     ):
         if key not in tokens:
-            fail(f"missing canonical compact-switch geometry: {key}")
+            fail(f"missing standard switch geometry: {key}")
     if not (tokens["switch_track_width"] < tokens["switch_slot_width"]
             and tokens["switch_track_height"] < tokens["switch_slot_height"]
             and tokens["switch_thumb_size"] < tokens["switch_track_height"]):
-        fail("compact switch geometry must fit inside its touch slot")
+        fail("standard switch geometry must fit inside its touch slot")
     if tokens["switch_slot_height"] >= tokens["option_row_height"]:
         fail("switch touch slot must not force an oversized settings row")
     if tokens["switch_slot_width"] < tokens["touch_target"]:
         fail("switch touch slot must meet the minimum horizontal touch size")
-    compact_switch = read(YUI_ROOT / "YCompactSwitch.kt")
-    if "Role.Switch" not in compact_switch or "YDimens.SwitchTrackWidth" not in compact_switch:
-        fail("canonical Compose compact switch must have switch semantics and generated sizing")
+    for key in ("list_icon_size", "icon_visual_size", "icon_small_size"):
+        if key not in tokens or not 12 <= tokens[key] <= tokens["touch_target"]:
+            fail(f"invalid shared icon size token {key}")
+    generated_palette = read(YUI_ROOT / "YUiPalette.kt")
+    semantic_roles = (
+        "Success", "OnSuccess", "SuccessContainer", "OnSuccessContainer",
+        "Warning", "OnWarning", "WarningContainer", "OnWarningContainer",
+        "Info", "OnInfo", "InfoContainer", "OnInfoContainer",
+    )
+    for mode in ("Light", "Dark"):
+        for role in semantic_roles:
+            if f"val {mode}{role} = " not in generated_palette:
+                fail(f"generated YUI semantic color missing: {mode}{role}")
+
+    # One concrete switch widget is hosted by both Compose and Java/View.
+    standard_switch = read(YUI_ROOT / "YCompactSwitch.kt")
+    shared_painter = read(YUI_ROOT / "YSwitchPainter.kt")
+    geometry = read(YUI_ROOT / "YSwitchGeometry.kt")
+    for marker in ("fun YStandardSwitch(", "AndroidView(", "YUiMaterialSwitch(context)",
+                   "toggle.bindPresentation(appearance, paintColors)",
+                   "toggle.setOnCheckedChangeListener(null)",
+                   "toggle.setOnCheckedChangeListener { _, value -> onCheckedChange(value) }",
+                   "geometry.touchWidthDp", "geometry.touchHeightDp"):
+        if marker not in standard_switch:
+            fail(f"Compose switch adapter missing single-widget contract: {marker}")
+    for forbidden in ("Canvas(", "drawIntoCanvas", "toggleable(",
+                      "import androidx.compose.material3.Switch", "YSwitchPainter.draw("):
+        if forbidden in standard_switch:
+            fail(f"Compose switch must not keep a second renderer: {forbidden}")
+    for marker in ("fun YAppearance.switchGeometry()", "touchWidthDp = max(",
+                   "touchHeightDp = max(", "trackWidthDp = trackWidth",
+                   "thumbDiameterDp = thumb"):
+        if marker not in geometry:
+            fail(f"Switch geometry contract missing: {marker}")
+    for marker in ("object YSwitchPainter", "fun draw(", "drawRoundRect(",
+                   "drawCircle(", "geometry.scale", "class YUiMaterialSwitch",
+                   "MaterialSwitch(context)", "override fun onDraw(canvas: Canvas)",
+                   "YSwitchPainter.draw(", "override fun onMeasure(",
+                   "fun bindPresentation(", "registerPreferenceListener(",
+                   "unregisterPreferenceListener("):
+        if marker not in shared_painter:
+            fail(f"Single YUI switch widget contract missing: {marker}")
+    if shared_painter.count("YSwitchPainter.draw(") != 1:
+        fail("The canonical switch painter must be invoked in exactly one View")
     for shared_source in (YUI, YUI_ROOT / "YComponents.kt"):
         source = read(shared_source)
-        if "YCompactSwitch(" not in source:
-            fail(f"{shared_source.relative_to(ROOT)} must use the shared compact switch")
-        if re.search(r"(?<![A-Za-z0-9_])Switch\(checked\s*=\s*checked", source):
-            fail(f"{shared_source.relative_to(ROOT)} still uses the oversized Material switch")
+        if not any(marker in source for marker in ("YStandardSwitch(", "YSwitchItem(")):
+            fail(f"{shared_source.relative_to(ROOT)} must use shared YUI switch rows")
+        if re.search(r"(?<![A-Za-z0-9_])Switch\s*\(\s*checked\s*=", source):
+            fail(f"{shared_source.relative_to(ROOT)} bypasses the shared switch widget")
     view_switches = read(YUI_ROOT / "YViewFramework.kt")
-    if "compactToggle(this)" not in view_switches or "switchSlot(" not in view_switches:
-        fail("Java/View switch rows must use the shared compact geometry")
+    if view_switches.count("YUiMaterialSwitch(context).apply") != 1:
+        fail("View switch must instantiate the single canonical widget")
+    if "val toggle = switchRow(parent.context, title, description, checked, listener)" not in view_switches:
+        fail("Both View switch-row overloads must share one implementation")
+    if "switchSlot(" not in view_switches or "ViewGroup.LayoutParams.WRAP_CONTENT" not in view_switches:
+        fail("View switch must allocate an accessible hit target")
+    if "styleStandardToggle(" in view_switches or "trackDrawable = GradientDrawable()" in view_switches:
+        fail("View switch may not maintain a second thumb/track implementation")
+
+    # Checkbox and radio indicators must also be a single native widget, with
+    # Compose acting only as the state/color adapter.
+    native_selectors = read(YUI_ROOT / "YNativeSelectionControls.kt")
+    compose_checks = read(YUI_ROOT / "YMaterialControls.kt")
+    compose_radio = read(YUI_ROOT / "YMaterialSelectors.kt")
+    for source, widget in ((compose_checks, "YUiNativeCheckBox(context)"),
+                           (compose_radio, "YUiNativeRadioButton(context)")):
+        if "AndroidView(" not in source or widget not in source or "bindPresentation(presentation)" not in source:
+            fail(f"Selection indicator does not delegate to native YUI widget: {widget}")
+    for marker in ("class YUiNativeCheckBox(context: Context)",
+                   "class YUiNativeRadioButton(context: Context)",
+                   "object YSelectionControlStyle", "control.buttonTintList = ColorStateList(",
+                   "minimumHeight = maxOf(", "minimumWidth = maxOf("):
+        if marker not in native_selectors:
+            fail(f"YUI native selector contract is incomplete: {marker}")
+    for marker in ("YUiNativeCheckBox(context).apply", "YUiNativeRadioButton(context).apply"):
+        if marker not in view_switches:
+            fail(f"Legacy View selector bypasses canonical control: {marker}")
 
     # Density may evolve, but the system still needs accessible hit targets and
     # ordered compact/medium/expanded breakpoints.
     if tokens["button_height"] < 48 or tokens["touch_target"] < 48:
         fail("YUI buttons and touch targets must remain at least 48dp")
+    if (tokens["button_visual_height"] < 48
+            or tokens["option_row_height"] < 56
+            or tokens["button_padding_horizontal"] < 16
+            or tokens["card_padding"] < 16):
+        fail("YUI normal screens must use standard Material3 density")
+    if tokens["button_inset_vertical"] != 0:
+        fail("standard buttons must not shrink their visual backgrounds")
+    if tokens["switch_track_width"] < 52 or tokens["switch_track_height"] < 32:
+        fail("standard switch must keep normal upstream geometry")
     if not (
         tokens["screen_horizontal"] <= tokens["screen_horizontal_medium"]
         <= tokens["screen_horizontal_expanded"]
@@ -192,7 +273,7 @@ def main() -> None:
     for source, required in (
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTheme.kt", ("import com.yagay.yui.YTheme", "YTheme(")),
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt", ("import com.yagay.yui.YDimens",)),
-        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteComponents.kt", ("import com.yagay.yui.YPrimaryButton", "import com.yagay.yui.YListItem", "import com.yagay.yui.YCard")),
+        (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteComponents.kt", ("import com.yagay.yui.YPrimaryButton", "import com.yagay.yui.YListItem", "import com.yagay.yui.YSection")),
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteControls.kt", ("import com.yagay.yui.YTextField", "import com.yagay.yui.YFilterBar")),
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteStatus.kt", ("import com.yagay.yui.YStatusPill",)),
         (ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteDialogs.kt", ("import com.yagay.yui.YConfirmDialog", "import com.yagay.yui.YTextField")),
@@ -202,25 +283,21 @@ def main() -> None:
             if token not in content:
                 fail(f"reusable feature component in {source.relative_to(ROOT)} must delegate to shared YUI: {token}")
 
-    # One official Material 3 component set must own all normal control metrics.
-    material_controls = read(YUI_ROOT / "YMaterialControls.kt")
-    for name in ("YMaterialButton(", "YMaterialFilterChip(", "YButtonVariant.DANGER"):
-        if name not in material_controls:
-            fail(f"YUI Material 3 kit is missing {name}")
-    yui_theme = read(YUI_ROOT / "YTheme.kt")
-    if "dynamicColor: Boolean = false" not in yui_theme:
-        fail("YUI should use the shared brand palette by default (dynamic color opt-in only)")
-    if "YMaterialButton(" not in yui_theme:
-        fail("YUI primary/secondary buttons must delegate to the canonical Material 3 kit")
-    if "YMaterialButton(" not in read(YUI_FORMS):
-        fail("YUI form dialogs must use canonical action buttons")
-    view_styles = read(ROOT / "libs/yui/src/main/res/values/yui.xml")
-    for style in ("Widget.YUI.Button.Dialog", "Widget.YUI.Switch", "Widget.YUI.MaterialSwitch", "Widget.YUI.Checkbox"):
-        if style not in view_styles:
-            fail(f"YUI View theme is missing shared Material 3 component {style}")
-    for token in ("field_radius", "dialog_radius", "chip_radius"):
-        if token not in tokens:
-            fail(f"YUI is missing shared component shape token: {token}")
+    # The rebuilt design system may offer compatibility APIs, never an independent
+    # theme/bar controller or duplicated section/card composition.
+    theme_adapter = read(ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTheme.kt")
+    for forbidden in ("WindowCompat", "SideEffect", "YAppearanceStore(", "rememberYAppearance("):
+        if forbidden in theme_adapter:
+            fail(f"Rebuilt features own parallel theme/window appearance: {forbidden}")
+    ytheme = read(YUI_ROOT / "YTheme.kt")
+    yview = read(YUI_ROOT / "YView.kt")
+    if "YView.applyBarAppearance(it, actualDark)" not in ytheme or (
+            "fun applyBarAppearance(activity: Activity, dark: Boolean)" not in yview):
+        fail("Compose and View system bar appearance must share one YUI controller")
+    components = read(ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/component/YSuiteComponents.kt")
+    if "YSection(title = title, modifier = modifier)" not in components or (
+            "YCard {" in components):
+        fail("Rebuilt section layout duplicates the canonical YSection renderer")
 
     catalog = read(YUI_CATALOG)
     if "fun YComponentCatalogScreen(" not in catalog or catalog.count("@Preview") < 3:

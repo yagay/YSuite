@@ -1,0 +1,273 @@
+#!/usr/bin/env python3
+"""Reject half-connected appearance options and visual overrides of YUI components.
+
+These are source-contract checks; runtime screenshots and touch-size acceptance
+still require actual Android device verification.
+"""
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+
+def source(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
+
+def require(path: str, *tokens: str) -> str:
+    body = source(path)
+    for token in tokens:
+        if token not in body:
+            raise AssertionError(f"{path}: missing unified appearance contract: {token}")
+    return body
+
+def run() -> None:
+    store = require("libs/yui/src/main/java/com/yagay/yui/YAppearanceStore.kt",
+                    'INPUT_HEIGHT("input_height"', 'val inputHeightDp: Int = 56',
+                    'inputHeightDp = value(YSettingKey.INPUT_HEIGHT, moduleId).toInt()')
+    keys = set(re.findall(r'^\s+([A-Z][A-Z_]+)\("[a-z_]+"', store, flags=re.M))
+    registry = source("libs/yui/src/main/java/com/yagay/yui/YUiControlRegistry.kt")
+    settings = source("suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt")
+    missing_catalog = sorted(k for k in keys - {"HOME_SWIPE_PIN", "HOME_STATUS"}
+                             if f"YSettingKey.{k}" not in registry)
+    missing_label = sorted(k for k in keys if f"YSettingKey.{k} ->" not in settings)
+    missing_reader = sorted(k for k in keys if f"value(YSettingKey.{k}, moduleId)" not in store)
+    if missing_catalog or missing_label or missing_reader:
+        raise AssertionError(f"Appearance settings drift: catalog={missing_catalog}, "
+                             f"title={missing_label}, reader={missing_reader}")
+    for path in ("suite/YSuite/src/main/res/values/strings_appearance_catalog.xml",
+                 "suite/YSuite/src/main/res/values-zh-rCN/strings_appearance_catalog.xml"):
+        require(path, 'name="appearance_input_height"')
+    require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
+            "styleLabel(button)", "inputHeight(context: Context)",
+            "buttonHorizontalPadding(context)", "displayRules(context).button",
+            "button.insetTop = inset", "button.insetBottom = inset",
+            "store.registerPreferenceListener(listener)",
+            "store.unregisterPreferenceListener(listener)",
+            "button.isSingleLine = false",
+            "button.maxLines = labelLimit.takeIf { it > 0 } ?: Int.MAX_VALUE",
+            "button.ellipsize = if (labelLimit > 0)",
+            "button.setHorizontallyScrolling(false)")
+    yui = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+                  "fun listActionButton(context: Context, label: String): MaterialButton =",
+                  "secondaryButton(context, label)", "YView.inputHeight(context)",
+                  "background = rounded(context, if (positive)")
+    if re.search(r'fun listActionButton\([^\n]+\)\s*:\s*MaterialButton\s*=\s*'
+                 r'secondaryButton\([^\n]+\)\.apply', yui):
+        raise AssertionError("List button reintroduced local appearance overrides")
+    require("libs/yui/src/main/java/com/yagay/yui/YMaterialInputs.kt",
+            "modifier.heightIn(min = LocalYAppearance.current.inputHeightDp.dp)")
+    require("libs/yui/src/main/java/com/yagay/yui/YButtonGeometry.kt",
+            "fun YAppearance.buttonGeometry(): YButtonGeometry",
+            "visualHeightDp = visual", "touchHeightDp = touch",
+            "backgroundInsetDp = (touch - visual) / 2f",
+            "iconVisualSizeDp = iconVisualSizeDp")
+    sizing = require("libs/yui/src/main/java/com/yagay/yui/YActionSizing.kt",
+            "fun Modifier.yActionButtonSize(): Modifier",
+            "minimumInteractiveComponentSize().heightIn(min = minimumVisualHeight)")
+    controls = require("libs/yui/src/main/java/com/yagay/yui/YMaterialControls.kt",
+            "modifier = modifier.yActionButtonSize()")
+    chips = require("libs/yui/src/main/java/com/yagay/yui/YMaterialChips.kt",
+            "YUiButton(", "modifier.yActionButtonSize()")
+    filter_chips = require("libs/yui/src/main/java/com/yagay/yui/YMaterialMenus.kt",
+            "fun YUiFilterChip(", "modifier = modifier.yActionButtonSize()")
+    native_buttons = require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
+            "button.strokeWidth = if (outlined) cardOutlineWidth(context) else 0")
+    theme_buttons = require("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
+            "buttonLabelMaxLines.takeIf { it > 0 } ?: Int.MAX_VALUE")
+    action_layout = require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+            "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT",
+            "ViewGroup.LayoutParams.WRAP_CONTENT", "params.weight = if (stack) 0f else fieldWeight")
+    # Guard *all* button variants against a future fixed-height/truncated-label regression.
+    if re.search(r"\.height\(\s*(?:LocalYAppearance\.current\.)?(?:buttonGeometry\(\)\.)?visualHeightDp", controls + chips + sizing):
+        raise AssertionError("YUI action buttons must grow beyond the configured minimum height")
+    if controls.count("modifier = modifier.yActionButtonSize()") != 1:
+        raise AssertionError("Only the common filled button renderer may own action geometry")
+    if controls.count("    Button(") != 1 or "    OutlinedButton(" in controls or "    TextButton(" in controls:
+        raise AssertionError("Filled/outlined/text action buttons must share one Material renderer")
+    if controls.count("    YUiButton(") != 2:
+        raise AssertionError("Outlined and text styles must forward to the common YUI renderer")
+    if chips.count("    YUiButton(") != 2 or chips.count("modifier.yActionButtonSize()") != 3:
+        raise AssertionError("Elevated/tonal actions must reuse YUI Button; only chips may own chip geometry")
+    if "modifier = modifier.yActionButtonSize()" not in filter_chips:
+        raise AssertionError("FilterChip bypasses the common YUI action height")
+    if "maxOf(button.strokeWidth" in native_buttons:
+        raise AssertionError("MaterialButton stroke width cannot only increase across appearance changes")
+    if "Text(text, maxLines = 2" in theme_buttons:
+        raise AssertionError("Standard YUI button labels must not be truncated at two lines")
+    if "params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT else 0" in action_layout:
+        raise AssertionError("Native action row must size buttons by content, not equal weight")
+    # Public button facades accept legacy arguments, but ordinary appearance geometry is
+    # always owned by YUI. No feature should override radius or content padding.
+    buttons = require("libs/yui/src/main/java/com/yagay/yui/YMaterialControls.kt",
+                      "shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp)",
+                      "contentPadding = PaddingValues(")
+    if buttons.count("shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp)") != 1:
+        raise AssertionError("Only the shared button renderer may own YUI corner radius")
+    if buttons.count("contentPadding = PaddingValues(") != 1:
+        raise AssertionError("Only the shared button renderer may own YUI content padding")
+    if "shape = shape ?:" in buttons or "contentPadding = contentPadding ?:" in buttons:
+        raise AssertionError("Legacy caller parameters cannot override YUI action geometry")
+
+    # Screen callsites must not reapply a second button padding contract.
+    for relative in (
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainControls.kt",
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt",
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/BrowserHostFilterRow.kt",
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/OpenPresetFilterRow.kt",
+    ):
+        content = require(relative, "YUiTextButton as TextButton")
+        if re.search(r"contentPadding\s*=\s*PaddingValues\(\s*horizontal\s*=\s*LocalYAppearance\.current\.buttonPaddingHorizontalDp", content):
+            raise AssertionError(f"{relative} overrides YUI button padding at the feature layer")
+    # Button captions must size by text content; do not reinstate fixed two-line
+    # ellipsis or force actions into equal-width Row weights.
+    for relative in (
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/BrowserHostFilterRow.kt",
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/OpenPresetFilterRow.kt",
+    ):
+        content = require(relative, "softWrap = true")
+        action = content.split("TextButton(", 1)[1].split("DropdownMenu(", 1)[0]
+        if "maxLines = 2" in action or "TextOverflow.Ellipsis" in action:
+            raise AssertionError(f"{relative} clamps a filter action label instead of wrapping")
+    for relative in (
+        "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/DashboardSurface.kt",
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt",
+        "apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcComponents.kt",
+    ):
+        content = require(relative, "YHorizontalActions")
+        if re.search(r"Y(?:Primary|Secondary)(?:Action)?Button\([^\n]*Modifier\.weight\(", content):
+            raise AssertionError(f"{relative} forces content-sized actions to equal widths")
+    require("libs/yui/src/main/java/com/yagay/yui/YMaterialIconButtons.kt",
+            "LocalYAppearance.current.buttonGeometry()", "a.iconTouchDp.dp")
+    require("libs/yui/src/main/java/com/yagay/yui/YMaterialFloatingActions.kt",
+            "LocalYAppearance.current.buttonGeometry()", "appearance.iconTouchDp.dp")
+    require("libs/yui/src/main/java/com/yagay/yui/YMaterialIcons.kt",
+            "if (modifier == Modifier)", "Modifier.size(YUiGeometry.displayRules().iconSizeDp.dp)")
+    require("libs/yui/src/main/java/com/yagay/yui/YDisplayRules.kt",
+            "fun YAppearance.displayRules(windowWidthDp: Int): YDisplayRules",
+            "val effective = copy(", "windowWidthDp = width",
+            "button = effective.buttonGeometry()", "switch = effective.switchGeometry()")
+    require("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
+            "configuredAppearance.displayRules(windowWidth)", "val appearance = rules.appearance")
+    require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
+            "fun displayRules(context: Context): YDisplayRules",
+            "appearance(context).displayRules(windowWidth)",
+            "displayRules(context).cardPaddingDp", "displayRules(context).rowHorizontalPaddingDp",
+            "displayRules(context).button.horizontalPaddingDp")
+    require("libs/yui/src/main/java/com/yagay/yui/YUiGeometry.kt",
+            "fun spacing(base: Dp): Dp", "displayRules().spacing(base.value")
+    require("next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt",
+            "YUiGeometry.spacing(YDimens.Spacing")
+    # A switch-width slot is not switch visual size. Check every setting through
+    # persisted appearance, control catalog, both renderers and preview editor.
+    switch_keys = (
+        "SWITCH_SCALE_PERCENT", "SWITCH_TRACK_WIDTH", "SWITCH_TRACK_HEIGHT",
+        "SWITCH_THUMB_SIZE", "SWITCH_LABEL_GAP",
+    )
+    for key in switch_keys:
+        if f"YSettingKey.{key}" not in registry or f"YSettingKey.{key} ->" not in settings or (
+                f"value(YSettingKey.{key}, moduleId)" not in store):
+            raise AssertionError(f"Switch appearance is not end-to-end YUI owned: {key}")
+    require("libs/yui/src/main/java/com/yagay/yui/YSwitchGeometry.kt",
+            "fun YAppearance.switchGeometry()", "touchWidthDp = max(", "touchHeightDp = max(")
+    require("libs/yui/src/main/java/com/yagay/yui/YCompactSwitch.kt",
+            "appearance.switchGeometry()", "AndroidView(", "YUiMaterialSwitch(context)",
+            "toggle.bindPresentation(appearance, paintColors)",
+            "geometry.touchWidthDp.dp", "geometry.touchHeightDp.dp")
+    require("libs/yui/src/main/java/com/yagay/yui/YSwitchPainter.kt",
+            "class YUiMaterialSwitch", "override fun onDraw(canvas: Canvas)",
+            "YSwitchPainter.draw(", "geometry.trackWidthDp", "geometry.thumbDiameterDp",
+            "fun bindPresentation(", "registerPreferenceListener(preferenceListener)")
+    require("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+            "YUiMaterialSwitch(context).apply", ".switchLabelGapDp")
+    for path in ("suite/YSuite/src/main/res/values/strings_appearance_catalog.xml",
+                 "suite/YSuite/src/main/res/values-zh-rCN/strings_appearance_catalog.xml"):
+        for name in ("switch_scale_percent", "switch_track_width", "switch_track_height",
+                     "switch_thumb_size", "switch_label_gap"):
+            require(path, 'name="appearance_' + name + '"')
+    require("libs/yui/src/main/java/com/yagay/yui/YMaterialSurfaces.kt",
+            "border = border ?: LocalYAppearance.current.cardOutlineWidthDp")
+    require("libs/yui/src/main/java/com/yagay/yui/YForms.kt",
+            "YUiModalBottomSheet as ModalBottomSheet",
+            "LocalYAppearance.current.fieldRadiusDp.dp")
+    view_widgets = source("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt")
+    for token in ("fun text(context: Context, value: String?): TextView",
+                  "fun caption(context: Context, value: String?): TextView"):
+        if token not in view_widgets:
+            raise AssertionError("YUI must expose typography-only View adapters: " + token)
+    for feature_path in (
+        "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/MainActivity.java",
+        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsPageUi.java",
+        "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsGesturePage.java",
+    ):
+        if re.search(r"YViewLayout\.(?:text|caption)\([^;]*?,\s*\d+(?:\.\d+)?\s*(?:,\s*(?:true|false))?\s*\);",
+                     source(feature_path), flags=re.S):
+            raise AssertionError(feature_path + " passes a redundant typography size to YUI")
+    power_icons = source("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java")
+    if "final int iconPx = YView.listIconSize(MainActivity.this);" not in power_icons:
+        raise AssertionError("YPower must use the configured YUI app icon size without a local clamp")
+    power = require("apps/YPower/feature/src/main/java/com/yagay/ypower/ui/MainActivity.java",
+                    "YViewLayout.listActionButton(MainActivity.this, getString(R.string.yp_settings))",
+                    "ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT")
+    if "detail.setHeight(" in power or "detail.setPadding(" in power:
+        raise AssertionError("YPower list action must not own button geometry")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuPickerActivity.java",
+            "YViewLayout.secondaryButton(this, sideText)")
+    require("apps/YFloat/feature/src/main/java/com/yagay/YFloat/ResultUi.java",
+            'YViewLayout.secondaryButton(YOverlayUi.scopedContext(c, "yfloat"), text)')
+    # Special layouts are not visual exceptions without controls. Every independent
+    # constraint must be exposed by YUiControlRegistry and consumed in its renderer.
+    special = {
+        "BUTTON_LABEL_MAX_LINES": ("libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
+                                    "buttonLabelMaxLines"),
+        "ACTION_ROW_MODE": ("libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+                            'actionRowMode == "stacked"'),
+        "FILE_ITEM_TITLE_MAX_LINES": (
+            "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+            "fileItemTitleMaxLines"),
+        "FILE_ITEM_SUBTITLE_MAX_LINES": (
+            "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+            "fileItemSubtitleMaxLines"),
+        "FILE_DETAIL_TITLE_MAX_LINES": (
+            "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+            "fileDetailTitleMaxLines"),
+        "FILE_DETAIL_SUBTITLE_MAX_LINES": (
+            "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+            "fileDetailSubtitleMaxLines"),
+        "TAB_LABEL_MAX_LINES": ("libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
+                                "tabLabelMaxLines"),
+    }
+    for key, (path, consumer) in special.items():
+        if f"YSettingKey.{key}" not in registry:
+            raise AssertionError(f"Special visual option is not listed in YUI: {key}")
+        if f"YSettingKey.{key} ->" not in settings:
+            raise AssertionError(f"Special visual option lacks a settings editor label: {key}")
+        if f"value(YSettingKey.{key}, moduleId)" not in store:
+            raise AssertionError(f"Special visual option is not read from the shared store: {key}")
+        require(path, consumer)
+    require("libs/yui/src/main/java/com/yagay/yui/YView.kt",
+            "appearance.buttonLabelMaxLines")
+    require("libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt",
+            "buttonLabelMaxLines", 'appearance.actionRowMode == "stacked"',
+            "FlowRow(", "Column(")
+    require("next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/FileExplorerAdvancedComponents.kt",
+            "fileItemTitleMaxLines", "fileItemSubtitleMaxLines", "tabLabelMaxLines")
+    for locale in ("values", "values-zh-rCN"):
+        catalog = "suite/YSuite/src/main/res/" + locale + "/strings_appearance_catalog.xml"
+        for entry in ("button_label_max_lines", "action_row_mode",
+                      "file_item_title_max_lines", "file_item_subtitle_max_lines",
+                      "file_detail_title_max_lines", "file_detail_subtitle_max_lines",
+                      "tab_label_max_lines", "unit_lines"):
+            require(catalog, 'name="appearance_' + entry + '"')
+    file_rows = source("next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt")
+    if "titleMaxLines = 3," in file_rows or "subtitleMaxLines = 6," in file_rows:
+        raise AssertionError("File detail max lines must be configured, not hard-coded")
+
+    print(f"YUI appearance coverage: OK settings={len(keys)}, all exposed style keys "
+          "registered, View/Compose input, buttons, chips, cards, overlays linked")
+
+if __name__ == "__main__":
+    try:
+        run()
+    except (AssertionError, FileNotFoundError) as exc:
+        print(f"YUI appearance coverage FAILED: {exc}", file=sys.stderr)
+        raise SystemExit(1)

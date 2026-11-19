@@ -1,6 +1,7 @@
 package com.yagay.YNFC
 
 import android.content.Context
+import android.content.pm.PackageManager
 import com.yagay.YNFC.system.NfcSystemService
 import com.yagay.YNFC.system.RootShell
 
@@ -17,15 +18,153 @@ class DiagnosticsCollector(
     private val runtimeRepository: RuntimeStatusRepository,
     private val cardRepository: CardRepository
 ) {
+    private val appContext = context.applicationContext
     private val packageName = context.packageName
+    private val packageManager = context.applicationContext.packageManager
+    private val nciTracePreferences = context.applicationContext.getSharedPreferences(
+        "ynfc_nci_trace_readonly_v1", Context.MODE_PRIVATE
+    )
+
+    /**
+     * Capture only a sanitized NCI command summary immediately after an RF
+     * APPLY result. Waiting for the user to export a report can let Android's
+     * small logcat buffers evict the relevant TX/RX events. No raw packets,
+     * UIDs, config values, or new NFC operations are persisted here.
+     */
+    fun captureNativeNciAfterApply(generation: Long) {
+        if (generation <= 0L) return
+        val capturedAt = System.currentTimeMillis()
+        val raw = runRoot(
+            "logcat -b all -d -v epoch -t 2400 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 380",
+            10, 165_000
+        )
+        val summary = NciHalTrace.summarize(raw, generation)
+        nciTracePreferences.edit()
+            .putLong("generation", generation)
+            .putLong("captured_at_ms", capturedAt)
+            .putString("summary", summary)
+            .apply()
+        if (NciHalTrace.isOwnUidParameterRejected(summary) &&
+            runtimeRepository.isCurrentCommandGeneration(generation)) {
+            val snapshot = runtimeRepository.readProviderMap()
+            val pid = snapshot[ConfigProvider.KEY_COMMAND_PID]?.toIntOrNull() ?: 0
+            val applied = runCatching {
+                appContext.contentResolver.call(
+                    ConfigProvider.URI,
+                    ConfigProvider.METHOD_REPORT_OWN_NCI_INVALID_PARAM,
+                    null,
+                    android.os.Bundle().apply {
+                        putLong(ConfigProvider.EXTRA_GENERATION, generation)
+                        putInt(ConfigProvider.EXTRA_PID, pid)
+                    }
+                )?.getBoolean(ConfigProvider.RESULT_SUCCESS, false) == true
+            }.getOrDefault(false)
+            AppLogger.i("NCI_TRACE_UID_REJECTION generation=$generation " +
+                "status=0x09 parameter=0x33 stateUpdated=$applied")
+        }
+        reportOwnNciAcceptance(generation, summary)
+        AppLogger.i("NCI_TRACE_SNAPSHOT commandGeneration=$generation capturedAt=$capturedAt " +
+            "summaryOnly=true")
+    }
+
+    /**
+     * Follow-up NCI observation after the early 60ms window. This is a
+     * logcat-only operation; it cannot start card emulation, route NFC, or
+     * change any controller configuration. Keep the early capture separately
+     * to survive the small log ring buffer.
+     */
+    fun captureNativeNciDelayedAfterApply(generation: Long) {
+        if (generation <= 0L || !runtimeRepository.isCurrentCommandGeneration(generation)) return
+        val capturedAt = System.currentTimeMillis()
+        val raw = runRoot(
+            "logcat -b all -d -v epoch -t 3200 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 420",
+            10, 165_000
+        )
+        val summary = NciHalTrace.summarize(raw, generation)
+        // A newer APPLY/STOP owns the controller. Do not preserve late
+        // evidence under a generation already superseded by another command.
+        if (!runtimeRepository.isCurrentCommandGeneration(generation)) return
+        nciTracePreferences.edit()
+            .putLong("late_generation", generation)
+            .putLong("late_captured_at_ms", capturedAt)
+            .putString("late_summary", summary)
+            .apply()
+        reportOwnNciAcceptance(generation, summary)
+        AppLogger.i("NCI_TRACE_DELAYED commandGeneration=$generation capturedAt=$capturedAt summaryOnly=true")
+    }
+
+    /** Read-only NCI acceptance belongs to the exact active APPLY/PID/epoch. */
+    private fun reportOwnNciAcceptance(generation: Long, summary: String) {
+        if (!NciHalTrace.isOwnUidParameterAccepted(summary) ||
+            !runtimeRepository.isCurrentCommandGeneration(generation)) return
+        val snapshot = runtimeRepository.readProviderMap()
+        val pid = snapshot[ConfigProvider.KEY_COMMAND_PID]?.toIntOrNull() ?: 0
+        val applied = runCatching {
+            appContext.contentResolver.call(
+                ConfigProvider.URI, ConfigProvider.METHOD_REPORT_OWN_NCI_ACCEPTED, null,
+                android.os.Bundle().apply {
+                    putLong(ConfigProvider.EXTRA_GENERATION, generation)
+                    putInt(ConfigProvider.EXTRA_PID, pid)
+                }
+            )?.getBoolean(ConfigProvider.RESULT_SUCCESS, false) == true
+        }.getOrDefault(false)
+        AppLogger.i("NCI_TRACE_UID_ACCEPTED generation=$generation pid=$pid " +
+            "stateUpdated=$applied externalRfVerified=false")
+    }
+
+    /**
+     * Passive snapshot for a controller-reset UID restore. The old snapshot
+     * mechanism only captured manual APPLY, and could not distinguish its
+     * 0x00 ACK from a later lifecycle write. No payload is persisted.
+     */
+    fun captureNativeNciAfterLifecycle(generation: Long, eventAtMs: Long, delayed: Boolean) {
+        if (generation <= 0L || eventAtMs <= 0L ||
+            !runtimeRepository.isCurrentCommandGeneration(generation)) return
+        val capturedAt = System.currentTimeMillis()
+        val raw = runRoot(
+            "logcat -b all -d -v epoch -t 3200 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 420",
+            10, 165_000
+        )
+        val summary = NciHalTrace.summarize(raw, eventAtMs)
+        if (!runtimeRepository.isCurrentCommandGeneration(generation)) return
+        val prefix = if (delayed) "lifecycle_late_" else "lifecycle_early_"
+        nciTracePreferences.edit()
+            .putLong(prefix + "generation", generation)
+            .putLong(prefix + "event_at_ms", eventAtMs)
+            .putLong(prefix + "captured_at_ms", capturedAt)
+            .putString(prefix + "summary", summary)
+            .apply()
+        AppLogger.i("NCI_LIFECYCLE_TRACE generation=$generation eventAt=$eventAtMs " +
+            "capturedAt=$capturedAt delayed=$delayed summaryOnly=true")
+    }
+
+    private val halProbePrefs = appContext.getSharedPreferences(
+        "ynfc_hal_probe_readonly_v1", Context.MODE_PRIVATE
+    )
+
+    /** On-demand passive survey; never hooks or restarts the HAL. */
+    fun buildHalConfigReadProbe(): String {
+        val report = HalConfigReadProbe.capture(rootShell)
+        val result = report.lineSequence().firstOrNull { it.startsWith("result=") }
+            ?.substringAfter('=') ?: "UNAVAILABLE"
+        halProbePrefs.edit()
+            .putString("result", result)
+            .putLong("captured_at_ms", System.currentTimeMillis())
+            .putString("sha_match", report.lineSequence().firstOrNull {
+                it.startsWith("installed_sn220_hal_hash_status=")
+            }?.substringAfter('=') ?: "UNAVAILABLE")
+            .putBoolean("completed", report.contains("probe_completed=true"))
+            .apply()
+        return report
+    }
 
     fun fetchLogs(source: LogSource): String {
         val pid = currentNfcPid()
         val output = when (source) {
             LogSource.STATUS -> runRoot("logcat -d -t 350 -v threadtime -s YNFC NfcUIDSim 2>/dev/null")
             LogSource.LSPOSED -> runRoot("""
-                { grep -R -h -E 'NfcUIDSim|com.yagay.YNFC|PROD MODULE|PROD HOOK|RFPROBE|NFCID1|COMMAND|LSPosed' /data/adb/lspd/log 2>/dev/null || true
-                  logcat -b all -d -v threadtime 2>/dev/null | grep -E 'NfcUIDSim|PROD MODULE|PROD HOOK|RFPROBE|NFCID1|COMMAND' || true; } | tail -n 1500
+                { grep -R -h -E 'NfcUIDSim|com.yagay.YNFC|\[ynfc/main\]|YSuite[.]Xposed|YSuite[.]Hook|PROD MODULE|PROD HOOK|RFPROBE|NFCID1|plugin load failed; plugin=ynfc|plugin lifecycle failed;.*ynfc' /data/adb/lspd/log 2>/dev/null || true
+                  logcat -b all -d -v threadtime 2>/dev/null | grep -E 'NfcUIDSim|YNFC|YSuite[.]Xposed|YSuite[.]Hook|PROD MODULE|PROD HOOK|RFPROBE|NFCID1|COMMAND' || true; } | tail -n 1500
             """.trimIndent())
             LogSource.KERNEL_SU -> runRoot("for f in ${'$'}(ls -t /data/adb/ksu/log/sulog* 2>/dev/null | head -n 3); do echo === ${'$'}f ===; tail -n 300 ${'$'}f; done")
             LogSource.SYSTEM -> runRoot("logcat -b all -d -v threadtime 2>/dev/null | tail -n 1800")
@@ -47,6 +186,388 @@ class DiagnosticsCollector(
             LogSource.APP -> AppLogger.readAll().ifBlank { "No app logs" }
         }
         return output.ifBlank { "No matching logs found for ${source.label}" }
+    }
+
+    /**
+     * Fast export path for the user-facing button. Full forensic capture can
+     * invoke dozens of independent root processes and take several minutes,
+     * leaving the UI apparently stuck. Capture one bounded NFC logcat snapshot,
+     * plus app logs and the actual provider state, without depending on Root
+     * being available at all.
+     */
+    fun buildExportReport(statusSummary: (RuntimeStatus) -> String): String = buildString {
+        val capturedAt = System.currentTimeMillis()
+        val snapshot = runtimeRepository.readProviderMap().toMap()
+        val state = runtimeRepository.decode(snapshot, null)
+        appendLine("=== YNFC DIAGNOSTIC EXPORT ${BuildConfig.VERSION_NAME} ===")
+        appendLine("Captured epoch ms: $capturedAt")
+        appendLine("NFC scope: com.android.nfc")
+        appendLine("--- STATUS ---")
+        appendLine(runCatching { statusSummary(state) }.getOrElse {
+            "Status unavailable: ${it.javaClass.simpleName}: ${it.message}"
+        })
+        appendLine("--- PROVIDER SNAPSHOT ---")
+        snapshot.toSortedMap().forEach { (key, value) -> appendLine("$key=$value") }
+        val configSnapshot = NfcSharedConfigManager.diagnostics(appContext)
+        appendLine(configSnapshot)
+        appendLine("--- END-TO-END NFC PIPELINE CHECK ---")
+        val configStage = configSnapshot.lineSequence().firstOrNull {
+            it.startsWith("status=")
+        }?.substringAfter('=') ?: "NOT_PREPARED"
+        appendLine("config_snapshot_status=$configStage")
+        appendLine("hal_probe_last_result=" +
+            halProbePrefs.getString("result", "NOT_RUN"))
+        appendLine("hal_probe_captured_at_ms=" +
+            halProbePrefs.getLong("captured_at_ms", 0L))
+        appendLine("hal_probe_completed=" +
+            halProbePrefs.getBoolean("completed", false))
+        appendLine("hal_implementation_hash_status=" +
+            halProbePrefs.getString("sha_match", "NOT_RUN"))
+        appendLine("hal_config_interception=NOT_INSTALLED")
+        appendLine("hal_native_nci_hook=NOT_INSTALLED_READ_ONLY_LOGCAT_OBSERVER")
+        appendLine("wallet_protection=UID_WRITES_ONLY_ON_EXPLICIT_YNFC_SIMULATION; STOP_AND_RESTORE_BEFORE_CONTACTLESS_PAYMENT")
+        val ownNciStatus = snapshot["rf_status"].orEmpty()
+        val ownNciRequested = snapshot["rf_source"] == "own-nci-0x33" &&
+            ownNciStatus in setOf("OWN_NCI_UID_REQUESTED", "OWN_NCI_UID_REJECTED")
+        appendLine("nci_native_writer=" + when {
+            ownNciRequested && ownNciStatus == "OWN_NCI_UID_REJECTED" ->
+                "JAVA_NATIVE_SET_NCI_CONFIG_0x33_INVOKED_BUT_REJECTED"
+            ownNciRequested -> "JAVA_NATIVE_SET_NCI_CONFIG_0x33_INVOKED"
+            else -> "NO_CURRENT_OWN_NCI_REQUEST_EVIDENCE"
+        })
+        val activeCommandGeneration = snapshot["command_generation"]?.toLongOrNull() ?: 0L
+        val cachedNciGeneration = nciTracePreferences.getLong("generation", 0L)
+        val cachedNciSummary = nciTracePreferences.getString("summary", "").orEmpty()
+        val responseLine = cachedNciSummary.lineSequence()
+            .firstOrNull { it.startsWith("LA_NFCID1_RSP_STATUS=") }
+            ?.substringAfter('=')
+        val coreResponseLine = cachedNciSummary.lineSequence()
+            .firstOrNull { it.startsWith("CORE_SET_CONFIG_RSP_STATUS=") }
+            ?.substringAfter('=')
+        appendLine("nci_config_response=" + if (
+            activeCommandGeneration > 0L && activeCommandGeneration == cachedNciGeneration
+        ) responseLine ?: "NOT_CAPTURED_BY_OLDER_TRACE_FORMAT" else "NO_CURRENT_COMMAND_SNAPSHOT")
+        appendLine("nci_all_set_config_responses=" + if (
+            activeCommandGeneration > 0L && activeCommandGeneration == cachedNciGeneration
+        ) coreResponseLine ?: "NOT_CAPTURED" else "NO_CURRENT_COMMAND_SNAPSHOT")
+        appendLine("controller_uid_acceptance=NOT_RF_VERIFIED")
+        appendLine("external_reader_verification=NOT_PERFORMED")
+        appendLine("NOTE: Last HAL probe may be older than this report; absence of an observed FD never proves config was not loaded.")
+        appendLine("--- COLOROS OEM BINDER / BACKEND DIAGNOSIS ---")
+        val currentPid = snapshot["runtime_pid"]?.toIntOrNull() ?: 0
+        val oplusProbePid = snapshot["coloros_type_a_probe_pid"]?.toIntOrNull() ?: 0
+        val backend = snapshot["simulation_backend"] ?: "NOT_REPORTED"
+        val implementationRevision = snapshot["hook_impl_revision"]?.toIntOrNull() ?: 0
+        val implementationPid = snapshot["hook_impl_revision_pid"]?.toIntOrNull() ?: 0
+        appendLine("selected_backend=$backend")
+        appendLine("auto_profile_expected=${backend == "INTERCEPT"}")
+        appendLine("hook_impl_revision=$implementationRevision")
+        appendLine("hook_impl_expected=${BuildConfig.INTERCEPT_IMPL_REVISION}")
+        appendLine("hook_impl_revision_pid=$implementationPid current_pid=$currentPid")
+        appendLine("hook_impl_current=${currentPid > 0 && currentPid == implementationPid && implementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION}")
+        if (backend == "RF") {
+            appendLine("ACTION: Legacy RF mode is selected; no automatic profile file or HCE interception will run.")
+        }
+        appendLine("oplus_probe_pid=$oplusProbePid current_pid=$currentPid")
+        appendLine("oplus_probe_fresh=${currentPid > 0 && currentPid == oplusProbePid}")
+        appendLine("oplus_probe_stage=${snapshot["coloros_type_a_probe_stage"] ?: "NOT_REPORTED"}")
+        appendLine("oplus_probe_descriptor=${snapshot["coloros_type_a_probe_descriptor"] ?: "NOT_REPORTED"}")
+        appendLine("oplus_probe_detail=${snapshot["coloros_type_a_probe_detail"] ?: "NOT_REPORTED"}")
+        val previousRfReplayPid = snapshot["rf_replay_pid"]?.toIntOrNull() ?: 0
+        appendLine("old_rf_replay_pid=$previousRfReplayPid")
+        appendLine("old_rf_replay_reusable=${currentPid > 0 && currentPid == previousRfReplayPid}")
+        appendLine("NOTE: shell 'service list' registration does not prove Binder availability in com.android.nfc.")
+        appendLine("NOTE: the Vendor Type-A mode is opt-in and is not auto-selected after an RF-only failure.")
+        appendLine("--- COLOROS TYPE-A READ-ONLY EXECUTION CHAIN ---")
+        val regionPid = snapshot["coloros_region_probe_pid"]?.toIntOrNull() ?: 0
+        val observerPid = snapshot["coloros_observe_pid"]?.toIntOrNull() ?: 0
+        appendLine("region_probe_pid=$regionPid current_pid=$currentPid")
+        appendLine("region_probe_fresh=${currentPid > 0 && regionPid == currentPid}")
+        appendLine("region_cn=${snapshot["coloros_region_cn"] ?: "NOT_PROBED"}")
+        appendLine("region_hce_property=${snapshot["coloros_region_hce_property"] ?: "NOT_PROBED"}")
+        appendLine("region_hce_supported=${snapshot["coloros_region_support"] ?: "NOT_PROBED"}")
+        appendLine("read_only_hook_pid=$observerPid current_pid=$currentPid")
+        appendLine("read_only_hook_fresh=${currentPid > 0 && observerPid == currentPid}")
+        appendLine("read_only_hook_count=${snapshot["coloros_observe_hook_count"] ?: "NOT_REPORTED"}")
+        appendLine("read_only_hook_status=${snapshot["coloros_observe_status"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_preload_pid=${snapshot["coloros_intercept_preload_pid"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_preload_generation=${snapshot["coloros_intercept_preload_generation"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_preload_active=${snapshot["coloros_intercept_preload_active"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_preload_at_ms=${snapshot["coloros_intercept_preload_at_ms"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_last_hce_before_apply=${snapshot["coloros_intercept_last_hce_before_apply"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_last_hce_at_ms=${snapshot["coloros_intercept_last_hce_at_ms"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_pid=${snapshot["coloros_hce_pid"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_at_ms=${snapshot["coloros_hce_at_ms"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_enable=${snapshot["coloros_hce_enable"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_argument_lengths=${snapshot["coloros_hce_arg_lengths"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_armed_at_call=${snapshot["coloros_hce_intercept_armed_at_call"] ?: "NOT_REPORTED"}")
+        appendLine("hce_call_config_generation=${snapshot["coloros_hce_generation_at_call"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_skip_reason=${snapshot["coloros_intercept_skip_reason"] ?: "NOT_REPORTED"}")
+        appendLine("intercept_skip_pid=${snapshot["coloros_intercept_skip_pid"] ?: "NOT_REPORTED"}")
+        val hceAt = snapshot["coloros_observe_hce_at_ms"]?.toLongOrNull() ?: 0L
+        val applyAt = snapshot["command_generation"]?.toLongOrNull() ?: 0L
+        appendLine("observed_hce_before_apply=${hceAt > 0L && applyAt > 0L && hceAt < applyAt}")
+        if (backend == "INTERCEPT" && hceAt > 0L && applyAt > 0L && hceAt < applyAt) {
+            appendLine("ACTION: The last observed OEM HCE call preceded the current APPLY; "
+                + "reload only the NFC service after arming interception, then check fresh HCE events.")
+        }
+        for ((tag, description) in listOf(
+            "service" to "OplusNfcAdapterService.setHceTypeAConfig",
+            "region" to "NfcFeatureFetcher.isSupportHceAccessCardByRegion (natural calls)",
+            "hce" to "HceAccessCard.doSetHceTypeAConfig",
+            "chip" to "NfcChipDeviceImpl.doSetHceTypeAConfig",
+            "nci" to "NfcAdapter.sendVendorNciMessage (Type-A call stack only)"
+        )) {
+            val eventPid = snapshot["coloros_observe_${tag}_pid"]?.toIntOrNull() ?: 0
+            appendLine("${tag}_method=$description")
+            appendLine("${tag}_hook_installed=${if (currentPid > 0 && observerPid == currentPid) snapshot["coloros_observe_${tag}_hook_installed"] ?: "NOT_REPORTED" else "UNKNOWN_CURRENT_PID"}")
+            appendLine("${tag}_observed_in_current_pid=${currentPid > 0 && eventPid == currentPid}")
+            appendLine("${tag}_last_result=${if (currentPid > 0 && eventPid == currentPid) snapshot["coloros_observe_${tag}_result"] ?: "UNKNOWN" else "NOT_OBSERVED"}")
+            appendLine("${tag}_last_at_ms=${if (currentPid > 0 && eventPid == currentPid) snapshot["coloros_observe_${tag}_at_ms"] ?: "0" else "0"}")
+        }
+        appendLine("NOTE: These callbacks are passive and do not call Type-A configuration methods.")
+        appendLine("NOTE: A successful region getter, OEM method, or NCI return cannot verify an over-the-air UID.")
+        appendLine("--- UID-ONLY RF ENTRYPOINT COMPARISON ---")
+        appendLine("legacy_changeRfParamsByConfig=${snapshot["rf_uid_legacy_entry"] ?: "NOT_REPORTED"}")
+        appendLine("modern_setNciConfig=${snapshot["rf_uid_modern_entry"] ?: "NOT_REPORTED"}")
+        appendLine("inventory_pid=${snapshot["rf_uid_inventory_pid"] ?: "0"}")
+        val observedWriterPid = snapshot["rf_uid_writer_observed_pid"]?.toIntOrNull() ?: 0
+        val actualNfcPid = snapshot["runtime_pid"]?.toIntOrNull() ?: 0
+        appendLine("writer_observation=${if (actualNfcPid > 0 && actualNfcPid == observedWriterPid) "CURRENT_PID_NOT_UID_PROOF" else "NO_CURRENT_PID_INVOCATION_PROOF"}")
+        appendLine("writer_pid=$observedWriterPid current_pid=$actualNfcPid")
+        appendLine("writer_target=${snapshot["rf_uid_writer_target"] ?: "NOT_OBSERVED"}")
+        appendLine("writer_shape=${snapshot["rf_uid_writer_payload_shape"] ?: "NOT_OBSERVED"}")
+        appendLine("writer_prefix=${snapshot["rf_uid_writer_payload_prefix"] ?: ""}")
+        appendLine("writer_score=${snapshot["rf_uid_writer_payload_score"] ?: "0"}")
+        appendLine("writer_observed_at=${snapshot["rf_uid_writer_observed_at"] ?: "0"}")
+        appendLine("NOTE: A writer invocation or a native return is not proof of the UID seen by an external reader.")
+        // No UID writer callback was observed in this firmware's Java NFC
+        // service. A compact HAL inventory helps distinguish an OEM-native
+        // NFC control path from an inactive Java hook. Read-only: no NFC
+        // toggle, Binder transaction, controller write or service restart.
+        appendLine("--- NFC HAL / NATIVE PATH INVENTORY (READ ONLY) ---")
+        appendLine(runRoot("""
+            echo '[HAL processes]'
+            ps -A 2>/dev/null | grep -i -E 'android.hardware.nfc|vendor.oplus.hardware.nfc|nfc-hal|nfc-service' | head -n 16 || true
+            echo '[HAL service registrations]'
+            service list 2>/dev/null | grep -i -E 'nfc|nxp' | head -n 24 || true
+            echo '[NFC properties]'
+            getprop 2>/dev/null | grep -i -E 'nfc|nxp|st21|st54|sn100|sn220' | head -n 35 || true
+            echo '[NFC library filenames]'
+            ls -1 /vendor/lib64/*nfc* /vendor/lib64/hw/*nfc* /system/lib64/*nfc* 2>/dev/null | head -n 36 || true
+        """.trimIndent(), 10, 18_000))
+        // Find the genuine loaded shared-library boundary before proposing a
+        // native UID replacement hook. These are file names and process mappings
+        // only: no memory writes, library loading, ptrace, or NCI transmissions.
+        appendLine("--- NFC NATIVE REPLACEMENT TARGET INVENTORY (READ ONLY) ---")
+        appendLine(runRoot("""
+            echo '[NFC Java process PID]'
+            nfc_pid=${'$'}(pidof com.android.nfc 2>/dev/null | awk '{print ${'$'}1}')
+            echo "pid=${'$'}{nfc_pid:-NOT_FOUND}"
+            if [ -n "${'$'}nfc_pid" ]; then
+              echo '[NFC Java process executable]'
+              readlink /proc/"${'$'}nfc_pid"/exe 2>/dev/null || true
+              echo '[NFC Java process loaded NFC libraries]'
+              grep -iE '/.*(libnfc|nfc.*\.so)' /proc/"${'$'}nfc_pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 30 || true
+            fi
+            echo '[Native NXP HAL executable paths]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              p=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              echo "${'$'}name pid=${'$'}{p:-NOT_FOUND}"
+              if [ -n "${'$'}p" ]; then readlink /proc/"${'$'}p"/exe 2>/dev/null || true; fi
+            done
+            echo '[Known system NFC libraries]'
+            for lib in /system/lib64/libnfc-nci.so /system/lib64/libnfc_nci_jni.so /system/lib64/libnfc_vendor_extn.so; do
+              [ -f "${'$'}lib" ] && ls -l "${'$'}lib" 2>/dev/null || true
+            done
+        """.trimIndent(), 10, 18_000))
+        appendLine("NOTE: Native HAL replacement requires exact firmware ABI verification; no native hook was installed.")
+        appendLine("--- NATIVE NCI/HAL ABI PREFLIGHT (READ ONLY) ---")
+        appendLine("native_probe_stage=${snapshot["native_probe_stage"] ?: "NOT_ATTEMPTED"}")
+        appendLine("native_probe_pid=${snapshot["native_probe_pid"] ?: "NOT_REPORTED"}")
+        appendLine("native_probe_no_controller_write=${snapshot["native_probe_no_controller_write"] ?: "NOT_REPORTED"}")
+        val halBinaryInventory = runRoot("""
+            echo '[Installed NFC firmware SHA-256 checksums]'
+            for lib in /system/lib64/libnfc-nci.so /system/lib64/libnfc_nci_jni.so /system/lib64/libnfc_vendor_extn.so /odm/bin/hw/android.hardware.nfc2-service.nxp /odm/bin/hw/vendor.oplus.hardware.nfc_aidl-service; do
+              if [ -f "${'$'}lib" ]; then
+                sha256sum "${'$'}lib" 2>/dev/null || echo "HASH_UNAVAILABLE ${'$'}lib"
+              else echo "NOT_FOUND ${'$'}lib"; fi
+            done
+            echo '[Critical NXP SNxxx HAL implementation, not just service launcher]'
+            for root in /vendor/lib64 /vendor/lib64/hw /odm/lib64 /odm/lib64/hw; do
+              for target in "${'$'}root"/nfc_nci_nxp_snxxx_v2.so; do
+                if [ -f "${'$'}target" ]; then
+                  echo "FOUND ${'$'}target"
+                  sha256sum "${'$'}target" 2>/dev/null || echo "HASH_UNAVAILABLE ${'$'}target"
+                  ls -l "${'$'}target" 2>/dev/null || true
+                fi
+              done
+            done
+            echo '[SN220 config candidates: presence and SHA-256 only]'
+            for conf in /data/vendor/nfc/libnfc-mtp-SN220.conf /vendor/etc/libnfc-mtp-SN220.conf; do
+              if [ -f "${'$'}conf" ]; then
+                echo "CONFIG_FOUND ${'$'}conf"
+                sha256sum "${'$'}conf" 2>/dev/null || true
+                for key in NXP_CORE_CONF NXP_SET_CONFIG_ALWAYS; do
+                  if grep -Eq "^[[:space:]]*${'$'}key[[:space:]]*=" "${'$'}conf" 2>/dev/null; then
+                    echo "CONFIG_KEY_PRESENT ${'$'}conf ${'$'}key"
+                  fi
+                done
+              fi
+            done
+            echo '[Critical HAL implementation search (bounded)]'
+            find /vendor /odm -maxdepth 5 -type f -name 'nfc_nci_nxp_snxxx_v2.so' 2>/dev/null | head -n 8 || true
+            echo '[HAL loaded libraries: paths only]'
+            for name in android.hardware.nfc2-service.nxp vendor.oplus.hardware.nfc_aidl-service; do
+              pid=${'$'}(pidof "${'$'}name" 2>/dev/null | awk '{print ${'$'}1}')
+              if [ -n "${'$'}pid" ]; then
+                echo "service=${'$'}name pid=${'$'}pid"
+                grep -E '/.*(libnfc|nfc.*[.]so|nxp.*[.]so)' /proc/"${'$'}pid"/maps 2>/dev/null | awk '{print ${'$'}6}' | sort -u | head -n 35 || true
+              else echo "service=${'$'}name pid=NOT_FOUND"; fi
+            done
+        """.trimIndent(), 15, 21_000)
+        appendLine(halBinaryInventory)
+        val expectedSn220HalSha = "415152acf97d4731dafe370d8bb4e136a7929ce04a7255023f03f3cb60daea22"
+        val observedSn220Hashes = Regex(
+            """(?m)^([A-Fa-f0-9]{64})\s+(\S*nfc_nci_nxp_snxxx_v2\.so)\s*$"""
+        ).findAll(halBinaryInventory).map { it.groupValues[1] }.toList()
+        appendLine("uploaded_sn220_hal_sha256=$expectedSn220HalSha")
+        appendLine("installed_sn220_hal_hash_status=" + when {
+            observedSn220Hashes.isEmpty() -> "NOT_AVAILABLE"
+            observedSn220Hashes.any { it.equals(expectedSn220HalSha, ignoreCase = true) } -> "MATCH"
+            else -> "DIFFERENT_FIRMWARE"
+        })
+        appendLine("installed_sn220_hal_hashes=" +
+            observedSn220Hashes.ifEmpty { listOf("NOT_AVAILABLE") }.joinToString(","))
+        appendLine("NOTE: Matching SHA-256 verifies only file identity, not UID programmability.")
+        appendLine("NOTE: Hashes identify firmware files, not a proven native NFCID1 writer.")
+        appendLine("NOTE: No native patch, NCI transmission, or service restart was executed.")
+        // Read-only NXP HAL investigation. On SN220-class firmware the
+        // current Java setNciConfig Hook is installed but not called.
+        // Show only configuration file paths and relevant *key names*.
+        // Do not alter HAL configuration, controller state or UID data.
+        appendLine("--- NXP NATIVE NFC CONFIG / NCI EVIDENCE (READ ONLY) ---")
+        appendLine(runRoot("""
+            echo '[All NFC-related config paths: no file contents]'
+            find /vendor/etc /odm/etc /system/etc /system_ext/etc /product/etc -maxdepth 3 -type f \( -iname '*nfc*.conf' -o -iname '*nfc*.cfg' -o -iname '*nfc*.xml' \) 2>/dev/null | head -n 55 || true
+            echo '[NFC config key inventory: values hidden]'
+            grep -HniE '^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*=' /vendor/etc/*nfc*.conf /odm/etc/*nfc*.conf /system/etc/*nfc*.conf /system_ext/etc/*nfc*.conf /product/etc/*nfc*.conf 2>/dev/null | sed -E 's/=.*$/=<hidden>/' | head -n 90 || true
+            echo '[NXP/HCE/UID-specific keys: values hidden]'
+            grep -HniEi '^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*(NFCID|UID|HCE|LISTEN|RNDM|RANDOM|CORE_CONF)[a-zA-Z0-9_]*[[:space:]]*=' /vendor/etc/*nfc*.conf /odm/etc/*nfc*.conf /system/etc/*nfc*.conf /system_ext/etc/*nfc*.conf /product/etc/*nfc*.conf 2>/dev/null | sed -E 's/=.*$/=<hidden>/' | head -n 45 || true
+            echo '[Logcat buffer availability]'
+            logcat -g 2>&1 | head -n 8 || true
+            echo '[Recent raw logcat line count]'
+            logcat -b all -d -t 350 -v brief 2>/dev/null | wc -l
+            echo '[NCI TX/RX recent lines: not guaranteed exposed on stock firmware]'
+            logcat -b all -d -v threadtime -t 3000 2>/dev/null | grep -i -E 'NxpNciX|NxpNciR|CORE_SET_CONFIG|nfc_ncif_send|NfcAdaptation.*HalWrite' | tail -n 30 || true
+        """.trimIndent(), 12, 45_000))
+        appendLine("--- NATIVE NCI CORRELATION TO LAST UID COMMAND (READ ONLY) ---")
+        val priorCapturedGeneration = nciTracePreferences.getLong("generation", 0L)
+        val priorCapturedAt = nciTracePreferences.getLong("captured_at_ms", 0L)
+        if (priorCapturedGeneration > 0L) {
+            appendLine("EARLY_SNAPSHOT_COMMAND_GENERATION=$priorCapturedGeneration")
+            appendLine("EARLY_SNAPSHOT_CAPTURED_AT_MS=$priorCapturedAt")
+            if (priorCapturedGeneration == state.commandGeneration) {
+                appendLine("--- EARLY NCI SNAPSHOT (CAPTURED IMMEDIATELY AFTER APPLY) ---")
+                appendLine(nciTracePreferences.getString("summary", "NO_EARLY_SUMMARY"))
+            } else {
+                appendLine("EARLY_SNAPSHOT_STATUS=OTHER_GENERATION_NOT_CURRENT_UID_PROOF")
+            }
+        } else {
+            appendLine("EARLY_SNAPSHOT_STATUS=NOT_CAPTURED")
+        }
+        val delayedGeneration = nciTracePreferences.getLong("late_generation", 0L)
+        if (delayedGeneration > 0L && delayedGeneration == state.commandGeneration) {
+            appendLine("--- DELAYED NCI SNAPSHOT (AFTER INITIAL APPLY) ---")
+            appendLine("DELAYED_SNAPSHOT_COMMAND_GENERATION=$delayedGeneration")
+            appendLine("DELAYED_SNAPSHOT_CAPTURED_AT_MS=" +
+                nciTracePreferences.getLong("late_captured_at_ms", 0L))
+            appendLine(nciTracePreferences.getString("late_summary", "NO_DELAYED_SUMMARY"))
+        } else {
+            appendLine("DELAYED_SNAPSHOT_STATUS=" +
+                if (delayedGeneration > 0L) "OTHER_GENERATION_NOT_CURRENT_UID_PROOF"
+                else "NOT_CAPTURED")
+        }
+        appendLine(runCatching {
+            val halPackets = runRoot(
+                "logcat -b all -d -v epoch -t 4200 2>/dev/null | grep -E 'NxpNciX[[:space:]]*:|NxpNciR[[:space:]]*:' | tail -n 400",
+                12, 150_000
+            )
+            val commandSummary = NciHalTrace.summarize(halPackets, state.commandGeneration)
+            val lifecycleAt = snapshot["own_nci_lifecycle_at"]?.toLongOrNull() ?: 0L
+            val lifecycleGeneration = snapshot["own_nci_lifecycle_generation"]?.toLongOrNull() ?: 0L
+            if (lifecycleAt > 0L && lifecycleGeneration == state.commandGeneration) {
+                buildString {
+                    appendLine(commandSummary)
+                    appendLine("--- NCI CORRELATION TO LAST LIFECYCLE UID RECOVERY (READ ONLY) ---")
+                    appendLine("LIFECYCLE_RECOVERY_EVENT_AT_MS=$lifecycleAt")
+                    appendLine("LIFECYCLE_RECOVERY_STAGE=" +
+                        snapshot["own_nci_lifecycle_stage"].orEmpty())
+                    appendLine("LIFECYCLE_READY_AGE_MS=" +
+                        snapshot["own_nci_lifecycle_ready_age_ms"].orEmpty())
+                    val cachedEarlyEvent =
+                        nciTracePreferences.getLong("lifecycle_early_event_at_ms", 0L)
+                    val cachedLateEvent =
+                        nciTracePreferences.getLong("lifecycle_late_event_at_ms", 0L)
+                    if (cachedEarlyEvent == lifecycleAt &&
+                        nciTracePreferences.getLong("lifecycle_early_generation", 0L) ==
+                            state.commandGeneration) {
+                        appendLine("--- EARLY LIFECYCLE NCI SNAPSHOT ---")
+                        appendLine(nciTracePreferences.getString(
+                            "lifecycle_early_summary", "NO_EARLY_LIFECYCLE_SUMMARY"))
+                    }
+                    if (cachedLateEvent == lifecycleAt &&
+                        nciTracePreferences.getLong("lifecycle_late_generation", 0L) ==
+                            state.commandGeneration) {
+                        appendLine("--- DELAYED LIFECYCLE NCI SNAPSHOT ---")
+                        appendLine(nciTracePreferences.getString(
+                            "lifecycle_late_summary", "NO_DELAYED_LIFECYCLE_SUMMARY"))
+                    }
+                    appendLine("--- LIFECYCLE NCI FRAMES RETAINED AT EXPORT ---")
+                    appendLine(NciHalTrace.summarize(halPackets, lifecycleAt))
+                    appendLine("NOTE: missing NCI frames may have been evicted from logcat.")
+                }
+            } else {
+                commandSummary + "\nLIFECYCLE_NCI_CORRELATION=NO_CURRENT_RECOVERY_EVENT"
+            }
+        }.getOrElse { "NCI analysis unavailable: " + it.javaClass.simpleName })
+        appendLine("UID_CONFIG_PATH_NOTE: No UID write or HAL configuration was attempted by diagnostic collection.")
+        if (snapshot["polling_guard_detail"].orEmpty().contains("java_poll_mask_not_zero_0xffffffff")) {
+            appendLine("POLLING_MASK_NOTE: 0xffffffff is also the Hook unreadable-mask sentinel (-1); it does not prove all polling technologies are enabled.")
+        }
+        appendLine("--- SAVED CARD PARAMETERS ---")
+        runCatching { cardRepository.load() }.getOrDefault(emptyList()).forEach { card ->
+            appendLine("card uid=${card.uid} sak=${card.sak} atqa=${card.atqa}")
+        }
+        // Read-only permission inventory: a Root shell and an LSPosed hook do
+        // not grant the NFC process the OEM signature/privileged permission.
+        // Keep this bounded and avoid mutating framework permission state.
+        appendLine("--- COLOROS NFC PERMISSION (READ ONLY) ---")
+        appendLine(runRoot("""
+            echo '[NFC process identity]'; ps -A | grep '[c]om.android.nfc' | head -n 3 || true
+            echo '[permission definition]'; dumpsys package permissions 2>/dev/null | grep -F -B 3 -A 12 'com.oplus.permission.safe.NFC' | head -n 60 || true
+            echo '[NFC package requests/grants]'; dumpsys package com.android.nfc 2>/dev/null | grep -F -B 5 -A 7 'com.oplus.permission.safe.NFC' | head -n 60 || true
+            echo '[NFC app location]'; pm path com.android.nfc 2>/dev/null | head -n 5 || true
+        """.trimIndent(), 10, 20_000))
+        appendLine("[safe.NFC PackageManager authorization]")
+        appendLine(runCatching {
+            val permission = "com.oplus.permission.safe.NFC"
+            val status = packageManager.checkPermission(permission, "com.android.nfc")
+            when (status) {
+                PackageManager.PERMISSION_GRANTED -> "com.android.nfc=GRANTED"
+                PackageManager.PERMISSION_DENIED -> "com.android.nfc=DENIED"
+                else -> "com.android.nfc=UNKNOWN($status)"
+            }
+        }.getOrElse { "Permission query unavailable: ${it.javaClass.simpleName}: ${it.message}" })
+        appendLine("--- APP LOGS ---")
+        appendLine(runCatching { AppLogger.readAll() }.getOrElse {
+            "App logs unavailable: ${it.javaClass.simpleName}: ${it.message}"
+        })
+        appendLine("--- ROOT LOGCAT NFC/LSPOSED/COLOROS ---")
+        appendLine(runRoot("""
+            logcat -b all -d -t 2200 -v threadtime 2>/dev/null | grep -i -E 'YNFC|NfcUIDSim|VENDOR_TYPE_A|NfcService|NxpNfc|STNfc|NfcAdaptation|RFPROBE|NFCID1|NfcHal|com.android.nfc|LSPosed.*(YNFC|NfcUIDSim|com.yagay.YSuite)' | tail -n 800 || true
+        """.trimIndent(), 12, 700_000))
+        appendLine("--- EXPORT COMPLETE ---")
     }
 
     fun buildFullReport(statusSummary: (RuntimeStatus) -> String): String = buildString {

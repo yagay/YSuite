@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicReference
  */
 object SuiteRootGateway {
     private val streamingProcesses = ConcurrentHashMap<String, MutableSet<Process>>()
+    // Prevent continuous process scans from starving Root health and other features.
+    private val scanSlots = java.util.concurrent.Semaphore(2, true)
 
     data class Result(
         val code: Int,
@@ -105,6 +107,7 @@ object SuiteRootGateway {
         val context = RootManager.contextOrNull()
             ?: throw IllegalStateException("YSuite root host is not initialized")
         checkFeatureEnabled(context, pluginId)
+        check(RootManager.isAvailable(context)) { "YSuite Root host is not privileged" }
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "stream" }
         SuiteLog.i(
@@ -112,7 +115,7 @@ object SuiteRootGateway {
             SuiteContract.HOST_MODULE_ID,
             "root stream begin; plugin=$safePlugin operation=$safeOperation",
         )
-        val process = ProcessBuilder("su", "-c", command)
+        val process = ProcessBuilder("su", "-c", requireRootUid(command))
             .redirectErrorStream(true)
             .start()
         registerStreamingProcess(context, pluginId, safeOperation, process)
@@ -168,7 +171,18 @@ object SuiteRootGateway {
             )
         }
 
-        RootManager.initialize(app)
+        // Never execute a feature command in libsu's unprivileged fallback shell.
+        // Re-open a previously cached non-root shell if authorization has since changed.
+        if (!RootManager.isAvailable(app)) {
+            return Result(
+                code = Shell.Result.JOB_NOT_EXECUTED,
+                stdout = "",
+                stderr = "Root shell is not privileged (host: ${app.packageName})",
+                error = IllegalStateException(
+                    "Root shell could not open as uid 0 for ${app.packageName}"
+                ),
+            )
+        }
         val safePlugin = pluginId.ifBlank { "unknown" }
         val safeOperation = operation.ifBlank { "command" }
 
@@ -179,21 +193,57 @@ object SuiteRootGateway {
         )
 
         val result = try {
-            val future = Shell.cmd(command).enqueue()
-            val shellResult = future.get(timeoutSeconds.coerceAtLeast(1L), TimeUnit.SECONDS)
-            Result(
-                code = shellResult.code,
-                stdout = shellResult.out.joinToString("\n"),
-                stderr = shellResult.err.joinToString("\n"),
-            )
-        } catch (timeout: TimeoutException) {
-            Result(
-                code = Shell.Result.JOB_NOT_EXECUTED,
-                stdout = "",
-                stderr = "",
-                timedOut = true,
-                error = timeout,
-            )
+            // Quick ps listings use the managed host shell; expensive collectors
+            // use limited isolated shells. Two slow scans may never starve the UI list.
+            val isolated = safePlugin == "ytaskmanager" &&
+                safeOperation != "root-capability-probe" &&
+                safeOperation != "process-list" && safeOperation != "process-cpu"
+            if (isolated && !scanSlots.tryAcquire()) {
+                Result(
+                    code = Shell.Result.JOB_NOT_EXECUTED,
+                    stdout = "",
+                    stderr = "Root process scan busy; a previous scan is still active",
+                    error = IllegalStateException("Root scan busy; retry after the previous scan"),
+                )
+            } else {
+                var isolatedShell: Shell? = null
+                try {
+                    val isolatedOut = mutableListOf<String>()
+                    val isolatedErr = mutableListOf<String>()
+                    val job = if (isolated) {
+                        isolatedShell = RootManager.openIsolatedShell(app)
+                            ?: throw IllegalStateException("Isolated libsu shell could not acquire uid 0")
+                        // Shell.newJob() does not collect output unless to(...) is set.
+                        isolatedShell!!.newJob().add(requireRootUid(command))
+                            .to(isolatedOut, isolatedErr)
+                    } else {
+                        Shell.cmd(requireRootUid(command))
+                    }
+                    val future = job.enqueue()
+                    try {
+                        val shellResult = future.get(timeoutSeconds.coerceAtLeast(1L), TimeUnit.SECONDS)
+                        Result(
+                            code = shellResult.code,
+                            stdout = (if (isolated) isolatedOut else shellResult.out).joinToString("\n"),
+                            stderr = (if (isolated) isolatedErr else shellResult.err).joinToString("\n"),
+                        )
+                    } catch (timeout: TimeoutException) {
+                        future.cancel(true)
+                        Result(
+                            code = Shell.Result.JOB_NOT_EXECUTED,
+                            stdout = "",
+                            stderr = "",
+                            timedOut = true,
+                            error = timeout,
+                        )
+                    }
+                } finally {
+                    if (isolated) {
+                        runCatching { isolatedShell?.close() }
+                        scanSlots.release()
+                    }
+                }
+            }
         } catch (error: Throwable) {
             Result(
                 code = Shell.Result.JOB_NOT_EXECUTED,
@@ -216,137 +266,103 @@ object SuiteRootGateway {
         return result
     }
 
+    /**
+     * Binary commands use the same libsu Root shell as normal commands.
+     * The app may have uid=0 through libsu while ProcessBuilder("su") is
+     * unavailable in its sandbox, especially with KernelSU.
+     */
     private fun executeBinary(
-        context: Context,
-        pluginId: String,
-        operation: String,
-        command: String,
-        timeoutSeconds: Long,
-        maxStdoutBytes: Int,
-        mergeError: Boolean,
+        context: Context, pluginId: String, operation: String, command: String,
+        timeoutSeconds: Long, maxStdoutBytes: Int, mergeError: Boolean,
     ): BinaryResult {
         val app = context.applicationContext
         val disabled = disabledFeatureError(app, pluginId)
-        if (disabled != null) {
-            SuiteLog.i(
-                app,
-                SuiteContract.HOST_MODULE_ID,
-                "root binary blocked; plugin=${pluginId.ifBlank { "unknown" }} reason=${disabled.message}",
-            )
-            return BinaryResult(
-                code = Shell.Result.JOB_NOT_EXECUTED,
-                stdout = ByteArray(0),
-                stderr = disabled.message.orEmpty(),
-                errorMessage = disabled.message,
-            )
-        }
-
-        RootManager.initialize(app)
-        val safePlugin = pluginId.ifBlank { "unknown" }
-        val safeOperation = operation.ifBlank { "binary" }
+        if (disabled != null) return BinaryResult(
+            code = Shell.Result.JOB_NOT_EXECUTED, stdout = ByteArray(0),
+            stderr = disabled.message.orEmpty(), errorMessage = disabled.message,
+        )
+        if (!RootManager.isAvailable(app)) return BinaryResult(
+            code = Shell.Result.JOB_NOT_EXECUTED, stdout = ByteArray(0),
+            stderr = "YSuite Root host not privileged",
+            errorMessage = "Root authorization could not be verified",
+        )
         val stdoutLimit = maxStdoutBytes.coerceAtLeast(1024)
         val stderrLimit = 16 * 1024
-
-        SuiteLog.i(
-            app,
-            SuiteContract.HOST_MODULE_ID,
-            "root binary begin; plugin=$safePlugin operation=$safeOperation maxBytes=$stdoutLimit",
-        )
-
-        var process: Process? = null
-        var stdoutReader: Thread? = null
-        var stderrReader: Thread? = null
-        val stdout = ByteArrayOutputStream(minOf(stdoutLimit, 2 * 1024 * 1024))
-        val stderr = ByteArrayOutputStream(stderrLimit)
-        val readFailure = AtomicReference<Throwable?>(null)
-        val stdoutOverflow = AtomicBoolean(false)
-        val stderrOverflow = AtomicBoolean(false)
-
+        var script: java.io.File? = null
+        var output: java.io.File? = null
+        var errors: java.io.File? = null
+        SuiteLog.i(app, SuiteContract.HOST_MODULE_ID,
+            "root binary begin; plugin=$pluginId operation=$operation maxBytes=$stdoutLimit")
         val result = try {
-            process = ProcessBuilder("su", "-c", command)
-                .redirectErrorStream(mergeError)
-                .start()
-            val active = process
-
-            stdoutReader = readerThread(
-                name = "YSuite-root-stdout",
-                input = active.inputStream,
-                output = stdout,
-                maxBytes = stdoutLimit,
-                failure = readFailure,
-                overflow = stdoutOverflow,
-            ).also(Thread::start)
-
-            if (!mergeError) {
-                stderrReader = readerThread(
-                    name = "YSuite-root-stderr",
-                    input = active.errorStream,
-                    output = stderr,
-                    maxBytes = stderrLimit,
-                    failure = readFailure,
-                    overflow = stderrOverflow,
-                ).also(Thread::start)
-            }
-
-            val finished = active.waitFor(timeoutSeconds.coerceAtLeast(1L), TimeUnit.SECONDS)
-            if (!finished) {
-                active.destroy()
-                if (active.isAlive) active.destroyForcibly()
-                joinQuietly(stdoutReader, 500L)
-                joinQuietly(stderrReader, 500L)
-                BinaryResult(
-                    code = Shell.Result.JOB_NOT_EXECUTED,
-                    stdout = stdout.toByteArray(),
-                    stderr = stderr.toString(Charsets.UTF_8.name()),
-                    timedOut = true,
-                )
-            } else {
-                joinQuietly(stdoutReader, 1500L)
-                joinQuietly(stderrReader, 1500L)
-                val streamError = readFailure.get()
-                val overflowed = stdoutOverflow.get() || stderrOverflow.get()
-                BinaryResult(
-                    code = active.exitValue(),
-                    stdout = stdout.toByteArray(),
-                    stderr = stderr.toString(Charsets.UTF_8.name()),
-                    errorMessage = when {
-                        streamError != null -> "${streamError.javaClass.simpleName}: ${streamError.message}"
-                        overflowed -> "Root command output exceeds limit"
-                        else -> null
-                    },
-                )
-            }
+            val source = java.io.File.createTempFile("ysuite-command-", ".sh", app.cacheDir)
+                .also { script = it }
+            val stdout = java.io.File.createTempFile("ysuite-stdout-", ".bin", app.cacheDir)
+                .also { output = it }
+            val stderr = java.io.File.createTempFile("ysuite-stderr-", ".txt", app.cacheDir)
+                .also { errors = it }
+            source.writeText(command, Charsets.UTF_8)
+            // Run in a child shell: 'exit' within a feature script must not kill libsu.
+            val sh = "sh ${quotePath(source.absolutePath)}"
+            val bounded = "if command -v timeout >/dev/null 2>&1; " +
+                "then timeout ${timeoutSeconds.coerceAtLeast(1L)}s $sh; else $sh; fi"
+            val capture = "($bounded) > ${quotePath(stdout.absolutePath)} " +
+                if (mergeError) "2>&1" else "2> ${quotePath(stderr.absolutePath)}"
+            val completed = Shell.cmd(capture).enqueue()
+                .get(timeoutSeconds.coerceAtLeast(1L) + 3L, TimeUnit.SECONDS)
+            val outputOverflow = stdout.length() > stdoutLimit
+            val errorOverflow = !mergeError && stderr.length() > stderrLimit
+            BinaryResult(
+                code = completed.code,
+                stdout = readAtMost(stdout, stdoutLimit),
+                stderr = if (mergeError) "" else
+                    String(readAtMost(stderr, stderrLimit), Charsets.UTF_8),
+                timedOut = completed.code == 124,
+                errorMessage = if (outputOverflow || errorOverflow)
+                    "Root command output exceeds limit" else null,
+            )
+        } catch (_: TimeoutException) {
+            BinaryResult(
+                code = Shell.Result.JOB_NOT_EXECUTED, stdout = ByteArray(0),
+                stderr = "", timedOut = true,
+            )
         } catch (error: Throwable) {
             BinaryResult(
-                code = Shell.Result.JOB_NOT_EXECUTED,
-                stdout = stdout.toByteArray(),
-                stderr = stderr.toString(Charsets.UTF_8.name()),
-                errorMessage = "${error.javaClass.simpleName}: ${error.message}",
+                code = Shell.Result.JOB_NOT_EXECUTED, stdout = ByteArray(0),
+                stderr = "", errorMessage = "${error.javaClass.simpleName}: ${error.message}",
             )
         } finally {
-            process?.let { active ->
-                runCatching {
-                    if (active.isAlive) active.destroyForcibly() else active.destroy()
-                }
-            }
-            stdoutReader?.takeIf(Thread::isAlive)?.interrupt()
-            stderrReader?.takeIf(Thread::isAlive)?.interrupt()
+            runCatching { script?.delete() }
+            runCatching { output?.delete() }
+            runCatching { errors?.delete() }
         }
-
-        val detail = when {
-            result.success -> "success bytes=${result.stdout.size}"
-            result.timedOut -> "timeout bytes=${result.stdout.size}"
-            else -> (result.errorMessage ?: result.stderr.ifBlank { "exit=${result.code}" })
-                .replace('\n', ' ')
-                .take(240)
-        }
-        SuiteLog.i(
-            app,
-            SuiteContract.HOST_MODULE_ID,
-            "root binary end; plugin=$safePlugin operation=$safeOperation result=$detail",
-        )
+        SuiteLog.i(app, SuiteContract.HOST_MODULE_ID,
+            "root binary end; plugin=$pluginId operation=$operation " +
+                "exit=${result.code} timeout=${result.timedOut} bytes=${result.stdout.size}")
         return result
     }
+
+    private fun quotePath(path: String): String =
+        "'" + path.replace("'", "'\\''") + "'"
+
+    private fun readAtMost(file: java.io.File, maxBytes: Int): ByteArray {
+        val output = ByteArrayOutputStream(minOf(maxBytes, 2 * 1024 * 1024))
+        file.inputStream().use { stream ->
+            val buffer = ByteArray(8192)
+            var remaining = maxBytes
+            while (remaining > 0) {
+                val count = stream.read(buffer, 0, minOf(buffer.size, remaining))
+                if (count < 0) break
+                if (count == 0) continue
+                output.write(buffer, 0, count)
+                remaining -= count
+            }
+        }
+        return output.toByteArray()
+    }
+
+    /** Never run a privileged feature command under a non-root su fallback. */
+    private fun requireRootUid(command: String): String =
+        "test \"$(id -u)\" = 0 || exit 126; " + command
 
     private fun registerStreamingProcess(
         context: Context,

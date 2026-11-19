@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Guard YUI content compatibility: normal content, actions and wide/narrow layouts."""
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+YUI = ROOT / "libs/yui/src/main/java/com/yagay/yui"
+
+def require(path: Path, *markers: str) -> list[str]:
+    if not path.is_file():
+        return [f"missing {path.relative_to(ROOT)}"]
+    text = path.read_text(encoding="utf-8")
+    return [
+        f"{path.relative_to(ROOT)}: missing {marker}"
+        for marker in markers if marker not in text
+    ]
+
+def main() -> int:
+    errors: list[str] = []
+    errors += require(YUI / "YViewFramework.kt",
+                      "YView.styleCaption(this)",
+                      "YView.styleLabel(this)",
+                      "YView.styleBody(this)",
+                      "ViewGroup.LayoutParams.WRAP_CONTENT,",
+                      "maxOf(content.paddingBottom, sectionGap(context) + YView.controlGap(context))")
+    view_source = (YUI / "YViewFramework.kt").read_text(encoding="utf-8")
+    # Old per-call SP overrides defeated the shared TextAppearance and caused YFloat
+    # subtitles/checkboxes to appear different from other feature screens.
+    if "setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, sp * YView.fontPercent(context) / 100f)" in view_source:
+        errors.append("YViewLayout must use YUI typography roles, not caller-supplied SP values")
+    errors += require(YUI / "YAdaptive.kt",
+                      "BoxWithConstraints(modifier.fillMaxSize())",
+                      "NavigationSuiteType.NavigationBar",
+                      "NavigationSuiteType.NavigationRail",
+                      "emphasizeCards = true")
+    errors += require(YUI / "YUnifiedDesign.kt",
+                      "titleMaxLines: Int = Int.MAX_VALUE",
+                      "subtitleMaxLines: Int = Int.MAX_VALUE",
+                      "detailMaxLines: Int = Int.MAX_VALUE",
+                      "val effectiveKey = tabs[selectedIndex].key")
+    errors += require(YUI / "YResponsiveForms.kt",
+                      "fun YResponsiveFieldAction(",
+                      "fun YResponsiveFieldPair(",
+                      "fun YResponsiveActionBar(",
+                      "maxWidth < stackedBelow")
+    errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadComponents.kt",
+                      "YResponsiveFieldAction(",
+                      "YResponsiveFieldPair(",
+                      "YResponsiveActionBar {",
+                      "BoxWithConstraints(Modifier.fillMaxSize().imePadding())",
+                      "speedLimitDraft",
+                      "YUiAlertDialog(")
+    errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadWorkspace.kt",
+                      "val effectiveTabId =",
+                      "selectedKey = effectiveTabId",
+                      "content(adaptive, effectiveTabId)")
+    tabs = ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/FileExplorerAdvancedComponents.kt"
+    errors += require(tabs, "text = tab.title", "tabs.size > 1 && tab.id == tabs[selected].id")
+    if "modifier = Modifier.widthIn(max = (LocalYAppearance.current.rowHeightDp * 2f).dp)" in tabs.read_text(encoding="utf-8"):
+        errors.append("File tab text has an obsolete fixed width and cannot grow by label")
+    errors += require(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+                      "IconButton(onClick = onRoot)",
+                      "Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp)")
+    errors += require(YUI / "YOverlayUi.kt", "fun styleSelectionText(", "fun styleAction(",
+                      "fun styleHintText(", "fun actionRipple(", "fun actionHeightPx(")
+    errors += require(YUI / "YLogComponents.kt", "fun YUiLogSurface(", "fun YUiLogLine(")
+    errors += require(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatingMenuUi.java",
+                      'YOverlayUi.elevationPx(c, "yfloat")', 'YOverlayUi.actionRipple(c, "yfloat")')
+    errors += require(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppScopePicker.kt",
+                      "Modifier.size(LocalYAppearance.current.listIconSizeDp.dp)")
+    errors += require(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuPickerActivity.java",
+                      "screenWidthDp < 480",
+                      "PopupMenu popup",
+                      "YView.touchTarget(this)",
+                      "YViewLayout.rowTitle(this, title)",
+                      "YViewLayout.rowSubtitle(this, subtitle)")
+    if errors:
+        print("yui-content: incompatible or missing UI contracts:", file=sys.stderr)
+        for error in errors:
+            print(" - " + error, file=sys.stderr)
+        return 1
+    print("yui-content: OK adaptive text, navigation, file/download forms, and touch targets")
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -28,6 +28,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
     private FlOverlayWindowHost iconHost;
     private FloatingIconLayoutPolicy layout;
     private FloatSettings fs;
+    private com.yagay.yui.YAppearanceStore appearanceStore;
     private FloatVisibilityController visibility;
     private FloatIconView primary, secondary;
     private WindowManager.LayoutParams primaryLp, secondaryLp;
@@ -58,6 +59,8 @@ public class FloatService extends Service implements android.content.SharedPrefe
         fs = new FloatSettings(this);
         visibility = new FloatVisibilityController();
         fs.registerChangeListener(this);
+        appearanceStore = new com.yagay.yui.YAppearanceStore(this);
+        appearanceStore.registerPreferenceListener(this);
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         iconHost = new FlOverlayWindowHost(this);
         layout = new FloatingIconLayoutPolicy(this, fs);
@@ -147,10 +150,39 @@ public class FloatService extends Service implements android.content.SharedPrefe
         final boolean[] mirrorOriginReady = {false};
         final boolean[] directExpanded = {false};
         final int[] otherVisibility = {View.VISIBLE};
+        final int[] latestDrag = new int[2];
+        final OverlayFrameScheduler[] dragFrame = new OverlayFrameScheduler[1];
+        final Runnable applyDragPosition = () -> {
+            if (!isCurrentIconCallback(generation, mirrored, lp)) return;
+            if (!originReady[0]) {
+                origin[0] = lp.x;
+                origin[1] = lp.y;
+                originReady[0] = true;
+            }
+            int x = origin[0] + latestDrag[0];
+            int y = origin[1] + latestDrag[1];
+            if (lp.x != x || lp.y != y) {
+                lp.x = x;
+                lp.y = y;
+                safeUpdate(mirrored ? secondary : primary, lp);
+            }
+            if (!mirrored && secondary != null && secondaryLp != null) {
+                int mirrorY = (mirrorOriginReady[0] ? mirrorOrigin[1] : origin[1])
+                        + latestDrag[1];
+                if (secondaryLp.y != mirrorY) {
+                    secondaryLp.y = mirrorY;
+                    safeUpdate(secondary, secondaryLp);
+                }
+            }
+        };
 
         return new FloatIconView(this, new FloatIconView.Callback() {
             @Override public void onDragStart() {
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
+                if (dragFrame[0] != null) dragFrame[0].cancel();
+                View active = mirrored ? secondary : primary;
+                dragFrame[0] = active == null ? null
+                        : new OverlayFrameScheduler(active, applyDragPosition);
                 origin[0] = lp.x;
                 origin[1] = lp.y;
                 originReady[0] = true;
@@ -165,21 +197,22 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
             @Override public void onMove(int dxFromDown, int dyFromDown) {
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
-                if (!originReady[0]) {
-                    origin[0] = lp.x;
-                    origin[1] = lp.y;
-                    originReady[0] = true;
-                }
-                lp.x = origin[0] + dxFromDown;
-                lp.y = origin[1] + dyFromDown;
-                safeUpdate(mirrored ? secondary : primary, lp);
-                if (!mirrored && secondary != null && secondaryLp != null) {
-                    secondaryLp.y = (mirrorOriginReady[0] ? mirrorOrigin[1] : origin[1]) + dyFromDown;
-                    safeUpdate(secondary, secondaryLp);
-                }
+                // Keep the most recent finger position, but submit at most one
+                // WindowManager update per display frame (capped at ~60 fps).
+                latestDrag[0] = dxFromDown;
+                latestDrag[1] = dyFromDown;
+                if (dragFrame[0] != null) dragFrame[0].request();
+                else applyDragPosition.run();
             }
 
             @Override public void onRelease(boolean moved) {
+                if (dragFrame[0] != null) {
+                    // Explicit repositioning must commit the final touch coordinate.
+                    // Temporary follow is restored immediately, without a stale queued frame.
+                    if (positionMoveArmed && moved) dragFrame[0].flush();
+                    else dragFrame[0].cancel();
+                    dragFrame[0] = null;
+                }
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
                 View icon = mirrored ? secondary : primary;
                 if (positionMoveArmed && moved) {
@@ -266,6 +299,9 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
             @Override public void onDirectSelectionStart() {
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
+                // Freeze the invisible icon as Direct's separate probe takes
+                // over. Cancel any final pending drag-frame WindowManager work.
+                if (dragFrame[0] != null) dragFrame[0].cancel();
                 if (directExpanded[0]) return;
                 View icon = mirrored ? secondary : primary;
                 if (icon == null) return;
@@ -355,8 +391,30 @@ public class FloatService extends Service implements android.content.SharedPrefe
         safeUpdate(view, lp);
     }
 
+    private boolean unstableHighIconHost() {
+        return FlOverlayLayerPolicy.requiresStableIconHost(
+                android.os.Build.MANUFACTURER,
+                android.os.Build.MODEL,
+                android.os.Build.DEVICE,
+                android.os.Build.VERSION.SDK_INT);
+    }
+
+    private boolean forceApplicationIconHost;
+
     private boolean addIconWindow(View view, WindowManager.LayoutParams lp) {
-        return iconHost != null && iconHost.addStable(view, lp, "float_icon");
+        if (iconHost == null) return false;
+        boolean useAccessibility = preferAccessibilityIconHost(
+                LensAccessibilityService.ready());
+        if (!useAccessibility && fs.elevatedIconOverlay()) {
+            DiagnosticLog.i(this, "FL_ICON_LAYER",
+                    "persistent icon stable 2038 compatibility reason="
+                    + (unstableHighIconHost() ? "oneplus_cph2747_mismatched_input_bounds"
+                       : forceApplicationIconHost ? "runtime_touch_origin_mismatch"
+                       : "accessibility_unavailable"));
+        }
+        return useAccessibility
+                ? iconHost.addElevated(view, lp, "float_icon")
+                : iconHost.addStable(view, lp, "float_icon");
     }
 
     private void removeIconWindow(View view) {
@@ -368,7 +426,12 @@ public class FloatService extends Service implements android.content.SharedPrefe
         removeTouchHandle(mirrored);
         FloatIconTouchHandle handle = new FloatIconTouchHandle(this, icon);
         WindowManager.LayoutParams handleLp = createTouchHandleLayout(iconLp);
-        if (!iconHost.addStable(handle, handleLp, "float_icon_handle")) {
+        // The invisible edge-touch handle must use the same window host as
+        // the real icon. A mixed 2032/2038 pair produces missed touches.
+        boolean iconElevated = iconHost.isAccessibilityHosted(icon);
+        if (!(iconElevated
+                ? iconHost.addElevated(handle, handleLp, "float_icon_handle")
+                : iconHost.addStable(handle, handleLp, "float_icon_handle"))) {
             DiagnosticLog.i(this, "FL_WINDOW", "touch handle add failed side="
                     + (layout.isLeft(iconLp) ? "L" : "R"));
             return;
@@ -389,9 +452,9 @@ public class FloatService extends Service implements android.content.SharedPrefe
     private WindowManager.LayoutParams createTouchHandleLayout(WindowManager.LayoutParams iconLp) {
         int handleWidth = Math.max(1, Math.round(iconLp.width * 0.50f));
         int handleHeight = Math.max(iconLp.height, Math.round(iconLp.height * 1.16f));
-        int type = LensAccessibilityService.ready()
-                ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-                : WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        // The actual type is assigned by FlOverlayWindowHost. Do not infer
+        // it from service readiness (the window may have fallen back).
+        int type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 handleWidth, handleHeight, type,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
@@ -444,22 +507,63 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
     public void onAccessibilityOverlayHostChanged(boolean available) {
         getMainExecutor().execute(() -> {
-            // Persistent controls stay on the application overlay whenever possible. Do not
-            // migrate them into AccessibilityService merely because that service connected:
-            // its coordinate space can briefly lag behind display rotation on some ROMs.
-            if (Settings.canDrawOverlays(this)) {
-                if (primary == null) show();
-                else rehostIconWindows(false);
-                verifyCurrentIconPlacements("accessibility_host_change");
-            } else if (available) {
-                if (primary == null) show();
-                else rehostIconWindows(true);
-                verifyCurrentIconPlacements("accessibility_only_host");
-            } else {
-                // Without either host there is no safe place for a persistent control.
+            if (!available && !Settings.canDrawOverlays(this)) {
+                // No permitted host remains; do not keep orphaned touch windows.
                 removeIcons();
+                return;
+            }
+            if (primary == null) show();
+            else rehostIconWindows(preferAccessibilityIconHost(available));
+            verifyCurrentIconPlacements("accessibility_host_change");
+        });
+    }
+
+    private boolean preferAccessibilityIconHost(boolean accessibilityAvailable) {
+        // 2038 keeps the real touchable icon at the saved physical edge on
+        // affected OEM builds. 2032 remains available for non-interactive
+        // screenshot/selection/menus and as the only host when 2038 is denied.
+        boolean ordinaryAllowed = Settings.canDrawOverlays(this);
+        return accessibilityAvailable && (!ordinaryAllowed
+                || (fs.elevatedIconOverlay() && !forceApplicationIconHost
+                    && !unstableHighIconHost()));
+    }
+
+    boolean isAccessibilityIconHosted(FloatIconView icon) {
+        return icon != null && iconHost != null && iconHost.isAccessibilityHosted(icon);
+    }
+
+    void onIconTouchOriginMismatch(FloatIconView icon, float rawX, float rawY,
+                                   int ownerX, int ownerY) {
+        if (icon == null || iconHost == null || !iconHost.isAccessibilityHosted(icon)) return;
+        if (!FlOverlayLayerPolicy.touchOutsideIconBounds(
+                rawX, rawY, ownerX, ownerY, icon.getWidth(), icon.getHeight())) return;
+        if (forceApplicationIconHost) return;
+        forceApplicationIconHost = true;
+        DiagnosticLog.i(this, "FL_ICON_LAYER",
+                "bad_2032_touch_origin raw=" + Math.round(rawX) + "," + Math.round(rawY)
+                + " expected=" + ownerX + "," + ownerY
+                + " icon=" + icon.getWidth() + "x" + icon.getHeight()
+                + " fallback=2038");
+        mainHandler.post(() -> {
+            if (instance == this && Settings.canDrawOverlays(this)) {
+                rehostIconWindows(false);
+                verifyCurrentIconPlacements("touch_origin_fallback");
             }
         });
+    }
+
+    private void refreshIconWindowHost() {
+        if (instance != this) return;
+        boolean available = LensAccessibilityService.ready();
+        if (primary == null) {
+            show();
+        } else if (available || Settings.canDrawOverlays(this)) {
+            rehostIconWindows(preferAccessibilityIconHost(available));
+            recomputeVisibility();
+            verifyCurrentIconPlacements("icon_layer_preference");
+        } else {
+            removeIcons();
+        }
     }
 
     private void rehostIconWindows(boolean useAccessibility) {
@@ -469,11 +573,24 @@ public class FloatService extends Service implements android.content.SharedPrefe
         DiagnosticLog.i(this, "FL_WINDOW", "rehost overlays target=" + target
                 + " notif=" + visibility.notificationExpanded());
         rehostOne(primary, primaryLp, useAccessibility);
-        rehostOne(primaryHandle, primaryHandleLp, useAccessibility);
+        rehostOne(primaryHandle, primaryHandleLp,
+                primary != null && iconHost.isAccessibilityHosted(primary));
         rehostOne(secondary, secondaryLp, useAccessibility);
-        rehostOne(secondaryHandle, secondaryHandleLp, useAccessibility);
-        rehostOne(wakeLeft, wakeLeftLp, useAccessibility);
-        rehostOne(wakeRight, wakeRightLp, useAccessibility);
+        rehostOne(secondaryHandle, secondaryHandleLp,
+                secondary != null && iconHost.isAccessibilityHosted(secondary));
+        // Wake edges deliberately stay ordinary application overlays. They
+        // are wide input strips and must not intercept sensitive system UI.
+        DiagnosticLog.i(this, "FL_ICON_LAYER", "desired="
+                + (useAccessibility ? "accessibility" : "application")
+                + " primary=" + iconWindowHost(primary)
+                + " primaryHandle=" + iconWindowHost(primaryHandle)
+                + " secondary=" + iconWindowHost(secondary)
+                + " secondaryHandle=" + iconWindowHost(secondaryHandle));
+    }
+
+    private String iconWindowHost(View view) {
+        if (view == null || iconHost == null) return "none";
+        return iconHost.isAccessibilityHosted(view) ? "2032" : "2038";
     }
 
     private void rehostOne(View view, WindowManager.LayoutParams lp, boolean useAccessibility) {
@@ -527,7 +644,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
         }
         if (visibility.imeVisible() && visibility.imeTopPx() > 0) {
             if (imeRestoreY == null) imeRestoreY = primaryLp.y;
-            int target = Math.max(0, visibility.imeTopPx() - primaryLp.height - dp(8));
+            int target = Math.max(0, visibility.imeTopPx() - primaryLp.height - Math.round(YFloatOverlayStyle.controlGap(this)));
             if (primaryLp.y > target) {
                 primaryLp.y = target;
                 safeUpdate(primary, primaryLp);
@@ -582,7 +699,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
     private void addWakeViews() {
         if (wakeLeft != null || iconHost == null) return;
-        int width = dp(18);
+        int width = dp(fs.edgeWakeWidthDp());
         EdgeWakeView left = new EdgeWakeView(this, true, () -> setManualHidden(false));
         EdgeWakeView right = new EdgeWakeView(this, false, () -> setManualHidden(false));
         WindowManager.LayoutParams leftLp = wakeLp(width, Gravity.LEFT);
@@ -688,6 +805,15 @@ public class FloatService extends Service implements android.content.SharedPrefe
     }
 
     @Override public void onSharedPreferenceChanged(android.content.SharedPreferences prefs, String key) {
+        if (key != null && (key.startsWith("global.") || key.startsWith("module.yfloat."))) {
+            mainHandler.post(() -> {
+                if (instance != this) return;
+                refreshAppearance();
+                CircleActiveBorderOverlay.refreshStyle(this);
+                updateNotification();
+            });
+            return;
+        }
         FloatPreferenceImpact.Impact impact = FloatPreferenceImpact.classify(key);
         if (impact == FloatPreferenceImpact.Impact.IGNORE) {
             DiagnosticLog.i(this, "PREF_REFRESH", "ignore key=" + key);
@@ -701,6 +827,12 @@ public class FloatService extends Service implements android.content.SharedPrefe
         switch (impact) {
             case APPEARANCE_LAYOUT -> refreshAppearance();
             case VISIBILITY -> refreshVisibilitySettings();
+            case ICON_WINDOW_HOST -> mainHandler.post(this::refreshIconWindowHost);
+            case WAKE_REGION -> mainHandler.post(() -> {
+                if (instance != this) return;
+                removeWakeViews();
+                syncWakeViews();
+            });
             case ICON_SETTINGS -> refreshIconSettingsOnly();
             case CIRCLE_OVERLAY -> {
                 CircleActiveBorderOverlay.refreshStyle(this);
@@ -844,6 +976,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
         // can happen while IME avoidance or another temporary layout projection is active.
         removeIcons();
         try { fs.unregisterChangeListener(this); } catch (Throwable ignored) { }
+        if (appearanceStore != null) appearanceStore.unregisterPreferenceListener(this);
         if (screenReceiver != null) try { unregisterReceiver(screenReceiver); } catch (Throwable ignored) { }
         if (instance == this) instance = null;
         super.onDestroy();

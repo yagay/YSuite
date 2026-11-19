@@ -19,10 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.material3.adaptive.navigationsuite.ExperimentalMaterial3AdaptiveNavigationSuiteApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -59,7 +59,8 @@ internal fun YPageRole.template(): YPageTemplate = when (this) {
     // A section heading and a short description no longer need a 64dp minimum row.
     // All actionable rows still use a 48dp minimum touch target in YListItem.
     YPageRole.DASHBOARD -> YPageTemplate(
-        YDimens.ContentMaxWidth, 8.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
+        YDimens.ContentMaxWidth, YDimens.SpacingSmall, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
+        emphasizeCards = true,
     )
     YPageRole.SETTINGS -> YPageTemplate(
         YDimens.FormMaxWidth, 0.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
@@ -68,7 +69,7 @@ internal fun YPageRole.template(): YPageTemplate = when (this) {
         YDimens.ContentMaxWidth, 0.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
     )
     YPageRole.DETAIL, YPageRole.EDITOR, YPageRole.WIZARD -> YPageTemplate(
-        YDimens.FormMaxWidth, 6.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
+        YDimens.FormMaxWidth, YDimens.SpacingSmall * 0.75f, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
     )
     YPageRole.LIST -> YPageTemplate(
         YDimens.ContentMaxWidth, 0.dp, YDimens.OptionRowHeight, YTopBarStyle.COMPACT,
@@ -82,7 +83,7 @@ fun yPageHorizontalPadding(width: Dp): Dp = when {
 }
 
 internal fun YPageRole.maxContentWidth(): Dp = template().maxContentWidth
-internal fun YPageRole.prefersCompactRows(): Boolean = template().minimumRowHeight <= 56.dp
+internal fun YPageRole.prefersCompactRows(): Boolean = template().minimumRowHeight < YDimens.OptionRowHeight
 internal fun YPageRole.sectionSpacing(): Dp = template().sectionSpacing
 
 @Composable
@@ -112,6 +113,11 @@ data class YNavigationSpec(
  * Canonical YSuite application shell. Material 3 Adaptive chooses the navigation surface for
  * the current window and posture; feature modules no longer own phone/tablet breakpoints.
  */
+/**
+ * Navigation is resolved against the *available module viewport*, never the device's
+ * full window. The suite host can already reserve a side drawer on expanded screens.
+ */
+@OptIn(ExperimentalMaterial3AdaptiveNavigationSuiteApi::class)
 @Composable
 fun YAppShell(
     selectedKey: String,
@@ -120,28 +126,34 @@ fun YAppShell(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            items.forEach { item ->
-                val selected = item.key == selectedKey
-                item(
-                    selected = selected,
-                    onClick = { onSelected(item) },
-                    icon = {
-                        Icon(
-                            if (selected) item.selectedIcon else item.icon,
-                            contentDescription = item.label,
-                        )
-                    },
-                    label = { Text(item.label) },
-                )
-            }
-        },
-        layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo()),
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-    ) {
-        content()
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val navigationLayout = when {
+            maxWidth < YDimens.ExpandedBreakpoint -> NavigationSuiteType.NavigationBar
+            else -> NavigationSuiteType.NavigationRail
+        }
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                items.forEach { item ->
+                    val selected = item.key == selectedKey
+                    item(
+                        selected = selected,
+                        onClick = { onSelected(item) },
+                        icon = {
+                            Icon(
+                                if (selected) item.selectedIcon else item.icon,
+                                contentDescription = item.label,
+                            )
+                        },
+                        label = { Text(item.label) },
+                    )
+                }
+            },
+            layoutType = navigationLayout,
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+        ) {
+            content()
+        }
     }
 }
 
@@ -167,9 +179,9 @@ fun YListDetailScaffold(
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (maxWidth >= YDimens.ExpandedBreakpoint) {
             Row(Modifier.fillMaxSize()) {
-                listPane(Modifier.width(YDimens.ListDetailListWidth).fillMaxHeight())
+                listPane(Modifier.width(YUiGeometry.paneWidth(YDimens.ListDetailListWidth)).fillMaxHeight())
                 Box(
-                    Modifier.fillMaxHeight().width(1.dp)
+                    Modifier.fillMaxHeight().width(LocalYAppearance.current.cardOutlineWidthDp.dp)
                         .background(androidx.compose.material3.MaterialTheme.colorScheme.outlineVariant),
                 )
                 detailPane(Modifier.weight(1f).fillMaxHeight())
@@ -194,7 +206,7 @@ fun YSupportingPaneScaffold(
         if (showSupportingPane && maxWidth >= YDimens.ExpandedBreakpoint) {
             Row(
                 Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(YDimens.PaneGap),
+                horizontalArrangement = Arrangement.spacedBy(YUiGeometry.gap()),
             ) {
                 mainPane(Modifier.weight(0.64f).fillMaxHeight())
                 supportingPane(Modifier.weight(0.36f).fillMaxHeight())
@@ -208,7 +220,7 @@ fun YSupportingPaneScaffold(
 @Composable
 fun YResponsiveGrid(
     modifier: Modifier = Modifier,
-    minCellWidth: Dp = 220.dp,
+    minCellWidth: Dp = YDimens.ListDetailListWidth * 0.6f,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: LazyGridScope.() -> Unit,
 ) {
@@ -216,8 +228,8 @@ fun YResponsiveGrid(
         columns = GridCells.Adaptive(minCellWidth),
         modifier = modifier,
         contentPadding = contentPadding,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         content = content,
     )
 }

@@ -14,17 +14,17 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.SmallFloatingActionButton
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiFloatingActionButton as FloatingActionButton
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiIconButton as IconButton
+import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
+import com.yagay.yui.YUiSmallFloatingActionButton as SmallFloatingActionButton
+import com.yagay.yui.YUiText as Text
+import com.yagay.yui.YTabBar
+import com.yagay.yui.YTabSpec
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -91,6 +91,11 @@ fun QdmDownloadWorkspace(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var fabExpanded by remember { mutableStateOf(false) }
+    // Visual selection and filtered content must never disagree for stale saved tab IDs.
+    val effectiveTabId =
+        tabs.firstOrNull { it.id == selectedTabId }?.id
+            ?: tabs.firstOrNull()?.id
+            ?: selectedTabId
 
     YSuiteProductPage(
         surfaceKind = ProductSurfaceKind.DownloadManager,
@@ -268,24 +273,11 @@ fun QdmDownloadWorkspace(
         },
         headerContent = {
             if (tabs.isNotEmpty()) {
-                val selectedIndex =
-                    tabs.indexOfFirst {
-                        it.id == selectedTabId
-                    }.coerceAtLeast(0)
-                ScrollableTabRow(
-                    selectedTabIndex = selectedIndex,
-                ) {
-                    tabs.forEach { tab ->
-                        Tab(
-                            selected =
-                                tab.id == selectedTabId,
-                            onClick = {
-                                onTabSelected(tab.id)
-                            },
-                            text = { Text(tab.label) },
-                        )
-                    }
-                }
+                YTabBar(
+                    tabs = tabs.map { YTabSpec(key = it.id, label = it.label) },
+                    selectedKey = effectiveTabId,
+                    onSelected = { onTabSelected(it.key) },
+                )
             }
         },
         floatingActionButton = {
@@ -364,6 +356,6 @@ fun QdmDownloadWorkspace(
             }
         },
     ) { adaptive ->
-        content(adaptive, selectedTabId)
+        content(adaptive, effectiveTabId)
     }
  }

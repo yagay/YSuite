@@ -91,8 +91,15 @@ public final class GuardModule extends XposedModule {
                 remotePrefs,
                 systemClassLoader);
 
+        // Start reporting status before optional OEM installers can fail.
+        scheduleEngineHeartbeat(handler);
+
         boolean initialLoaded =
                 engine.loadInitial();
+
+        // Only the existing system_server scope. Detect the real SystemUI
+        // activity-start request instead of stale ActivityManager baseIntent.
+        installMediaPanelLaunchObserver(systemClassLoader, handler);
 
         installOplusFlexibleWindowHooks(
                 systemClassLoader);
@@ -100,7 +107,13 @@ public final class GuardModule extends XposedModule {
                 systemClassLoader);
         installBackgroundStopKeepaliveHook(
                 systemClassLoader);
+        installOplusRemotePlaybackStopHook(
+                systemClassLoader);
         installOplusLockKeepaliveHooks(
+                systemClassLoader);
+        // The ColorOS FlexibleTask callback does not fire on every physical
+        // keyguard transition. Observe WindowManager's canonical state too.
+        installKeyguardControllerStateHook(
                 systemClassLoader);
         installActivityRecordCaptureHook(
                 systemClassLoader);
@@ -134,7 +147,6 @@ public final class GuardModule extends XposedModule {
                         + " systemUiContext="
                         + (context != null));
 
-        scheduleEngineHeartbeat(handler);
     }
 
     private boolean enabled() {
@@ -199,6 +211,106 @@ public final class GuardModule extends XposedModule {
         }
 
         return false;
+    }
+
+    /**
+     * OxygenOS 17 launches YSuite's package launcher for our MediaSession
+     * even when sessionActivity points at the real player. In a reused task,
+     * the existing baseIntent is never updated. This system_server-only
+     * observer records the *fresh* SystemUI activity-start request; it never
+     * changes that request, adds target-app hooks, or touches SystemUI.
+     *
+     * Checked against the user's services.jar:
+     * ActivityStarter.executeRequest(ActivityStarter.Request) -> int
+     * Request.intent, Request.realCallingUid fields.
+     */
+    private void installMediaPanelLaunchObserver(
+            ClassLoader loader,
+            Handler handler
+    ) {
+        if (!"com.yagay.YSuite".equals(GuardConfig.hostPackage())) return;
+        Class<?> starter = load(loader, "com.android.server.wm.ActivityStarter");
+        if (starter == null) {
+            log(Log.WARN, TAG, "MEDIA_LAUNCH_HOOK_UNAVAILABLE ActivityStarter");
+            return;
+        }
+        for (Method method : starter.getDeclaredMethods()) {
+            if (!"executeRequest".equals(method.getName())
+                    || method.getParameterCount() != 1
+                    || method.getReturnType() != int.class
+                    || !method.getParameterTypes()[0].getName()
+                            .endsWith("ActivityStarter$Request")) continue;
+            String hookKey = method.toGenericString();
+            if (!installedHooks.add(hookKey)) continue;
+            try {
+                method.setAccessible(true);
+                hook(method).intercept(chain -> {
+                    List<Object> args = chain.getArgs();
+                    Object request = args.isEmpty() ? null : args.get(0);
+                    Object candidate = fieldValue(request, "intent");
+                    android.content.Intent incoming = candidate instanceof android.content.Intent
+                            ? (android.content.Intent) candidate : null;
+                    int sourceUid = intField(request, "realCallingUid", -1);
+                    boolean shape = false;
+                    if (incoming != null && enabled()) {
+                        ComponentName component = incoming.getComponent();
+                        int flags = incoming.getFlags();
+                        shape = android.content.Intent.ACTION_MAIN.equals(incoming.getAction())
+                                && incoming.hasCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                                && component != null
+                                && "com.yagay.YSuite".equals(component.getPackageName())
+                                && "com.yagay.YSuite.MainActivity".equals(component.getClassName())
+                                && (flags & android.content.Intent.FLAG_ACTIVITY_NEW_TASK) != 0
+                                && (flags & android.content.Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED) == 0
+                                && sourceUid >= 10000;
+                    }
+                    Object result = chain.proceed(); // Observe only; never alter task handling.
+                    if (shape && result instanceof Number
+                            && ((Number) result).intValue() >= 0) {
+                        int verifiedUid = sourceUid;
+                        int resultCode = ((Number) result).intValue();
+                        handler.post(() -> {
+                            try {
+                                EngineBridge current = engine;
+                                Context ctx = current == null ? null : current.availableContext();
+                                if (ctx == null) ctx = resolveSystemContext(systemClassLoader);
+                                if (ctx == null) return;
+                                String[] owners = ctx.getPackageManager()
+                                        .getPackagesForUid(verifiedUid);
+                                boolean systemUi = false;
+                                if (owners != null) {
+                                    for (String owner : owners) {
+                                        if ("com.android.systemui".equals(owner)
+                                                || "com.oplus.systemui".equals(owner)) {
+                                            systemUi = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!systemUi) return;
+                                android.os.Bundle response = ctx.getContentResolver().call(
+                                        EngineStatusProvider.URI,
+                                        EngineStatusProvider.METHOD_MEDIA_PANEL_LAUNCH,
+                                        null,
+                                        new android.os.Bundle());
+                                boolean recorded = response != null
+                                        && response.getBoolean("ok", false);
+                                Log.i(TAG, "MEDIA_LAUNCH_FROM_SYSTEMUI callerUid="
+                                        + verifiedUid + " result=" + resultCode
+                                        + " recorded=" + recorded);
+                            } catch (Throwable error) {
+                                log(Log.WARN, TAG, "MEDIA_LAUNCH_SIGNAL_FAILED", error);
+                            }
+                        });
+                    }
+                    return result;
+                });
+                log(Log.INFO, TAG, "SYSTEM_SCOPE installed media launcher request observer");
+            } catch (Throwable error) {
+                installedHooks.remove(hookKey);
+                log(Log.WARN, TAG, "MEDIA_LAUNCH_HOOK_INSTALL_FAILED", error);
+            }
+        }
     }
 
     /**
@@ -692,37 +804,37 @@ public final class GuardModule extends XposedModule {
 
                         String reason = null;
                         Object resumingActivity = null;
-                        int booleanCount = 0;
-                        boolean firstBoolean = false;
-                        boolean secondBoolean = false;
-
-                        for (Object arg : args) {
-                            if (arg instanceof String) {
-                                reason = (String) arg;
-                            } else if (arg instanceof Boolean value) {
-                                if (booleanCount == 0) {
-                                    firstBoolean = value;
-                                } else if (booleanCount == 1) {
-                                    secondBoolean = value;
-                                }
-                                booleanCount++;
-                            } else if (arg != null
-                                    && arg.getClass()
-                                    .getName()
-                                    .endsWith(
-                                            ".ActivityRecord")) {
-                                resumingActivity = arg;
+                        Class<?>[] signature = method.getParameterTypes();
+                        // Verified from SDK37 services.jar *method bodies*:
+                        // the (Z, ActivityRecord, String) wrapper passes
+                        // mTaskSupervisor.mUserLeaving as boolean #0 and its
+                        // own boolean argument as uiSleeping (boolean #1).
+                        // The two-boolean overloads receive both directly.
+                        boolean twoBooleans = signature.length > 1
+                                && signature[1] == boolean.class;
+                        Object supervisor = twoBooleans ? null
+                                : fieldValue(chain.getThisObject(), "mTaskSupervisor");
+                        boolean userLeaving = twoBooleans
+                                ? !args.isEmpty() && Boolean.TRUE.equals(args.get(0))
+                                : Boolean.TRUE.equals(
+                                        fieldValue(supervisor, "mUserLeaving"));
+                        boolean uiSleeping = twoBooleans
+                                ? args.size() > 1 && Boolean.TRUE.equals(args.get(1))
+                                : !args.isEmpty() && Boolean.TRUE.equals(args.get(0));
+                        for (int i = 0; i < signature.length && i < args.size(); i++) {
+                            if (signature[i] == String.class) {
+                                reason = (String) args.get(i);
+                            } else if ("com.android.server.wm.ActivityRecord"
+                                    .equals(signature[i].getName())) {
+                                // Firmware wrapper (ZZ, ActivityRecord, String)
+                                // supplies mResumedActivity as the FIRST record
+                                // to its five-arg overload. That is the pausing
+                                // record, not the candidate. Use the LAST record
+                                // for resumingPackage, or we would misclassify
+                                // cross-app transitions as same-package navigation.
+                                resumingActivity = args.get(i);
                             }
                         }
-
-                        boolean userLeaving =
-                                booleanCount >= 2
-                                        && firstBoolean;
-                        boolean uiSleeping =
-                                booleanCount >= 2
-                                        ? secondBoolean
-                                        : booleanCount == 1
-                                        && firstBoolean;
 
                         Object task =
                                 taskFromContainer(
@@ -1107,10 +1219,136 @@ public final class GuardModule extends XposedModule {
     }
 
     /**
+     * OxygenOS 17 vendor-specific remote playing decision, confirmed from
+     * oplus-services.jar classes3.dex on CPH2747. Unlike a package-global
+     * exemption, the engine must verify the live user-selected Task and
+     * its already armed background/lock protection.
+     */
+    private void installOplusRemotePlaybackStopHook(ClassLoader loader) {
+        Class<?> ext = load(loader,
+                "com.android.server.wm.ActivityTaskSupervisorExtImpl");
+        if (ext == null) {
+            diag("OEM_REMOTE_STOP_UNAVAILABLE", "class missing");
+            return;
+        }
+        for (Method method : ext.getDeclaredMethods()) {
+            if (!"skipStopActivityWhenRemotePlaying".equals(method.getName())
+                    || method.getReturnType() != boolean.class
+                    || method.getParameterCount() != 1
+                    || !"com.android.server.wm.ActivityRecord"
+                    .equals(method.getParameterTypes()[0].getName())) {
+                continue;
+            }
+            String key = "oem-remote-stop:" + method.toGenericString();
+            try {
+                method.setAccessible(true);
+                if (!installedHooks.add(key)) continue;
+                hook(method).intercept(chain -> {
+                    Object record = chain.getArgs().isEmpty()
+                            ? null : chain.getArgs().get(0);
+                    EngineBridge current = engine;
+                    String pkg = activityPackage(record);
+                    if (current == null || record == null
+                            || !current.isBackgroundPlaybackPackage(pkg)) {
+                        return chain.proceed();
+                    }
+                    Object task = invokeNoArg(record, "getTask");
+                    boolean finishing = Boolean.TRUE.equals(
+                            fieldValue(record, "finishing"));
+                    if (task != null && current.shouldBlockBackgroundStop(
+                            task, finishing)) {
+                        diag("OEM_REMOTE_STOP_BLOCK",
+                                "taskId=" + taskId(task) + " pkg=" + pkg);
+                        return true;
+                    }
+                    return chain.proceed();
+                });
+                diag("OEM_REMOTE_STOP_INSTALLED", "method=" + method);
+            } catch (Throwable error) {
+                installedHooks.remove(key);
+                log(Log.WARN, TAG,
+                        "OxygenOS remote playback hook unavailable", error);
+            }
+        }
+    }
+
+    /**
      * Lock-screen keepalive. These hooks are intentionally narrow: they only
      * fire for an "always foreground" app whose task was a real OPlus
      * FlexibleWindow/floating task at the moment keyguard started.
      */
+    /**
+     * Fallback for ColorOS builds that update KeyguardController directly
+     * without notifying FlexibleTaskController. Invoke before the OEM's hide
+     * transition so playback protection is armed before makeInvisible.
+     *
+     * No visibility/surface behavior is overridden by this observer.
+     */
+    private void installKeyguardControllerStateHook(ClassLoader loader) {
+        Class<?> controller =
+                load(loader, "com.android.server.wm.KeyguardController");
+        if (controller == null) {
+            diag("KEYGUARD_FALLBACK_UNAVAILABLE",
+                    "class=KeyguardController");
+            return;
+        }
+
+        for (Method method : controller.getDeclaredMethods()) {
+            if (!"setKeyguardShown".equals(method.getName())
+                    || method.getReturnType() != void.class
+                    || method.getParameterCount() < 2) {
+                continue;
+            }
+
+            // AOSP: setKeyguardShown(int displayId, boolean keyguardShowing, ...).
+            Class<?>[] params = method.getParameterTypes();
+            if (params[0] != int.class || params[1] != boolean.class) {
+                continue;
+            }
+
+            String key = "keyguard-fallback:" + method.toGenericString();
+            try {
+                method.setAccessible(true);
+                if (!installedHooks.add(key)) continue;
+                hook(method).intercept(chain -> {
+                    List<Object> args = chain.getArgs();
+                    if (args.size() < 2 || !(args.get(0) instanceof Integer)
+                            || !(args.get(1) instanceof Boolean)) {
+                        return chain.proceed();
+                    }
+                    int displayId = (Integer) args.get(0);
+                    boolean showing = (Boolean) args.get(1);
+                    // Avoid secondary-display events affecting a primary
+                    // display playback session.
+                    if (displayId != 0) return chain.proceed();
+
+                    EngineBridge current = engine;
+                    if (showing && current != null) {
+                        // Arm before ColorOS can dispatch Activity PAUSE/STOP.
+                        current.preArmLockKeepAlive(
+                                "KeyguardController.setKeyguardShown");
+                        current.onKeyguardStateChanged(true);
+                        diag("KEYGUARD_FALLBACK_ARM",
+                                "displayId=" + displayId + " showing=true");
+                    }
+                    Object result = chain.proceed();
+                    if (!showing && current != null) {
+                        current.onKeyguardStateChanged(false);
+                        diag("KEYGUARD_FALLBACK_RELEASE",
+                                "displayId=" + displayId + " showing=false");
+                    }
+                    return result;
+                });
+                diag("KEYGUARD_FALLBACK_INSTALLED",
+                        "method=" + method.toGenericString());
+            } catch (Throwable error) {
+                installedHooks.remove(key);
+                log(Log.WARN, TAG, "Keyguard fallback hook skipped: "
+                        + method.toGenericString(), error);
+            }
+        }
+    }
+
     private void installOplusLockKeepaliveHooks(
             ClassLoader loader
     ) {
@@ -1213,10 +1451,10 @@ public final class GuardModule extends XposedModule {
         }
 
         // OPlus itself hides the flexible Activity inside
-        // FlexibleTaskController.onScreenLockedChanged. For an always-foreground
-        // OPlus task, suppress only those exact visibility calls while the OEM
-        // lock callback is on this thread. This is deliberately NOT a global
-        // Activity lifecycle override.
+        // FlexibleTaskController.onScreenLockedChanged. Preserve only explicitly
+        // foreground-protected OPlus windows. Background-playback apps must
+        // always be hidden by keyguard, even if present in both lists.
+        // The policy is enforced by shouldKeepTaskAwake(), not by process state.
         Class<?> lockActivityRecord =
                 load(
                         loader,
@@ -2161,10 +2399,21 @@ public final class GuardModule extends XposedModule {
                     private long lastAutoAttemptVersion =
                             Long.MIN_VALUE;
                     private long lastAutoAttemptElapsed;
+                    private int missingContextTicks;
 
                     @Override
                     public void run() {
                         EngineBridge current = engine;
+                        // Initial engine loading may precede ActivityThread's system Context.
+                        // Refresh it before retrying the APK-backed engine on this heartbeat.
+                        Context context = resolveSystemContext(systemClassLoader);
+                        if (context == null && current != null) {
+                            // The initial getSystemUiContext() may still be usable.
+                            context = current.availableContext();
+                        }
+                        if (current != null) {
+                            current.updateContext(context);
+                        }
 
                         try {
                             if (current != null) {
@@ -2244,11 +2493,14 @@ public final class GuardModule extends XposedModule {
                                             + t);
                         }
 
-                        Context context =
-                                resolveSystemContext(
-                                        systemClassLoader);
-
-                        if (context != null) {
+                        if (context == null) {
+                            if (++missingContextTicks % 10 == 1) {
+                                log(Log.WARN, TAG,
+                                        "SYSTEM_SCOPE heartbeat deferred: system context unavailable"
+                                        + " pid=" + Process.myPid());
+                            }
+                        } else {
+                            missingContextTicks = 0;
                             try {
                                 EngineBridge currentEngine =
                                         engine;
@@ -2296,12 +2548,18 @@ public final class GuardModule extends XposedModule {
                                         EngineStatusProvider.KEY_HOOKS,
                                         installedHooks.size());
 
-                                context.getContentResolver()
+                                Bundle acknowledgement = context.getContentResolver()
                                         .call(
                                                 EngineStatusProvider.URI,
                                                 EngineStatusProvider.METHOD_MARK,
                                                 null,
                                                 extras);
+                                if (acknowledgement == null
+                                        || !acknowledgement.getBoolean("ok", false)) {
+                                    log(Log.WARN, TAG, "SYSTEM_SCOPE heartbeat rejected authority="
+                                            + EngineStatusProvider.AUTHORITY
+                                            + " response=" + acknowledgement);
+                                }
                             } catch (Throwable t) {
                                 log(
                                         Log.WARN,

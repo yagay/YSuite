@@ -36,6 +36,7 @@ public class FloatIconView extends View {
     }
 
     private static final long FL_DIRECT_SELECT_DELAY_MS = 400L;
+    private static final long FL_DIRECT_PREWARM_DELAY_MS = 120L;
     private static final float FL_DIRECT_MOVE_START_DP = 3f;
     private static final long FL_LONG_PRESS_FINAL_STABLE_MS = 100L;
     private static final float FL_LONG_PRESS_REARM_PX = 3f;
@@ -45,6 +46,7 @@ public class FloatIconView extends View {
     private final FloatIconRenderer renderer;
     private final Callback cb;
     private final Runnable directSelectionRunnable;
+    private final Runnable directPrewarmRunnable;
     private final float directRearmSlopPx;
 
     private FloatSettings fs;
@@ -57,7 +59,11 @@ public class FloatIconView extends View {
     private boolean longPressActionTriggered;
     private boolean directSelectionActive;
     private boolean directTimerArmed;
+    private boolean targetPrewarmTriggered;
     private boolean positionMoveMode;
+    private int touchMoveLogCounter;
+    private int dragPerfSamples, dragPerfOver16;
+    private long dragPerfDelaySum, dragPerfDelayMax;
     private float lastSelectionRawX = Float.NaN, lastSelectionRawY = Float.NaN;
     private float directTimerAnchorX = Float.NaN, directTimerAnchorY = Float.NaN;
     private float longPressAnchorRawX = Float.NaN, longPressAnchorRawY = Float.NaN;
@@ -70,6 +76,12 @@ public class FloatIconView extends View {
     public FloatIconView(Context c, Callback cb) {
         super(c);
         this.cb = cb;
+        directPrewarmRunnable = () -> {
+            if (!directTimerArmed || directSelectionActive || longPressActionTriggered
+                    || positionMoveMode || selectionEngine == null || session.multiTouch) return;
+            targetPrewarmTriggered = true;
+            selectionEngine.warmTargetsForDirect();
+        };
         renderer = new FloatIconRenderer(this);
         directRearmSlopPx = Math.max(1f,
                 FL_DIRECT_MOVE_START_DP * getResources().getDisplayMetrics().density);
@@ -105,7 +117,10 @@ public class FloatIconView extends View {
         renderer.refresh(fs);
         setClickable(true);
         setFocusable(false);
-        setLayerType(LAYER_TYPE_SOFTWARE, null);
+        // Avoid forcing software rendering while WindowManager moves the
+        // icon. All built-in styles and decoded Drawable paths support the
+        // normal hardware-accelerated View renderer.
+        setLayerType(LAYER_TYPE_NONE, null);
     }
 
     public void refreshSettings() {
@@ -159,11 +174,37 @@ public class FloatIconView extends View {
         final int action = e.getActionMasked();
         final float rx = e.getRawX(), ry = e.getRawY();
         final long now = SystemClock.uptimeMillis();
-        if (action != MotionEvent.ACTION_MOVE || session.points.size() % 4 == 0) {
+        // Do not build verbose strings on every 120 Hz MOVE when diagnostics are off.
+        // Use an independent counter: Direct mode no longer stores history samples.
+        if ((action != MotionEvent.ACTION_MOVE || (++touchMoveLogCounter & 31) == 0)
+                && DiagnosticLog.enabled(getContext())) {
             DiagnosticLog.i(getContext(), "TOUCH", "action=" + action + " pointers=" + e.getPointerCount()
                     + " raw=" + Math.round(rx) + "," + Math.round(ry) + " phase=" + session.phase
                     + " direct=" + directSelectionActive + " long=" + longPressActionTriggered
                     + " positionMove=" + positionMoveMode);
+        }
+
+        if (action == MotionEvent.ACTION_MOVE) {
+            // Measure actual UI-thread input queue delay, not OCR or
+            // WindowManager timing guesses. Log an aggregate only once
+            // per 64 MOVE samples, never per 120 Hz touch frame.
+            long delay = Math.max(0L, now - e.getEventTime());
+            dragPerfSamples++;
+            dragPerfDelaySum += delay;
+            dragPerfDelayMax = Math.max(dragPerfDelayMax, delay);
+            if (delay > 16L) dragPerfOver16++;
+            if (dragPerfSamples >= 64) {
+                if (DiagnosticLog.enabled(getContext())) {
+                    DiagnosticLog.i(getContext(), "FL_DRAG_PERF",
+                            "queue_avg_ms=" + (dragPerfDelaySum / dragPerfSamples)
+                            + " queue_max_ms=" + dragPerfDelayMax
+                            + " over16=" + dragPerfOver16
+                            + " samples=" + dragPerfSamples
+                            + " direct=" + directSelectionActive);
+                }
+                dragPerfSamples = dragPerfOver16 = 0;
+                dragPerfDelaySum = dragPerfDelayMax = 0L;
+            }
         }
 
         if (action == MotionEvent.ACTION_POINTER_DOWN) {
@@ -221,6 +262,9 @@ public class FloatIconView extends View {
         longPressPrimed = false;
         longPressActionTriggered = false;
         directSelectionActive = false;
+        dragPerfSamples = dragPerfOver16 = 0;
+        dragPerfDelaySum = dragPerfDelayMax = 0L;
+        targetPrewarmTriggered = false;
         followStarted = false;
         lastSelectionRawX = lastSelectionRawY = Float.NaN;
         directTimerAnchorX = directTimerAnchorY = Float.NaN;
@@ -240,7 +284,13 @@ public class FloatIconView extends View {
     }
 
     private void moveTouch(float rx, float ry, long now) {
-        session.add(rx, ry, now);
+        // Direct capture and position move need only the latest coordinates.
+        // Preserve complete history only for directional gesture classification.
+        if (positionMoveMode || directSelectionActive || longPressActionTriggered) {
+            session.advance(rx, ry);
+        } else {
+            session.add(rx, ry, now);
+        }
         if (session.multiTouch) return;
 
         int moveDx = Math.round(rx - session.downX);
@@ -265,11 +315,9 @@ public class FloatIconView extends View {
         if (longPressActionTriggered) return;
 
         if (directSelectionActive) {
-            if ((moveDx != 0 || moveDy != 0) && followStarted) {
-                updateFlWindowTracking(moveDx, moveDy);
-                cb.onMove(moveDx, moveDy);
-                session.moved = true;
-            }
+            // Selection uses virtual screen coordinates. The icon is not drawn
+            // during Direct, so moving its real WindowManager surface only
+            // adds unnecessary compositor transactions above video.
             if (selectionEngine != null) selectionEngine.updateDirect(rx, ry);
             return;
         }
@@ -427,6 +475,7 @@ public class FloatIconView extends View {
             directTimerArmed = true;
             handler.removeCallbacks(directSelectionRunnable);
             handler.postDelayed(directSelectionRunnable, FL_DIRECT_SELECT_DELAY_MS);
+            scheduleDirectPrewarm();
             DiagnosticLog.i(getContext(), "FL_DIRECT", "ARM anchor=" + Math.round(rawX) + ","
                     + Math.round(rawY) + " delay=" + FL_DIRECT_SELECT_DELAY_MS);
             return;
@@ -438,8 +487,15 @@ public class FloatIconView extends View {
         directTimerAnchorX = rawX;
         directTimerAnchorY = rawY;
         handler.postDelayed(directSelectionRunnable, FL_DIRECT_SELECT_DELAY_MS);
+        scheduleDirectPrewarm();
         DiagnosticLog.i(getContext(), "FL_DIRECT", "REARM anchor=" + Math.round(rawX) + ","
                 + Math.round(rawY) + " dx=" + Math.round(dx) + " dy=" + Math.round(dy));
+    }
+
+    private void scheduleDirectPrewarm() {
+        if (targetPrewarmTriggered) return;
+        handler.removeCallbacks(directPrewarmRunnable);
+        handler.postDelayed(directPrewarmRunnable, FL_DIRECT_PREWARM_DELAY_MS);
     }
 
     private void finish(long now, boolean cancelled) {
@@ -484,6 +540,7 @@ public class FloatIconView extends View {
         flWindowKnown = false;
         lastSelectionRawX = lastSelectionRawY = Float.NaN;
         longPressAnchorRawX = longPressAnchorRawY = Float.NaN;
+        targetPrewarmTriggered = false;
         session.reset();
         invalidate();
     }
@@ -510,6 +567,7 @@ public class FloatIconView extends View {
 
     private void cancelDirectSelectionTimer() {
         handler.removeCallbacks(directSelectionRunnable);
+        handler.removeCallbacks(directPrewarmRunnable);
         directTimerArmed = false;
         directTimerAnchorX = directTimerAnchorY = Float.NaN;
     }

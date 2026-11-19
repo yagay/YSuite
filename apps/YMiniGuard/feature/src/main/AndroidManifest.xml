@@ -2,8 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
+        <service
+            android:name="com.yagay.YMiniGuard.YMiniMediaListenerService"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+        <receiver
+            android:name="com.yagay.YMiniGuard.YMiniMediaActionReceiver"
+            android:exported="false" />
         <provider
             android:name="com.yagay.YMiniGuard.EngineStatusProvider"
             android:authorities="${applicationId}.engine_status"

@@ -21,4 +21,6 @@ dependencies {
     // SuiteXposedServiceBroker exposes XposedServiceHelper.OnServiceListener in its public type,
     // so consumers of :core must see libxposed service on their compile classpath.
     api("io.github.libxposed:service:102.0.0")
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
 }

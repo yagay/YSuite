@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import com.yagay.yui.YOverlayTokens;
 
 /** Shared FL drag-selection visuals. */
 final class SelectionVisuals {
@@ -13,21 +14,26 @@ final class SelectionVisuals {
     /** FL confirmed/extractable selection is yellow. */
     static final int FL_CONFIRMED_COLOR = 0xFFFFFF00;
 
+    static int frameColor(Context context, SelectionVisualState state) {
+        return state == SelectionVisualState.READY
+                ? YOverlayTokens.success(context) : YOverlayTokens.accent(context);
+    }
+
     static int frameColor(SelectionVisualState state) {
         return state == SelectionVisualState.READY ? FL_CONFIRMED_COLOR : FL_ACTIVE_COLOR;
     }
 
     static int edgeThicknessPx(Context c) {
-        // FL selection frame uses an exact 2dp Paint stroke width.
-        return Math.max(1, Math.round(dp(c, 2f)));
+        // Track/ready colors retain their semantic meaning; border geometry belongs to YUI.
+        return Math.max(1, Math.round(YFloatOverlayStyle.selectionStroke(c)));
     }
 
     static void configureFramePaint(Context c, Paint frame, SelectionVisualState state) {
         frame.reset();
         frame.setAntiAlias(true);
         frame.setStyle(Paint.Style.STROKE);
-        frame.setColor(frameColor(state));
-        frame.setStrokeWidth(dp(c, 2f));
+        frame.setColor(frameColor(c, state));
+        frame.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
         frame.setStrokeJoin(Paint.Join.MITER);
     }
 
@@ -36,8 +42,8 @@ final class SelectionVisuals {
         text.reset();
         text.setAntiAlias(true);
         text.setStyle(Paint.Style.FILL);
-        text.setColor(Color.WHITE);
-        text.setTextSize(sp * c.getResources().getDisplayMetrics().scaledDensity);
+        text.setColor(YFloatOverlayStyle.primaryText(c));
+        text.setTextSize(YFloatOverlayStyle.textSize(c, sp));
     }
 
     static void drawFrame(Canvas c, Rect rect, Paint frame) {
@@ -50,6 +56,22 @@ final class SelectionVisuals {
         c.drawText(text, x, y, fill);
     }
 
+    /** Fit Canvas labels by measured width, retaining complete Unicode codepoints. */
+    static void drawFittedText(Canvas canvas, String value, float x, float baseline,
+                               float maxWidth, Paint paint) {
+        if (canvas == null || value == null || value.isEmpty() || paint == null || maxWidth <= 0) return;
+        String text = value;
+        if (paint.measureText(text) > maxWidth) {
+            final String ellipsis = "\u2026";
+            if (paint.measureText(ellipsis) > maxWidth) return;
+            while (!text.isEmpty() && paint.measureText(text + ellipsis) > maxWidth) {
+                text = text.substring(0, text.offsetByCodePoints(text.length(), -1));
+            }
+            text += ellipsis;
+        }
+        canvas.drawText(text, x, baseline, paint);
+    }
+
     static void configureEdgePaint(Paint frame, SelectionVisualState state) {
         frame.reset();
         frame.setAntiAlias(false);
@@ -60,10 +82,6 @@ final class SelectionVisuals {
     static void drawEdge(Canvas c, int width, int height, Paint frame) {
         if (c == null || width <= 0 || height <= 0) return;
         c.drawRect(0, 0, width, height, frame);
-    }
-
-    private static float dp(Context c, float value) {
-        return value * c.getResources().getDisplayMetrics().density;
     }
 
     private SelectionVisuals() {}

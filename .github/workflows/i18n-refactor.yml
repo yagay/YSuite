@@ -21,6 +21,8 @@ concurrency:
 
 jobs:
   migrate:
+    # The migration workflow also compiles Compact; skip it on Debug-only branch.
+    if: github.ref != 'refs/heads/rebuild/material3-full-ui'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

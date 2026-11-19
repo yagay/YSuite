@@ -4,7 +4,6 @@ import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
 import android.content.Intent;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import com.google.android.material.button.MaterialButton;
 
@@ -18,11 +17,14 @@ final class SettingsIconPage {
 
         YViewSection appearance = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_appearance_section), null);
+        // Visible in both standalone and YSuite. SettingsPageUi writes
+        // FloatSettings -> YFloatVisualSettings -> YAppearanceStore (module yfloat):
+        // one common data source, not a duplicate appearance preference.
         ui.styleSpinner(appearance.body);
         ui.seek(appearance.body, activity.getString(R.string.yfloat_opacity), FloatSettings.K_ALPHA,
-                10, 100, Math.round(fs.alpha() * 100), "%");
+                1, 100, Math.round(fs.alpha() * 100), "%");
         ui.seek(appearance.body, activity.getString(R.string.yfloat_icon_size), FloatSettings.K_SIZE,
-                24, 96, fs.sizeDp(), " dp");
+                16, 192, fs.sizeDp(), " dp");
 
         LinearLayout iconButtons = YViewLayout.buttonRow(activity);
         MaterialButton customIcon = YViewLayout.secondaryButton(activity,
@@ -46,13 +48,13 @@ final class SettingsIconPage {
         YViewLayout.addAction(iconButtons, slideIcon);
         YViewLayout.addRow(appearance.body, iconButtons);
         ui.seek(appearance.body, activity.getString(R.string.yfloat_slideshow_interval),
-                FloatSettings.K_SLIDE_INTERVAL, 500, 10000, fs.slideIntervalMs(), " ms");
+                FloatSettings.K_SLIDE_INTERVAL, 100, 600000, fs.slideIntervalMs(), " ms");
         YViewLayout.addSection(root, appearance);
 
         YViewSection position = YViewLayout.section(activity,
                 activity.getString(R.string.yfloat_position_display_section), null);
         ui.seek(position.body, activity.getString(R.string.yfloat_edge_visible_ratio),
-                FloatSettings.K_SHOW_PERCENT, 10, 100, fs.showPercentage(), "%");
+                FloatSettings.K_SHOW_PERCENT, 1, 100, fs.showPercentage(), "%");
         ui.check(position.body,
                 activity.getString(R.string.yfloat_show_both_sides),
                 activity.getString(R.string.yfloat_show_both_sides_desc),
@@ -62,6 +64,10 @@ final class SettingsIconPage {
                 activity.getString(R.string.yfloat_auto_snap_desc),
                 FloatSettings.K_SNAP, fs.snap());
         ui.fullscreenModeCheck(position.body);
+        ui.check(position.body,
+                activity.getString(R.string.yfloat_elevated_icon_overlay),
+                activity.getString(R.string.yfloat_elevated_icon_overlay_desc),
+                FloatSettings.K_ICON_ELEVATED_OVERLAY, fs.elevatedIconOverlay());
         ui.check(position.body,
                 activity.getString(R.string.yfloat_edge_recall),
                 activity.getString(R.string.yfloat_edge_recall_desc),
@@ -73,12 +79,9 @@ final class SettingsIconPage {
                 activity.getString(R.string.yfloat_click_under_icon),
                 activity.getString(R.string.yfloat_click_under_icon_desc),
                 FloatSettings.K_CLICK_UNDER, fs.clickScreenUnderIcon());
+        YViewLayout.addRow(position.body, YViewLayout.sectionNote(activity,
+                activity.getString(R.string.yfloat_position_save_note)));
         YViewLayout.addSection(root, position);
-
-        TextView note = YViewLayout.caption(activity,
-                activity.getString(R.string.yfloat_position_save_note), 12);
-        note.setPadding(YViewLayout.dp(activity, 4), 0, YViewLayout.dp(activity, 4), YViewLayout.dp(activity, 4));
-        root.addView(note);
         return root;
     }
 

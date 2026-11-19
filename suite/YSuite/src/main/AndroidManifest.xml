@@ -36,14 +36,9 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".AppearanceSettingsActivity"
-            android:exported="false"
-            android:parentActivityName=".MainActivity" />
-
         <!-- One host-owned file-share surface for every embedded feature. -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".ipc.SuiteLensImageFileProvider"
             android:authorities="${applicationId}.files"
             android:exported="false"
             android:grantUriPermissions="true">
@@ -61,10 +56,8 @@
         <receiver android:name="com.yagay.ypower.root.BootReceiver" tools:node="remove" />
         <receiver android:name="com.yagay.YFloat.FloatServiceBootReceiver" tools:node="remove" />
         <receiver android:name="com.yagay.YNotify.collector.XposedEventReceiver" tools:node="remove" />
-        <receiver android:name="com.yagay.YFloat.GoogleCtsBridgeReceiver" tools:node="remove" />
-        <receiver android:name="com.yagay.YFloat.GoogleCtsTraceReceiver" tools:node="remove" />
-        <provider android:name="com.yagay.YFloat.GoogleCtsBridgeProvider" tools:node="remove" />
         <provider android:name="com.yagay.YMiniGuard.EngineStatusProvider" tools:node="remove" />
+        <service android:name="com.yagay.YMiniGuard.YMiniMediaListenerService" tools:node="remove" />
         <provider android:name="com.yagay.YNFC.ConfigProvider" tools:node="remove" />
 
         <service
@@ -102,12 +95,6 @@
         <receiver
             android:name=".ipc.SuiteBridgeReceiver"
             android:exported="true" />
-
-        <provider
-            android:name=".ipc.SuiteGoogleBridgeProvider"
-            android:authorities="${applicationId}.googlebridge"
-            android:exported="true"
-            android:grantUriPermissions="false" />
 
         <provider
             android:name=".ipc.SuiteMiniGuardStatusProvider"

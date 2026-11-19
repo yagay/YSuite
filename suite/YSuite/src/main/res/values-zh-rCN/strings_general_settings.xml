@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="general_title">通用设置</string>
+    <string name="general_subtitle">语言、首页显示与应用信息</string>
+    <string name="general_language_title">应用语言</string>
+    <string name="general_language_desc">跟随系统，或单独设置 YSuite 为中文或英语</string>
+    <string name="general_language_system">跟随系统</string>
+    <string name="general_language_chinese">简体中文</string>
+    <string name="general_language_english">English</string>
+    <string name="general_home_title">首页设置</string>
+    <string name="general_home_desc">管理 YSuite 首页显示的模块及快捷入口</string>
+    <string name="general_hide_disabled">隐藏已停用模块</string>
+    <string name="general_hide_disabled_desc">停用的模块仍可在模块管理里查看和重新启用</string>
+    <string name="general_show_search">显示搜索按钮</string>
+    <string name="general_show_search_desc">在首页工具栏显示模块搜索入口</string>
+    <string name="general_show_diagnostics">显示诊断快捷入口</string>
+    <string name="general_show_diagnostics_desc">在首页工具栏显示诊断导出；日志仍可从通用功能设置访问</string>
+    <string name="general_about_title">关于与应用管理</string>
+    <string name="general_version">版本 %1$s</string>
+    <string name="general_about_desc">点击应用信息可打开 Android 应用设置。独立安装的模块具有各自的语言与设置。</string>
+    <string name="general_shared_settings">通用功能和权限</string>
+</resources>

@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YOverlayUi;
 import android.content.Context;
 import android.graphics.Color;
 import android.text.InputType;
@@ -36,7 +37,7 @@ public class TextSelectionSurface extends FrameLayout {
         textView = new SelectionEditText(context);
         textView.owner = this;
         textView.setTextColor(YOverlayTokens.textPrimary(context));
-        textView.setTextSize(16);
+        YOverlayUi.styleSelectionText(textView, "yfloat");
         textView.setBackgroundColor(Color.TRANSPARENT);
         textView.setSingleLine(false);
         textView.setHorizontallyScrolling(false);
@@ -51,7 +52,7 @@ public class TextSelectionSurface extends FrameLayout {
         textView.setFocusable(true);
         textView.setFocusableInTouchMode(true);
         textView.setSelectAllOnFocus(false);
-        textView.setPadding(dp(8), dp(5), dp(8), dp(5));
+        // Native selection editor uses shared YUI insets and typography.
         scrollView.addView(textView, new ScrollView.LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
@@ -70,6 +71,9 @@ public class TextSelectionSurface extends FrameLayout {
                     }
                 });
         controller.install();
+        scrollView.setOnScrollChangeListener((view, x, y, oldX, oldY) -> {
+            if (x != oldX || y != oldY) controller.onViewportChanged();
+        });
     }
 
     public void setListener(Listener listener) { this.listener = listener; }

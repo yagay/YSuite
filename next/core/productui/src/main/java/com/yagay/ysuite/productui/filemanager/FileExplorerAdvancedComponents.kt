@@ -1,5 +1,7 @@
 package com.yagay.ysuite.productui.filemanager
 
+import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -20,13 +23,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Splitscreen
 import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiScrollableTabRow as ScrollableTabRow
+import com.yagay.yui.YUiSurface as Surface
+import com.yagay.yui.YUiTab as Tab
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,7 +59,7 @@ fun FileExplorerBrowserTabs(
     val selected =
         tabs.indexOfFirst {
             it.id == activeTabId
-        }.coerceAtLeast(0)
+        }.coerceIn(0, tabs.lastIndex)
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment =
@@ -73,7 +76,7 @@ fun FileExplorerBrowserTabs(
             tabs.forEach { tab ->
                 Tab(
                     selected =
-                        tab.id == activeTabId,
+                        tab.id == tabs[selected].id,
                     onClick = {
                         onSelect(tab.id)
                     },
@@ -85,32 +88,26 @@ fun FileExplorerBrowserTabs(
                         ) {
                             Text(
                                 text = tab.title,
-                                maxLines = 1,
-                                overflow =
-                                    TextOverflow
-                                        .Ellipsis,
+                                maxLines = LocalYAppearance.current.tabLabelMaxLines.takeIf { it > 0 }
+                                    ?: Int.MAX_VALUE,
+                                overflow = TextOverflow.Ellipsis,
                             )
-                            if (tabs.size > 1) {
+                            // Inactive tabs remain closable after selecting them first.
+                            // Showing 48dp close targets on every tab would hide names.
+                            if (tabs.size > 1 && tab.id == tabs[selected].id) {
                                 IconButton(
                                     onClick = {
                                         onClose(
                                             tab.id,
                                         )
                                     },
-                                    modifier =
-                                        Modifier.size(
-                                            32.dp,
-                                        ),
                                 ) {
                                     Icon(
                                         Icons.Default
                                             .Close,
                                         contentDescription =
                                             closeLabel,
-                                        modifier =
-                                            Modifier.size(
-                                                16.dp,
-                                            ),
+                                        modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp),
                                     )
                                 }
                             }
@@ -190,7 +187,7 @@ fun FileExplorerGrid(
     LazyVerticalGrid(
         columns =
             GridCells.Adaptive(
-                minSize = 112.dp,
+                minSize = (LocalYAppearance.current.rowHeightDp * 2).dp,
             ),
         modifier = modifier,
         horizontalArrangement =
@@ -269,7 +266,7 @@ private fun FileExplorerGridItem(
                 ),
         ) {
             Box(
-                modifier = Modifier.size(52.dp),
+                modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
                 contentAlignment =
                     Alignment.Center,
             ) {
@@ -285,7 +282,7 @@ private fun FileExplorerGridItem(
                                 .colorScheme
                                 .primary,
                         modifier =
-                            Modifier.size(36.dp),
+                            Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                 } else {
                     Text(
@@ -311,7 +308,8 @@ private fun FileExplorerGridItem(
                 style =
                     MaterialTheme.typography
                         .bodyMedium,
-                maxLines = 2,
+                maxLines = LocalYAppearance.current.fileItemTitleMaxLines.takeIf { it > 0 }
+                    ?: Int.MAX_VALUE,
                 overflow =
                     TextOverflow.Ellipsis,
             )
@@ -330,7 +328,8 @@ private fun FileExplorerGridItem(
                             MaterialTheme
                                 .colorScheme
                                 .onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = LocalYAppearance.current.fileItemSubtitleMaxLines.takeIf { it > 0 }
+                            ?: Int.MAX_VALUE,
                         overflow =
                             TextOverflow
                                 .Ellipsis,

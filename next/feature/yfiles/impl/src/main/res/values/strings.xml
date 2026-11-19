@@ -304,7 +304,12 @@
     <string name="yfiles_patch_enabled_subtitle">Enhance stock SAF/DocumentsUI without replacing the system picker; failures keep the original system behaviour.</string>
     <string name="yfiles_patch_local_only">Prefer local-only sources</string>
     <string name="yfiles_patch_allow_multiple">Allow multiple selection</string>
-    <string name="yfiles_patch_default_sort">Default DocumentsUI sort</string>
+    <string name="yfiles_patch_default_sort">Default DocumentsUI sort (tap to change)</string>
+    <string name="yfiles_patch_sort_direction">Default sort direction (tap to change)</string>
+    <string name="yfiles_patch_direction_ascending">Ascending</string>
+    <string name="yfiles_patch_direction_descending">Descending</string>
+    <string name="yfiles_patch_choose_folder">Choose default starting folder</string>
+    <string name="yfiles_patch_clear_folder">Restore system default starting folder</string>
     <string name="yfiles_patch_initial_uri">Initial picker location</string>
     <string name="yfiles_patch_initial_uri_label">Document URI (leave blank for system default)</string>
     <string name="yfiles_patch_system_default">System default</string>

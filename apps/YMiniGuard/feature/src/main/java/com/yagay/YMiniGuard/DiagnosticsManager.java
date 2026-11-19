@@ -251,6 +251,16 @@ final class DiagnosticsManager {
                 .append(GuardApp.getEngineHookCount()).append('\n');
         out.append("engineHeartbeatCurrentBoot=")
                 .append(GuardApp.getEngineStatus().isFromCurrentBoot()).append('\n');
+        EngineStatusProvider.AudioState audio = EngineStatusProvider.readAudio(context);
+        out.append("systemAudioObserverState=").append(audio.status).append('\n');
+        out.append("systemAudioObserverFresh=").append(audio.isFresh()).append('\n');
+        out.append("systemAudioObserverUpdatedAt=").append(audio.updatedAt).append('\n');
+        out.append("systemAudioSelectedUidUsageContent=")
+                .append(audio.uidUsages).append('\n');
+        out.append("mediaCardStatus=").append(YMiniMediaBridge.status(context))
+                .append('\n');
+        out.append("mediaPanelLaunch=").append(
+                EngineStatusProvider.mediaPanelDiagnostic(context)).append('\n');
         out.append("diagnosticsActive=")
                 .append(GuardApp.getBoolean(ConfigKeys.DIAGNOSTICS_ACTIVE)).append('\n');
         out.append("diagnosticsStartedAt=")
@@ -290,6 +300,7 @@ final class DiagnosticsManager {
         keys.add(ConfigKeys.SYSTEM_IMPORTANCE_TOP);
         keys.add(ConfigKeys.SYSTEM_HAS_RESUMED);
         keys.add(ConfigKeys.SYSTEM_BLOCK_REMOVE_KILL);
+        keys.add(ConfigKeys.MEDIA_BRIDGE_ENABLED);
         return keys;
     }
 

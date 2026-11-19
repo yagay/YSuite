@@ -10,11 +10,10 @@ import java.util.Set;
 /**
  * OCR language preference shared by Settings and the existing OCR pipeline.
  *
- * ML Kit exposes one Chinese recognizer for both Simplified/Traditional Chinese,
- * while PP-OCRv6 uses a single multilingual recognition model. We still keep
- * zh-Hans and zh-Hant as separate user preferences so the UI matches the
- * languages the user wants to recognize and the preference can be consumed by
- * stricter per-script routing in the future without another migration.
+ * PaddleOCR currently runs one local multilingual CTC recognizer. Language
+ * choices are user preferences, not a promise of separate ML Kit recognizers.
+ * Future downloadable Paddle language packs may use these settings for routing.
+ * No legacy OCR engine selection is changed by this class.
  */
 public final class OcrLanguages {
     public static final String KEY = "ocr_languages_v2";
@@ -96,15 +95,7 @@ public final class OcrLanguages {
     }
 
     private static void persist(SharedPreferences p, Set<String> values) {
-        Set<String> copy = new HashSet<>(values);
-        boolean anyChinese = chineseEnabled(copy);
-        // Keep the old preference synchronized so older OcrEngine builds and any
-        // compatibility code still choose the right recognizer family.
-        int legacyType = anyChinese ? 0 : 1;
-        p.edit()
-                .putStringSet(KEY, copy)
-                .putInt(FloatSettings.K_OCR_TYPE, legacyType)
-                .apply();
+        p.edit().putStringSet(KEY,new HashSet<>(values)).apply();
     }
 
     private OcrLanguages() {

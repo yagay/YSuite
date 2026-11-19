@@ -1,53 +1,86 @@
 package com.yagay.YNFC
 
-import android.content.ContentValues
 import android.content.Context
-import android.net.Uri
 import android.os.Environment
-import android.provider.MediaStore
+import java.io.File
 import java.util.concurrent.Executors
 
-/** Owns diagnostic report generation and public Downloads persistence off the main thread. */
+/**
+ * Export a bounded diagnostic snapshot, then persist it to Downloads.
+ * MediaStore errors fall back to application external files without deleting
+ * the only diagnostic snapshot.
+ */
 internal class DiagnosticExporter(
     context: Context,
     private val collector: DiagnosticsCollector
 ) : AutoCloseable {
-    private val resolver = context.applicationContext.contentResolver
+    private val appContext = context.applicationContext
     private val executor = Executors.newSingleThreadExecutor()
 
     fun export(statusSummary: (RuntimeStatus) -> String, onDone: (Result<String>) -> Unit) {
         executor.execute {
-            var createdUri: Uri? = null
             val result = runCatching {
-                val fileName = "nfc_fullcheck_${BuildConfig.VERSION_NAME}_${System.currentTimeMillis()}.txt"
-                val values = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                val report = collector.buildExportReport(statusSummary)
+                val fileName = "YNFC-diagnostic_${BuildConfig.VERSION_NAME}_${System.currentTimeMillis()}.txt"
+                val primary = runCatching {
+                    NfcPublicDownloads.write(
+                        appContext, fileName, report.toByteArray(Charsets.UTF_8), "text/plain"
+                    )
                 }
-                createdUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                    ?: error(com.yagay.suite.api.YLocale.text(com.yagay.YNFC.R.string.ynfc_generated_c1b48c1ed75d))
-                resolver.openOutputStream(createdUri!!, "w")?.bufferedWriter()?.use {
-                    it.write(collector.buildFullReport(statusSummary))
-                } ?: error(com.yagay.suite.api.YLocale.text(com.yagay.YNFC.R.string.ynfc_generated_0065097e6886))
-                resolver.update(
-                    createdUri!!,
-                    ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
-                    null,
-                    null
-                )
-                AppLogger.i("Diagnostics saved to public Downloads: $fileName uri=$createdUri")
-                fileName
+                if (primary.isSuccess) {
+                    AppLogger.i("Diagnostics saved to Downloads: $fileName")
+                    NfcPublicDownloads.RELATIVE_PATH + fileName
+                } else {
+                    val error = primary.exceptionOrNull()
+                    AppLogger.i("MediaStore export failed: ${error?.javaClass?.simpleName}: ${error?.message}")
+                    val fallback = saveToAppFolder(fileName, report)
+                    AppLogger.i("Diagnostics saved to fallback: ${fallback.absolutePath}")
+                    fallback.absolutePath
+                }
             }.onFailure { error ->
-                createdUri?.let { uri -> runCatching { resolver.delete(uri, null, null) } }
-                AppLogger.i("Diagnostics failed ${error.javaClass.simpleName}: ${error.message}")
+                AppLogger.i("Diagnostics export failed: ${error.javaClass.simpleName}: ${error.message}")
             }
-            onDone(result)
+            runCatching { onDone(result) }.onFailure {
+                AppLogger.i("Diagnostics callback failed: ${it.javaClass.simpleName}: ${it.message}")
+            }
         }
     }
 
+    /**
+     * Separate, user-triggered HAL evidence capture. Never restarts NFC or
+     * sends config commands. Save the probe beside the other YNFC exports.
+     */
+    fun exportHalConfigReadProbe(onDone: (Result<String>) -> Unit) {
+        executor.execute {
+            val result = runCatching {
+                val report = collector.buildHalConfigReadProbe()
+                val fileName = "YNFC-hal-config-probe_" + System.currentTimeMillis() + ".txt"
+                val saved = runCatching {
+                    NfcPublicDownloads.write(
+                        appContext, fileName, report.toByteArray(Charsets.UTF_8), "text/plain"
+                    )
+                }
+                if (saved.isSuccess) saved.getOrThrow()
+                else saveToAppFolder(fileName, report).absolutePath
+            }
+            runCatching { onDone(result) }.onFailure {
+                AppLogger.i("HAL config probe callback failed: " + it.message)
+            }
+        }
+    }
+
+    private fun saveToAppFolder(fileName: String, report: String): File {
+        val directory = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            ?: appContext.filesDir
+        if (!directory.exists() && !directory.mkdirs()) {
+            error("Cannot create diagnostic fallback directory")
+        }
+        val output = File(directory, fileName)
+        output.writeText(report, Charsets.UTF_8)
+        return output
+    }
+
     override fun close() {
-        executor.shutdownNow()
+        executor.shutdown()
     }
 }

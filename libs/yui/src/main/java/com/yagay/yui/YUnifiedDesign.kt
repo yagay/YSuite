@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -23,23 +24,19 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
+import com.yagay.yui.YUiFilterChip as FilterChip
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.ScrollableTabRow
+import com.yagay.yui.YUiSurface as Surface
+import com.yagay.yui.YUiScrollableTabRow as ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -139,16 +136,21 @@ fun YPageList(
 ) {
     val role = LocalYPageRole.current
     val template = role.template()
-    val rowSpacing = if (compact) 0.dp else template.sectionSpacing
+    // Legacy compact argument is retained for binary/source compatibility.
+    // Normal-screen lists always use the role's standard row spacing.
+    val appearance = LocalYAppearance.current
+    val rowSpacing = if (template.sectionSpacing == 0.dp) 0.dp
+        else appearance.sectionSpacingDp.dp * (template.sectionSpacing.value / YDimens.SectionGap.value)
     BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        val horizontal = yPageHorizontalPadding(maxWidth)
+        // The same user-controlled margin applies on phones and expanded screens.
+        val horizontal = appearance.screenPaddingDp.dp
         LazyColumn(
-            modifier = Modifier.widthIn(max = template.maxContentWidth).fillMaxSize(),
+            modifier = Modifier.widthIn(max = template.maxContentWidth * (appearance.contentWidthPercent / 100f)).fillMaxSize(),
             contentPadding = PaddingValues(
                 start = horizontal,
-                top = padding.calculateTopPadding() + YDimens.ScreenVertical,
+                top = padding.calculateTopPadding() + LocalYAppearance.current.pageVerticalPaddingDp.dp,
                 end = horizontal,
-                bottom = padding.calculateBottomPadding() + YDimens.ScreenVertical,
+                bottom = padding.calculateBottomPadding() + LocalYAppearance.current.pageVerticalPaddingDp.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(rowSpacing),
             content = content,
@@ -158,10 +160,10 @@ fun YPageList(
 
 @Composable
 fun YSectionHeader(title: String, modifier: Modifier = Modifier, subtitle: String? = null) {
-    val topPadding = if (LocalYPageRole.current == YPageRole.SETTINGS) 8.dp else 4.dp
+    val topPadding = if (LocalYPageRole.current == YPageRole.SETTINGS) YUiGeometry.compactGap() else YUiGeometry.tinyGap()
     Column(
-        modifier.fillMaxWidth().padding(top = topPadding, bottom = 3.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier.fillMaxWidth().padding(top = topPadding, bottom = YUiGeometry.tinyGap()),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap()),
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         if (!subtitle.isNullOrBlank()) {
@@ -187,9 +189,9 @@ fun YSection(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap())) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 if (!subtitle.isNullOrBlank()) {
                     Text(
@@ -217,7 +219,7 @@ fun YSection(
         Column(
             modifier = modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(
-                if (role.prefersCompactRows()) 4.dp else YDimens.ControlGap,
+                LocalYAppearance.current.effectiveGapDp.dp,
             ),
         ) {
             body()
@@ -264,8 +266,8 @@ fun YStatusLine(
         YStatusTone.Error -> MaterialTheme.colorScheme.error
     }
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        modifier = modifier.fillMaxWidth().padding(vertical = YUiGeometry.tinyGap()),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Text(
@@ -291,7 +293,7 @@ fun YHorizontalActions(
 ) {
     Row(
         modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )
@@ -311,6 +313,9 @@ fun YListItem(
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    titleMaxLines: Int = Int.MAX_VALUE,
+    subtitleMaxLines: Int = Int.MAX_VALUE,
+    detailMaxLines: Int = Int.MAX_VALUE,
 ) {
     // Material3 ListItem adds substantial fixed internal padding. An explicit row keeps the
     // same actions and accessibility while sizing to its actual content.
@@ -323,29 +328,35 @@ fun YListItem(
     } else modifier
     val foreground = if (enabled) MaterialTheme.colorScheme.onSurface
         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val fittedInset = minOf(
+            LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+            ((maxWidth - (YDimens.TouchTarget * 3)).coerceAtLeast(0.dp) / 2),
+        )
     Row(
         modifier = activeModifier
             .fillMaxWidth()
-            .heightIn(min = YDimens.OptionRowHeight)
+            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
             .background(
                 if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
                 else Color.Transparent,
             )
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(horizontal = fittedInset,
+                vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         leading?.invoke()
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
+            verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap()),
         ) {
             Text(
                 title,
                 color = foreground,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                maxLines = 2,
+                maxLines = titleMaxLines.coerceAtLeast(1),
                 overflow = TextOverflow.Ellipsis,
             )
             if (!subtitle.isNullOrBlank()) {
@@ -353,7 +364,7 @@ fun YListItem(
                     subtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
+                    maxLines = subtitleMaxLines.coerceAtLeast(1),
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -362,12 +373,13 @@ fun YListItem(
                     detail,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
-                    maxLines = 2,
+                    maxLines = detailMaxLines.coerceAtLeast(1),
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }
         trailing?.invoke()
+    }
     }
 }
 
@@ -411,7 +423,7 @@ fun YSwitchItem(
     modifier = modifier,
     enabled = enabled,
     onClick = { if (enabled) onCheckedChange(!checked) },
-    trailing = { YCompactSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
+    trailing = { YStandardSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
 )
 
 @Composable
@@ -433,7 +445,7 @@ fun YCheckboxItem(
     selected = checked,
     enabled = enabled,
     onClick = { if (enabled) onCheckedChange(!checked) },
-    trailing = { Checkbox(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
+    trailing = { YUiCheckbox(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
 )
 
 @Composable
@@ -443,7 +455,7 @@ fun YCheckboxControl(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Checkbox(
+    YUiCheckbox(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,
@@ -470,8 +482,8 @@ fun YStatusItem(
 fun YStatusStrip(statuses: List<YStatusSpec>, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+        verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         statuses.forEach { status -> YStatusPill(status.label, status.value, status.tone) }
     }
@@ -510,7 +522,7 @@ fun YNotice(text: String, modifier: Modifier = Modifier, tone: YNoticeTone = YNo
         YNoticeTone.ERROR -> MaterialTheme.colorScheme.onErrorContainer
     }
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = container) {
-        Text(text, Modifier.padding(horizontal = 14.dp, vertical = 11.dp), color = foreground)
+        Text(text, Modifier.padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp), color = foreground)
     }
 }
 
@@ -525,7 +537,7 @@ fun YChoiceSetting(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap()),
     ) {
         Text(
             title,
@@ -593,15 +605,25 @@ fun YPrimaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
-) = YMaterialButton(onClick, modifier, enabled, YButtonVariant.FILLED, content)
+) {
+    YUiButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
+}
 
+/** Standard Material3 text-action for dialogs and inline file/download operations. */
 @Composable
 fun YTextActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
-) = YMaterialButton(onClick, modifier, enabled, YButtonVariant.TEXT, content)
+) {
+    YUiTextButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        content = content,
+    )
+}
 
 @Composable
 fun YSecondaryActionButton(
@@ -609,40 +631,58 @@ fun YSecondaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
-) = YMaterialButton(onClick, modifier, enabled, YButtonVariant.OUTLINED, content)
+) {
+    YUiOutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun YActionGroup(actions: List<YActionSpec>, modifier: Modifier = Modifier) {
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    val appearance = LocalYAppearance.current
+    val gap = appearance.effectiveGapDp.dp
+    // This group is a genuine YUI action layout, so the same setting that controls
+    // legacy View rows also controls Compose actions without per-screen geometry.
+    val renderActions: @Composable () -> Unit = {
         actions.forEach { action ->
             when (action.style) {
                 YActionStyle.PRIMARY -> YPrimaryButton(action.label, action.onClick, enabled = action.enabled)
                 YActionStyle.SECONDARY -> YSecondaryButton(action.label, action.onClick, enabled = action.enabled)
-                YActionStyle.DANGER -> YMaterialButton(
+                YActionStyle.DANGER -> YUiOutlinedButton(
                     onClick = action.onClick,
                     enabled = action.enabled,
-                    variant = YButtonVariant.DANGER,
                 ) {
-                    Text(action.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        action.label,
+                        color = if (action.enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        softWrap = true,
+                        maxLines = appearance.buttonLabelMaxLines.takeIf { it > 0 } ?: Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
     }
+    if (appearance.actionRowMode == "stacked") {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(gap),
+        ) { renderActions() }
+    } else {
+        FlowRow(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(gap),
+            verticalArrangement = Arrangement.spacedBy(gap),
+        ) { renderActions() }
+    }
 }
-
 @Composable
 fun YFilterBar(options: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         options.forEachIndexed { index, label ->
-            YMaterialFilterChip(label = label, selected = selectedIndex == index, onClick = { onSelected(index) })
+            FilterChip(selected = selectedIndex == index, onClick = { onSelected(index) }, label = { Text(label) })
         }
     }
 }
@@ -651,14 +691,14 @@ fun YFilterBar(options: List<String>, selectedIndex: Int, onSelected: (Int) -> U
 fun YToggleFilterBar(filters: List<YFilterSpec>, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
     ) {
         filters.forEach { filter ->
-            YMaterialFilterChip(
-                label = filter.label,
+            FilterChip(
                 selected = filter.selected,
                 onClick = filter.onClick,
                 enabled = filter.enabled,
+                label = { Text(filter.label) },
             )
         }
     }
@@ -669,21 +709,20 @@ fun YToggleFilterBar(filters: List<YFilterSpec>, modifier: Modifier = Modifier) 
 fun YTabBar(tabs: List<YTabSpec>, selectedKey: String, onSelected: (YTabSpec) -> Unit, modifier: Modifier = Modifier) {
     if (tabs.isEmpty()) return
     val selectedIndex = tabs.indexOfFirst { it.key == selectedKey }.coerceIn(0, tabs.lastIndex)
+    val effectiveKey = tabs[selectedIndex].key
     ScrollableTabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier.fillMaxWidth(),
-        edgePadding = 0.dp,
-        containerColor = Color.Transparent,
-        divider = {},
     ) {
         tabs.forEach { tab ->
             Tab(
-                selected = tab.key == selectedKey,
+                selected = tab.key == effectiveKey,
                 onClick = { onSelected(tab) },
                 text = {
                     Text(
                         tab.label,
-                        maxLines = 1,
+                        maxLines = LocalYAppearance.current.tabLabelMaxLines.takeIf { it > 0 }
+                            ?: Int.MAX_VALUE,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
@@ -700,7 +739,7 @@ fun YSelectionBar(
     label: String = count.toString(),
 ) {
     Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
-        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(LocalYAppearance.current.cardPaddingDp.dp), verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.rowVerticalPaddingDp / 2f).dp)) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
             YActionGroup(actions)
         }
@@ -716,8 +755,8 @@ fun YLogPanel(lines: List<String>, modifier: Modifier = Modifier, maxHeightDp: I
     ) {
         SelectionContainer {
             LazyColumn(
-                modifier = Modifier.fillMaxWidth().padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.fillMaxWidth().padding(LocalYAppearance.current.cardPaddingDp.dp),
+                verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap()),
             ) {
                 items(lines) { line ->
                     Text(

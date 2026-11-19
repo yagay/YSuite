@@ -1,8 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,15 +21,16 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yagay.YEntryCleaner.R
+import com.yagay.suite.api.InstalledAppCatalog
 import com.yagay.YEntryCleaner.YEntryCleanerRuntime
 import com.yagay.YEntryCleaner.domain.AppType
 import com.yagay.YEntryCleaner.domain.VisibilityScope
 import com.yagay.YEntryCleaner.domain.listCleanerAppType
 import com.yagay.yui.YCheckboxItem
 import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YFilterSpec
 import com.yagay.yui.YFullScreenDialog
 import com.yagay.yui.YListSkeleton
@@ -55,42 +54,27 @@ data class ScopeAppEntry(
     val normalizedPackage: String = packageName.lowercase(),
 )
 
-private object ScopeIconCache {
-    val icons = LruCache<String, Bitmap>(128)
-}
-
-@Suppress("DEPRECATION")
-private fun loadScopeApps(pm: PackageManager, selfPackage: String): List<ScopeAppEntry> {
-    val installed = if (android.os.Build.VERSION.SDK_INT >= 33) {
-        pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0))
-    } else {
-        pm.getInstalledApplications(0)
-    }
-    return installed.asSequence()
-        .filter { it.packageName != selfPackage && it.packageName != "android" }
-        .map { info ->
+private fun loadScopeApps(context: android.content.Context): List<ScopeAppEntry> =
+    InstalledAppCatalog.list(context, 0).asSequence()
+        .filter { it.packageName != context.packageName && it.packageName != "android" }
+        .map { entry ->
             ScopeAppEntry(
-                packageName = info.packageName,
-                label = runCatching { pm.getApplicationLabel(info).toString() }.getOrDefault(info.packageName),
-                system = info.listCleanerAppType() == AppType.SYSTEM,
+                packageName = entry.packageName,
+                label = entry.label,
+                // This classification intentionally differs from FLAG_SYSTEM only.
+                system = entry.info.listCleanerAppType() == AppType.SYSTEM,
             )
         }
         .distinctBy { it.packageName }
         .sortedWith(compareBy<ScopeAppEntry> { it.normalizedLabel }.thenBy { it.packageName })
         .toList()
-}
 
 @Composable
 private fun scopeAppIcon(packageName: String): Bitmap? {
     val context = LocalContext.current
-    val cached = remember(packageName) { ScopeIconCache.icons.get(packageName) }
-    val icon by produceState<Bitmap?>(initialValue = cached, packageName) {
-        if (value == null) {
-            value = withContext(Dispatchers.IO) {
-                runCatching {
-                    context.packageManager.getApplicationIcon(packageName).toBitmap(64, 64)
-                }.getOrNull()?.also { ScopeIconCache.icons.put(packageName, it) }
-            }
+    val icon by produceState<Bitmap?>(initialValue = null, packageName) {
+        value = withContext(Dispatchers.IO) {
+            InstalledAppCatalog.iconBitmap(context, packageName, 64)
         }
     }
     return icon
@@ -112,7 +96,7 @@ internal fun AppScopePickerDialog(
     var loading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        apps = withContext(Dispatchers.IO) { loadScopeApps(context.packageManager, context.packageName) }
+        apps = withContext(Dispatchers.IO) { loadScopeApps(context) }
         loading = false
     }
 
@@ -141,8 +125,8 @@ internal fun AppScopePickerDialog(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = YDimens.ScreenHorizontal),
-            verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+                .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
+            verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) {
             YSectionHeader(
                 title = stringResource(R.string.visibility_match_categories),
@@ -213,7 +197,7 @@ internal fun AppScopePickerDialog(
                                     Image(
                                         bitmap = it.asImageBitmap(),
                                         contentDescription = null,
-                                        modifier = Modifier.size(40.dp),
+                                        modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
                                     )
                                 }
                             },

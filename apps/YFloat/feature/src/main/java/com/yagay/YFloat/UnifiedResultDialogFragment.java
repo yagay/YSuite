@@ -116,11 +116,7 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
         }
         panel = new UnifiedResultPanel(requireContext(), session);
         panel.bindActions(this::beginInlineOcr,
-                () -> {
-                    if (session != null && session.canSave()) {
-                        ScreenshotController.save(requireContext(), session.image());
-                    }
-                }, this::closeResult);
+                this::saveCurrentResult, this::closeResult);
         panel.setOcrRunning(false);
         return panel.root();
     }
@@ -174,6 +170,36 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
                         + (session == null ? "none" : session.mode())));
     }
 
+    private void saveCurrentResult(){
+        ResultSession current=session;
+        if(current==null||!current.canSave()||!isAdded())return;
+        OcrDocument document=current.ocrDocument();
+        if(document==null){
+            if(current.hasImage())ScreenshotController.save(requireContext(),current.image());
+            return;
+        }
+        boolean image=current.hasImage();
+        boolean tables=!document.tableTexts().isEmpty();
+        java.util.ArrayList<String> labels=new java.util.ArrayList<>();
+        java.util.ArrayList<Integer> formats=new java.util.ArrayList<>();
+        if(image){labels.add("Save image");formats.add(0);}
+        labels.add("Markdown (.md)");formats.add(ResultActivity.EXPORT_MARKDOWN);
+        labels.add("JSON (coordinates)");formats.add(ResultActivity.EXPORT_JSON);
+        labels.add("HTML (.html)");formats.add(ResultActivity.EXPORT_HTML);
+        if(tables){labels.add("Table CSV (.csv)");formats.add(ResultActivity.EXPORT_CSV);}
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Save offline OCR result")
+            .setItems(labels.toArray(new String[0]),(dialog,which)->{
+                if(which<0||which>=formats.size())return;
+                int selected=formats.get(which);
+                if(selected==0){
+                    if(current.hasImage())ScreenshotController.save(requireContext(),current.image());
+                }else if(getActivity() instanceof ResultActivity host){
+                    host.exportOcrDocument(document,selected);
+                }
+            }).show();
+    }
+
     private void beginInlineOcr() {
         if (ocrRunning || session == null || !session.canOcr() || panel == null) return;
         panel.clearSelection();
@@ -183,9 +209,9 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
         panel.setOcrRunning(true);
         Bitmap image = session.image();
         Rect sourceBounds = session.sourceBounds();
-        OcrResultDispatcher.register(image, (text, blocks) -> {
+        OcrResultDispatcher.register(image, (text, blocks, document) -> {
             if (panel == null) return;
-            panel.root().post(() -> applyInlineOcr(gen, text, blocks));
+            panel.root().post(() -> applyInlineOcr(gen, text, blocks, document));
         });
 
         panel.root().postDelayed(() -> {
@@ -204,10 +230,11 @@ public final class UnifiedResultDialogFragment extends DialogFragment {
         OcrEngine.recognize(requireContext().getApplicationContext(), image, sourceBounds);
     }
 
-    private void applyInlineOcr(long gen, String text, List<String> blocks) {
+    private void applyInlineOcr(long gen, String text, List<String> blocks,
+                                OcrDocument document) {
         if (!isAdded() || session == null || panel == null || gen != ocrGeneration) return;
         ocrRunning = false;
-        session.applyOcr(text, blocks);
+        session.applyOcr(text, blocks,document);
         workflowFinished = false;
         panel.render(session);
         panel.setOcrRunning(false);

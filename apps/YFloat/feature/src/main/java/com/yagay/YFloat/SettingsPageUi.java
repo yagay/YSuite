@@ -7,7 +7,7 @@ import android.widget.Toast;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,13 +26,13 @@ final class SettingsPageUi {
 
     void check(LinearLayout parent, String title, String subtitle,
                String key, boolean current) {
-        SwitchMaterial toggle = YViewLayout.switchRow(activity, title, subtitle, current,
+        MaterialSwitch toggle = YViewLayout.switchRow(activity, title, subtitle, current,
                 (button, checked) -> fs.setBoolean(key, checked));
         YViewLayout.addRow(parent, YViewLayout.switchContainer(toggle));
     }
 
     void fullscreenModeCheck(LinearLayout parent) {
-        SwitchMaterial toggle = YViewLayout.switchRow(activity,
+        MaterialSwitch toggle = YViewLayout.switchRow(activity,
                 activity.getString(R.string.yfloat_fullscreen_auto_hide),
                 activity.getString(R.string.yfloat_fullscreen_auto_hide_desc),
                 fs.fullscreenHideMode() != 0,
@@ -85,21 +85,52 @@ final class SettingsPageUi {
     }
 
     void ocrEngineSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_ocr_engine), new String[]{
-                activity.getString(R.string.yfloat_ocr_auto),
+        // Legacy persisted value 4 belonged to remote PP-StructureV3.
+        // Keep retired persisted value 4 unused; Mobile=5 and Tiny=6.
+        int selected = fs.ocrEngineMode();
+        addPreferenceSpinner(parent, activity.getString(R.string.yfloat_ocr_engine), new String[]{
+                activity.getString(R.string.yfloat_ocr_auto) + " (Paddle offline)",
                 activity.getString(R.string.yfloat_ocr_medium),
                 activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_mlkit)
-        }, fs.ocrEngineMode(), FloatSettings.K_OCR_ENGINE, true);
+                "PP-OCRv5 Mobile",
+                activity.getString(R.string.yfloat_ocr_tiny)
+        }, selected == 5 ? 3 : selected == 6 ? 4 : selected, true,
+                position -> fs.setInt(FloatSettings.K_OCR_ENGINE,
+                        position == 3 ? 5 : position == 4 ? 6 : position));
     }
 
     void circleFullOcrEngineSpinner(LinearLayout parent) {
-        addIntPreferenceSpinner(parent, activity.getString(R.string.yfloat_fullscreen_ocr_engine), new String[]{
-                activity.getString(R.string.yfloat_ocr_mlkit),
-                activity.getString(R.string.yfloat_ocr_tiny),
-                activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_medium)
-        }, fs.circleFullOcrEngine(), FloatSettings.K_CIRCLE_FULL_OCR_ENGINE, true);
+        int current=fs.circleFullOcrEngine();
+        addPreferenceSpinner(parent, activity.getString(R.string.yfloat_fullscreen_ocr_engine),
+                new String[]{
+                    activity.getString(R.string.yfloat_ocr_auto)+" (Paddle offline)",
+                    activity.getString(R.string.yfloat_ocr_tiny),
+                    activity.getString(R.string.yfloat_ocr_small),
+                    activity.getString(R.string.yfloat_ocr_medium),
+                    "PP-OCRv5 Mobile"
+                }, current==5?0:current,true,
+                choice -> fs.setInt(FloatSettings.K_CIRCLE_FULL_OCR_ENGINE,
+                        choice==0?5:choice));
+    }
+
+    void circleTextGeometrySpinner(LinearLayout parent) {
+        boolean zh=java.util.Locale.getDefault().getLanguage().startsWith("zh");
+        YViewLayout.addRow(parent,YViewLayout.rowSubtitle(activity,
+                zh?"三种模式均为原版 ML 风格蓝色选字；文字提取和复制始终使用 PaddleOCR。"
+                  :"All modes use the original ML-style blue selection; extracted and copied text comes only from PaddleOCR."));
+        addIntPreferenceSpinner(parent,
+                zh?"圈画选字定位方式":"Circle selection coordinate source",
+                zh ? new String[]{
+                        "ML 原版高亮 · Paddle 字符坐标",
+                        "ML 原版高亮 · ML Kit 字符坐标（默认）",
+                        "ML 原版高亮 · 对比 Paddle 轮廓"
+                } : new String[]{
+                        "Original ML highlight · Paddle coordinates",
+                        "Original ML highlight · ML Kit coordinates (default)",
+                        "Original ML highlight · compare Paddle outline"
+                },
+                fs.circleTextGeometryMode(),
+                FloatSettings.K_CIRCLE_TEXT_GEOMETRY_MODE,true);
     }
 
     void circleCorrectionEngineSpinner(LinearLayout parent) {
@@ -107,7 +138,8 @@ final class SettingsPageUi {
                 activity.getString(R.string.yfloat_correction_off),
                 activity.getString(R.string.yfloat_ocr_tiny),
                 activity.getString(R.string.yfloat_ocr_small),
-                activity.getString(R.string.yfloat_ocr_medium)
+                activity.getString(R.string.yfloat_ocr_medium),
+                "PP-OCRv5 Mobile"
         }, fs.circleCorrectionEngine(), FloatSettings.K_CIRCLE_CORRECTION_ENGINE, true);
     }
 
@@ -133,7 +165,7 @@ final class SettingsPageUi {
 
     void addOcrModelRow(LinearLayout parent, int model) {
         LinearLayout block = YViewLayout.settingBlock(activity);
-        TextView status = YViewLayout.text(activity, OcrModelManager.displayName(model), 14, false);
+        TextView status = YViewLayout.text(activity, OcrModelManager.displayName(model));
         block.addView(status);
 
         LinearLayout buttons = YViewLayout.buttonRow(activity);

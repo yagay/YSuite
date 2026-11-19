@@ -29,6 +29,29 @@ public class HookConfigStoreTest {
         assertEquals(50L, config.controllerEpoch);
     }
 
+    @Test public void decodesExplicitVendorBackendAndCardParameters() {
+        Map<String, String> values = new HashMap<>();
+        values.put("simulation_enabled", "true");
+        values.put("simulation_backend", "VENDOR");
+        values.put("uid", "C1B0BC1B");
+        values.put("sak", "08");
+        values.put("atqa", "0004");
+        SimConfig config = HookConfigStore.decode(values);
+        assertTrue(config.useVendorTypeA());
+        assertEquals("C1B0BC1B", config.uid);
+        assertEquals("08", config.sak);
+        assertEquals("0004", config.atqa);
+        assertTrue(config.withControllerEpoch(7L).useVendorTypeA());
+    }
+
+    @Test public void unknownBackendRemainsRfOnly() {
+        Map<String, String> values = new HashMap<>();
+        values.put("simulation_backend", "INVALID");
+        SimConfig config = HookConfigStore.decode(values);
+        assertFalse(config.useVendorTypeA());
+        assertEquals("RF", config.backend);
+    }
+
     @Test public void decodesStopAndSeedsMissingEpochInMemory() {
         Map<String, String> values = new HashMap<>();
         values.put("simulation_enabled", "false");

@@ -13,6 +13,24 @@ import java.util.Locale;
 final class AccessibilityNodeSemantics {
     private AccessibilityNodeSemantics() {}
 
+    private static volatile FloatSettings cachedSettings;
+    private static volatile Context cachedContext;
+
+    private static FloatSettings settings(Context context) {
+        Context app = context.getApplicationContext();
+        FloatSettings current = cachedSettings;
+        if (current == null || cachedContext != app) {
+            synchronized (AccessibilityNodeSemantics.class) {
+                if (cachedSettings == null || cachedContext != app) {
+                    cachedContext = app;
+                    cachedSettings = new FloatSettings(app);
+                }
+                current = cachedSettings;
+            }
+        }
+        return current;
+    }
+
     static String visibleText(AccessibilityNodeInfo node) {
         return trim(safeText(node));
     }
@@ -72,7 +90,7 @@ final class AccessibilityNodeSemantics {
     static boolean isImage(Context context, AccessibilityNodeInfo node, Rect bounds) {
         if (context == null || bounds == null || bounds.isEmpty()) return false;
         float density = context.getResources().getDisplayMetrics().density;
-        int min = Math.round(12f * density);
+        int min = Math.round(settings(context).imageRecognitionMinDp() * density);
         if (bounds.width() < min || bounds.height() < min) return false;
 
         String c = className(node).toLowerCase(Locale.ROOT);
@@ -96,7 +114,7 @@ final class AccessibilityNodeSemantics {
                                  Rect bounds, boolean fullscreen) {
         if (context == null || bounds == null || bounds.isEmpty()) return false;
         float density = context.getResources().getDisplayMetrics().density;
-        int min = Math.max(1, Math.round(20f * density));
+        int min = Math.max(1, Math.round(settings(context).genericRecognitionMinDp() * density));
         if (bounds.width() < min || bounds.height() < min) return false;
         if (!viewId(node).isBlank()) return true;
         if (fullscreen) return true;

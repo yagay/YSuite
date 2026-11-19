@@ -13,7 +13,7 @@ public final class SelectionPointTransformer {
     private static final float FL_X_PROBE_OFFSET_DP = 25f;
     private static final float FL_EDGE_SPAN_DP = 50f;
     private static final float FL_Y_HELPER_INSET_DP = 20f;
-    private static final long LOG_INTERVAL_MS = 80L;
+    private static final long LOG_INTERVAL_MS = 350L;
 
     private final Context context;
     private final float iconWidth;
@@ -156,7 +156,7 @@ public final class SelectionPointTransformer {
                           boolean rightCompensation, boolean bottomCompensation,
                           float rightThreshold, float bottomThreshold, Rect screen) {
         long now = SystemClock.uptimeMillis();
-        if (now - lastLogAt < LOG_INTERVAL_MS && !rightCompensation && !bottomCompensation) return;
+        if (now - lastLogAt < LOG_INTERVAL_MS || !DiagnosticLog.enabled(context)) return;
         lastLogAt = now;
         DiagnosticLog.i(context, "FL_PROBE", "raw=" + Math.round(rawX) + "," + Math.round(rawY)
                 + " iconLeft=" + Math.round(iconLeft)

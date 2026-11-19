@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.yagay.yui.LocalYAppearance
 
 @Composable
 fun HistoryChart(
@@ -20,7 +21,10 @@ fun HistoryChart(
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
-    Canvas(modifier = modifier.fillMaxWidth().height(120.dp)) {
+    val gridStroke = LocalYAppearance.current.cardOutlineWidthDp.dp
+    val lineStroke = LocalYAppearance.current.floatBorderWidthDp.dp
+    Canvas(modifier = modifier.fillMaxWidth().height(
+        maxOf(64f, LocalYAppearance.current.rowHeightDp * 2f).dp)) {
         if (size.width <= 0f || size.height <= 0f) return@Canvas
 
         repeat(5) { i ->
@@ -29,7 +33,7 @@ fun HistoryChart(
                 color = gridColor,
                 start = Offset(0f, y),
                 end = Offset(size.width, y),
-                strokeWidth = 1f,
+                strokeWidth = gridStroke.toPx(),
             )
         }
 
@@ -46,7 +50,7 @@ fun HistoryChart(
         drawPath(
             path = path,
             color = lineColor,
-            style = Stroke(width = 3f, cap = StrokeCap.Round),
+            style = Stroke(width = lineStroke.toPx(), cap = StrokeCap.Round),
         )
     }
 }

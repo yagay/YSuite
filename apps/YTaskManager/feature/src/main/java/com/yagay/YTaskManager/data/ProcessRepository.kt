@@ -3,9 +3,11 @@ package com.yagay.YTaskManager.data
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import com.yagay.suite.api.InstalledAppCatalog
 import com.yagay.YTaskManager.model.ProcessEntry
 import com.yagay.YTaskManager.model.ProcessKind
 import com.yagay.YTaskManager.root.RootShell
+import android.os.SystemClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.max
@@ -14,14 +16,55 @@ class ProcessRepository(
     context: Context,
     private val shell: RootShell,
 ) {
-    private val packageManager = context.packageManager
+    private val appContext = context.applicationContext
     private var packageCache: Map<Int, List<PackageIdentity>> = emptyMap()
     private var packageCacheInitialized = false
-    private var previousTicks: Map<Int, Long> = emptyMap()
-    private var previousSampleMs: Long = 0L
     private var clockTicksPerSecond: Long = 100L
+    private val quickCpu = ProcessCpuEstimator()
+    private val cpuShell = RootShell()
+    data class CpuReading(val percent: Float?, val startTicks: Long)
 
+    /** CPU readings are separate from the fast ps list, including on Root timeouts. */
+    suspend fun sampleCpu(visiblePids: Collection<Int>): Map<Int, CpuReading> = withContext(Dispatchers.IO) {
+        // Never enumerate every /proc process for a metric used only by visible rows.
+        // Keep a bounded list to avoid huge stdout and timeout on Android OEM kernels.
+        val safePids = visiblePids.asSequence().filter { it > 0 }.distinct().take(850).toList()
+        if (safePids.isEmpty()) return@withContext emptyMap()
+        val list = safePids.joinToString(" ")
+        val script = """
+            echo __CPU_META__
+            getconf CLK_TCK 2>/dev/null || echo 100
+            echo __CPU_TICKS__
+            for pid in $list; do
+              IFS= read -r statline < "/proc/${'$'}pid/stat" 2>/dev/null || continue
+              printf '%s\n' "${'$'}statline"
+            done
+        """.trimIndent()
+        val output = cpuShell.execute(script, 6_000, "process-cpu").stdout
+        if (!output.contains("__CPU_TICKS__")) return@withContext emptyMap()
+        val hz = output.substringAfter("__CPU_META__", "")
+            .substringBefore("__CPU_TICKS__", "").trim().toLongOrNull()
+            ?.takeIf { it > 0L } ?: 100L
+        val ticks = output.substringAfter("__CPU_TICKS__", "").lineSequence()
+            .mapNotNull(::parseStat)
+            .associate { it.pid to ProcessCpuEstimator.Ticks(it.startTicks, it.userTicks + it.systemTicks) }
+        val measured = quickCpu.sample(ticks, SystemClock.elapsedRealtime(), hz)
+        // A new PID has a valid start time but no delta yet. Return the
+        // identity too, so the UI can reset a stale recycled-PID sample.
+        ticks.mapValues { (pid, tick) -> CpuReading(measured[pid], tick.startTicks) }
+    }
+
+    fun close() { cpuShell.close() }
+
+    /** Fast list: a single ps command, with no per-process I/O or icon decoding. */
     suspend fun listProcesses(): List<ProcessEntry> = withContext(Dispatchers.IO) {
+        refreshPackageCacheIfNeeded()
+        val fast = runCatching { listProcessesFromPs() }.getOrDefault(emptyList())
+        if (fast.isNotEmpty()) fast else listDetailedProcesses()
+    }
+
+    /** Slower, richer /proc sample; refresh on a separate, bounded cadence. */
+    suspend fun listDetailedProcesses(): List<ProcessEntry> = withContext(Dispatchers.IO) {
         refreshPackageCacheIfNeeded()
 
         // Hot-path rule: avoid spawning cat/awk/stat/sed/readlink once per PID.
@@ -61,8 +104,60 @@ class ProcessRepository(
             done
         """.trimIndent()
 
-        val raw = shell.execute(script, 8_000).stdout
-        parseProcDump(raw)
+        val raw = try {
+            shell.execute(script, 10_000).stdout
+        } catch (cancel: kotlinx.coroutines.CancellationException) {
+            throw cancel
+        } catch (_: Exception) {
+            // Some OEM procfs scans time out or restrict access. Still try the
+            // independent Android ps command rather than treating this as fatal.
+            ""
+        }
+        val parsed = parseProcDump(raw)
+        if (parsed.isNotEmpty()) parsed else listProcessesFromPs()
+    }
+
+    /** Fallback for modern OEM kernels restricting /proc/<pid>/stat. */
+    private suspend fun listProcessesFromPs(): List<ProcessEntry> {
+        // Visible enumeration never waits for a /proc CPU collection.
+        val first = shell.execute("ps -A -o PID,PPID,UID,RSS,NAME 2>/dev/null", 4_000, "process-list").stdout
+        val raw = if (first.lineSequence().count() > 1) first else {
+            val names = shell.execute("ps -A -o PID,PPID,USER,RSS,NAME 2>/dev/null", 4_000, "process-list").stdout
+            if (names.lineSequence().count() > 1) names else ""
+        }
+        val byCommand = packageCache.flatMap { (uid, entries) ->
+            entries.map { entry -> entry.packageName to (uid to entry) }
+        }.toMap()
+        return raw.lineSequence().drop(1).mapNotNull { line ->
+            val fields = line.trim().split(Regex("\\s+"), limit = 5)
+            if (fields.size != 5) return@mapNotNull null
+            val pid = fields[0].toIntOrNull() ?: return@mapNotNull null
+            val ppid = fields[1].toIntOrNull() ?: 0
+            val uid = fields[2].toIntOrNull() ?: -1
+            val rssKb = fields[3].toLongOrNull() ?: 0L
+            val command = fields[4]
+            val direct = byCommand[command.substringBefore(':')]
+            val actualUid = if (uid >= 0) uid else direct?.first ?: -1
+            val identities = packageCache[actualUid].orEmpty()
+            val primary = identities.firstOrNull { command == it.packageName ||
+                command.startsWith(it.packageName + ":") } ?: direct?.second ?: identities.firstOrNull()
+            ProcessEntry(
+                pid = pid, ppid = ppid, uid = actualUid, userName = fields[2],
+                nice = 0, state = "?", rssKb = rssKb, cpuPercent = 0f,
+                cpuSampled = false,
+                name = command.substringAfterLast('/'), command = command,
+                packageNames = identities.map { it.packageName }.ifEmpty {
+                    listOfNotNull(primary?.packageName)
+                },
+                packageName = primary?.packageName, appLabel = primary?.label,
+                icon = null, // The visible Compose row loads its shared icon lazily.
+                kind = when {
+                    primary == null -> ProcessKind.LINUX
+                    primary.system -> ProcessKind.SYSTEM_APP
+                    else -> ProcessKind.USER_APP
+                }
+            )
+        }.toList()
     }
 
     suspend fun loadDetails(process: ProcessEntry): ProcessEntry = withContext(Dispatchers.IO) {
@@ -105,12 +200,10 @@ class ProcessRepository(
     private fun parseProcDump(text: String): List<ProcessEntry> {
         val lines = text.lineSequence().toList()
         val meta = lines.firstOrNull { it.startsWith("__META__|") }?.split('|')
-        clockTicksPerSecond = meta?.getOrNull(1)?.toLongOrNull()?.coerceAtLeast(1L) ?: 100L
+        val clockTicksPerSecond = meta?.getOrNull(1)?.toLongOrNull()?.coerceAtLeast(1L) ?: 100L
         val uptimeSeconds = meta?.getOrNull(2)?.toDoubleOrNull() ?: 0.0
 
         val nowMs = System.currentTimeMillis()
-        val elapsedSampleMs = if (previousSampleMs > 0L) max(1L, nowMs - previousSampleMs) else 0L
-        val newTicks = HashMap<Int, Long>()
         val result = ArrayList<ProcessEntry>()
 
         var i = 0
@@ -141,15 +234,8 @@ class ProcessRepository(
             val oom = proc.getOrNull(6)?.toIntOrNull()
             val command = proc.getOrNull(7).orEmpty().takeUnless { it == "-" }.orEmpty().ifBlank { stat.name }
 
-            val totalTicks = stat.userTicks + stat.systemTicks
-            newTicks[pid] = totalTicks
-            val oldTicks = previousTicks[pid]
-            val cpuPercent = if (oldTicks != null && elapsedSampleMs > 0L) {
-                val deltaTicks = max(0L, totalTicks - oldTicks)
-                ((deltaTicks.toDouble() / clockTicksPerSecond.toDouble()) /
-                    (elapsedSampleMs.toDouble() / 1000.0) * 100.0).toFloat().coerceAtLeast(0f)
-            } else 0f
-
+            // This slow scan supplies metadata, not a second CPU clock.
+            // CPU usage is owned exclusively by sampleCpu().
             val elapsedSeconds = max(0.0, uptimeSeconds - stat.startTicks.toDouble() / clockTicksPerSecond)
             val elapsedMs = (elapsedSeconds * 1000.0).toLong()
             val startTimeMillis = nowMs - elapsedMs
@@ -175,7 +261,9 @@ class ProcessRepository(
                 state = stat.state,
                 rssKb = rssKb,
                 virtualMemoryKb = virtualMemoryKb,
-                cpuPercent = cpuPercent,
+                cpuPercent = 0f,
+                cpuSampled = false,
+                cpuStartTicks = stat.startTicks,
                 name = stat.name,
                 command = command,
                 executablePath = null,
@@ -188,14 +276,12 @@ class ProcessRepository(
                 packageNames = identities.map { it.packageName },
                 packageName = primary?.packageName,
                 appLabel = primary?.label,
-                icon = primary?.icon,
+                icon = null, // The visible Compose row loads its shared icon lazily.
                 kind = kind,
             )
             i += 2
         }
 
-        previousTicks = newTicks
-        previousSampleMs = nowMs
         return result
     }
 
@@ -225,18 +311,15 @@ class ProcessRepository(
     private fun refreshPackageCacheIfNeeded() {
         if (packageCacheInitialized) return
 
-        @Suppress("DEPRECATION")
-        val apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+        val apps = InstalledAppCatalog.list(appContext, PackageManager.GET_META_DATA)
         val map = HashMap<Int, MutableList<PackageIdentity>>()
 
         for (app in apps) {
             map.getOrPut(app.uid) { mutableListOf() } += PackageIdentity(
                 packageName = app.packageName,
-                label = runCatching { packageManager.getApplicationLabel(app).toString() }
-                    .getOrDefault(app.packageName),
-                icon = runCatching { packageManager.getApplicationIcon(app) }.getOrNull(),
-                system = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
-                    (app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
+                label = app.label,
+                 system = app.system ||
+                    (app.info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
             )
         }
 
@@ -259,7 +342,6 @@ class ProcessRepository(
     private data class PackageIdentity(
         val packageName: String,
         val label: String,
-        val icon: android.graphics.drawable.Drawable?,
-        val system: Boolean,
+         val system: Boolean,
     )
 }

@@ -3,6 +3,7 @@ package com.yagay.YNFC.xposed;
 import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
+import android.content.SharedPreferences;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -10,21 +11,32 @@ import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Process;
 import android.util.Log;
 
 import com.yagay.YNFC.BuildConfig;
+import com.yagay.YNFC.NfcControlPolicy;
 import com.yagay.YNFC.xposed.discovery.HookDiscoveryEngine;
 import com.yagay.YNFC.xposed.discovery.HookTarget;
 import com.yagay.YNFC.xposed.payload.RewriteResult;
 import com.yagay.YNFC.xposed.payload.RfPayloadEngine;
+import com.yagay.YNFC.xposed.payload.UidPayloadProbe;
 import com.yagay.YNFC.xposed.profile.HookProfileStore;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.yagay.YNFC.xposed.NfcHookUtils.*;
 
@@ -35,7 +47,6 @@ import io.github.libxposed.api.XposedModuleInterface;
 public class NfcInjectionModule extends XposedModule {
     private static final String TAG = "NfcUIDSim";
     private static final int HOOK_BUILD = BuildConfig.HOOK_BUILD;
-    private static final Uri CONFIG_URI = Uri.parse("content://" + com.yagay.YNFC.BuildConfig.CONFIG_AUTHORITY + "/settings");
     private static final int MAX_LEARNING_HOOKS = 4;
     private static final int MAX_TRIGGER_HOOKS = 4;
     private static final long TRIGGER_RF_WINDOW_MS = 3_000L;
@@ -53,8 +64,12 @@ public class NfcInjectionModule extends XposedModule {
     private static final long CONTROLLER_LIFECYCLE_DEBOUNCE_MS = 1_200L;
 
     private final ExecutorService commandExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "NfcUIDSim-Command"));
+    private final ExecutorService pollingExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "YNFC-PollingGuard"));
     private final ExecutorService lifecycleExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "NfcUIDSim-Lifecycle"));
     private final ExecutorService earlyReplayExecutor = Executors.newSingleThreadExecutor(r -> daemon(r, "NfcUIDSim-EarlyReplay"));
+    // Read-only ColorOS inspection runs on a separate daemon, never on a Binder/NCI thread.
+    private final ExecutorService colorOsObserveExecutor = Executors.newSingleThreadExecutor(
+            r -> daemon(r, "YNFC-ColorOS-Observe"));
     private final HookDiscoveryEngine discoveryEngine = new HookDiscoveryEngine();
     private final RfPayloadEngine payloadEngine = new RfPayloadEngine();
     private final HookProfileStore profileStore = new HookProfileStore();
@@ -63,13 +78,32 @@ public class NfcInjectionModule extends XposedModule {
     private final NfcProcessVendorController vendorController = new NfcProcessVendorController();
     private final RefreshTriggerEngine refreshTriggerEngine = new RefreshTriggerEngine();
     private final RfReplayEngine replayEngine = new RfReplayEngine();
+    // Observe the actual NFC-A/NCI writer separately from hook installation.
+    // A discovered method is not evidence that the controller ever received an
+    // eligible UID-setting packet.
+    private final Set<String> observedUidWriterShapes = new HashSet<>();
 
     private volatile HookTarget activeTarget;
     private volatile ClassLoader nfcClassLoader;
     private volatile boolean fullTriggerDiscoveryDone;
     private volatile String activeCodec = "";
     private volatile SimConfig cachedConfig = SimConfig.uninitialized();
+    // A natural ColorOS HCE call may precede the command bridge's startup
+    // processing. Preserve its monotonic observation time for causal diagnosis.
+    private volatile long lastColorOsHceCallAtMs;
     private volatile ContentObserver commandObserver;
+    private volatile ContentObserver pollingGuardObserver;
+    private final NfcControlPolicy pollingPolicy = new NfcControlPolicy();
+    private volatile String pollingGuardLastProof = "";
+    // Avoid automatically requesting applyRouting more than once per NFC
+    // controller epoch. A call can itself deactivate and restart RF Discovery.
+    // Never retry a routing call just because the OEM does not expose proof.
+    private volatile boolean automaticRoutingRefreshAttempted;
+    // A natural computeDiscoveryParameters / enableDiscovery hook is always
+    // preferable to proactively restarting the OEM RF discovery state.
+    private volatile boolean pollingDiscoveryHooksInstalled;
+    private volatile String pollingCapabilitySummary = "UNDETECTED";
+    private final Handler pollingMainHandler = new Handler(Looper.getMainLooper());
     private volatile BroadcastReceiver adapterStateReceiver;
     private volatile boolean observerRegistered;
     private volatile boolean controllerInvalid;
@@ -86,6 +120,10 @@ public class NfcInjectionModule extends XposedModule {
     // Natural startup writes are still rewritten, while controller-ready exact replay is
     // the deterministic proof point for OFF -> ON recovery.
     private volatile boolean recoveryWriteArmed;
+    // Most recent real controller invalidation that received an NFCID1 write.
+    // A natural RF_DISCOVER cycle must never trigger another one.
+    private volatile long ownNciLastWriteInvalidAt;
+    private volatile long ownNciLastWriteGeneration = Long.MIN_VALUE;
     private volatile String earlyHookFingerprint = "";
     private volatile long lastTriggeredGeneration = Long.MIN_VALUE;
     private volatile long completedGeneration = Long.MIN_VALUE;
@@ -112,6 +150,11 @@ public class NfcInjectionModule extends XposedModule {
     private volatile long reversibleCapturedGeneration = Long.MIN_VALUE;
     private volatile boolean controllerReinitRequired;
     private volatile String restoreMode = "NONE";
+    // Conservative in-process safety barriers. A failed/throwing native UID
+    // write might already have affected the controller: only a generation with
+    // *no attempted write* may skip restoration/restart.
+    private volatile boolean nativeUidMutationAttempted;
+    private volatile boolean vendorTypeAWriteAttempted;
 
     @Override public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param) {
         super.onModuleLoaded(param);
@@ -130,8 +173,383 @@ public class NfcInjectionModule extends XposedModule {
         markControllerInvalid("process_start_early");
         installEarlyKnownRfHook(cl, pid);
         installControllerLifecycleHooks(cl, pid);
+        installPollingGuardHooks(cl);
+        // Independent of UID emulation initialization: a missing RF writer does not
+        // prevent persistent reader-block enforcement after a service restart.
+        pollingExecutor.execute(this::startPollingGuardBridge);
         installEarlyAdapterStateBridge(pid);
         commandExecutor.execute(() -> initializeRuntime(cl, pid));
+    }
+
+    /**
+     * Install bounded, capability-discovered NFC hooks. Standard AOSP service
+     * entry points are preferred; vendor-specific controller classes are only
+     * optional, structurally verified backstops. Never hook unrelated methods.
+     */
+    private void installPollingGuardHooks(ClassLoader cl) {
+        Class<?> service = null;
+        Class<?> parameters = null;
+        try {
+            service = Class.forName("com.android.nfc.NfcService", false, cl);
+            parameters = Class.forName("com.android.nfc.NfcDiscoveryParameters", false, cl);
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD standard NFC types unavailable", t);
+        }
+        final Method compute = NfcDiscoveryCapabilityRegistry.findCompute(service, parameters);
+        int installed = 0;
+        boolean computeHookInstalled = false;
+        if (compute != null) {
+            try {
+                compute.setAccessible(true);
+                hook(compute).intercept(chain -> {
+                    Object original = chain.proceed();
+                    if (HookConfigStore.isPassive() || !pollingBlocked() || original == null) {
+                        return original;
+                    }
+                    try {
+                        int previousMask = NfcPollingGuard.mask(original);
+                        Object updated = NfcPollingGuard.withoutPolling(original);
+                        if (updated != original) {
+                            recordPollingGuardState("JAVA_DISCOVERY_MASK_BLOCKED",
+                                    "computeDiscoveryParameters oldMask=0x"
+                                            + Integer.toHexString(previousMask)
+                                            + " newMask=0x0; awaiting native discovery", true);
+                        }
+                        return updated;
+                    } catch (Throwable t) {
+                        Log.w(TAG, "POLLING_GUARD compute compatibility failure", t);
+                        recordPollingGuardState("UNVERIFIED",
+                                "computeDiscoveryParameters compatibility failure", true);
+                        return original;
+                    }
+                });
+                installed++;
+                computeHookInstalled = true;
+                Log.i(TAG, "POLLING_GUARD compute target="
+                        + compute.getDeclaringClass().getName() + "#" + compute.getName());
+            } catch (Throwable t) {
+                Log.w(TAG, "POLLING_GUARD compute hook rejected", t);
+            }
+        }
+
+        List<NfcDiscoveryCapabilityRegistry.Candidate> drivers =
+                NfcDiscoveryCapabilityRegistry.findDrivers(cl,
+                        discoveryEngine.discoverNfcDiscoveryDriverNames(cl), parameters);
+        int driverHooks = 0;
+        for (NfcDiscoveryCapabilityRegistry.Candidate candidate : drivers) {
+            try {
+                final Method method = candidate.method;
+                hook(method).intercept(chain -> {
+                    if (HookConfigStore.isPassive()) return chain.proceed();
+                    boolean blocked = pollingBlocked();
+                    Object original = chain.getArg(0);
+                    Object updated = original;
+                    int previousMask = -1;
+                    boolean hostRouting = false;
+                    try {
+                        if (original != null) {
+                            previousMask = NfcPollingGuard.mask(original);
+                            hostRouting = NfcPollingGuard.hostRouting(original);
+                            if (blocked) updated = NfcPollingGuard.withoutPolling(original);
+                        }
+                    } catch (Throwable t) {
+                        Log.w(TAG, "POLLING_GUARD driver parameter compatibility failure "
+                                + candidate.fingerprint(), t);
+                        recordPollingGuardState("UNVERIFIED",
+                                "discovery parameter incompatible: " + candidate.fingerprint(), blocked);
+                        return chain.proceed();
+                    }
+
+                    Object result;
+                    if (updated == original) {
+                        result = chain.proceed();
+                    } else {
+                        Object[] args = chain.getArgs().toArray();
+                        args[0] = updated;
+                        result = chain.proceed(args);
+                    }
+                    if (blocked) {
+                        // A Hooked Java call is not native NFC controller proof.
+                        recordPollingGuardState("PARAMETERS_INTERCEPTED",
+                                candidate.fingerprint() + " oldMask=0x"
+                                        + Integer.toHexString(previousMask)
+                                        + " newMask=0x0 hostRouting=" + hostRouting,
+                                true);
+                    } else {
+                        recordPollingGuardState("SYSTEM_DEFAULT_REQUESTED",
+                                candidate.fingerprint() + " pollMask=0x"
+                                        + Integer.toHexString(previousMask), false);
+                    }
+                    return result;
+                });
+                driverHooks++;
+                installed++;
+                Log.i(TAG, "POLLING_GUARD driver capability installed "
+                        + candidate.fingerprint() + " source=" + candidate.source);
+            } catch (Throwable t) {
+                Log.w(TAG, "POLLING_GUARD optional driver hook skipped "
+                        + candidate.fingerprint(), t);
+            }
+        }
+
+        final NfcDiscoveryCapabilityRegistry.ServiceAdapter adapter =
+                NfcDiscoveryCapabilityRegistry.resolveRouting(service);
+        pollingDiscoveryHooksInstalled = installed > 0;
+        pollingCapabilitySummary = "compute=" + computeHookInstalled
+                + ";driverHooks=" + driverHooks
+                + ";routeRefresh=" + adapter.available()
+                + ";sdk=" + Build.VERSION.SDK_INT + ";detail=" + adapter.detail;
+        Log.i(TAG, "POLLING_GUARD CAPABILITIES "
+                + pollingCapabilitySummary + " pid=" + Process.myPid());
+        // No hook or route refresh is not success; mark capability unsupported
+        // and keep the existing NFC service fully operational.
+        if (installed == 0) {
+            recordPollingGuardState("UNSUPPORTED",
+                    "No safe NFC discovery interception target", false);
+        }
+    }
+
+    /** Prefer the user's device-protected Provider setting; mirror it in the NFC
+     * process to survive provider startup races and cold service restarts.
+     */
+    private Boolean readMirroredPollingPreference() {
+        Application app = currentApplication();
+        if (app == null) return null;
+        try {
+            SharedPreferences p = app.createDeviceProtectedStorageContext()
+                    .getSharedPreferences("ynfc_polling_guard_mirror", Context.MODE_PRIVATE);
+            return p.contains("polling_disabled") ? p.getBoolean("polling_disabled", false) : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private void mirrorPollingPreference(boolean disabled) {
+        Application app = currentApplication();
+        if (app == null) return;
+        try {
+            SharedPreferences p = app.createDeviceProtectedStorageContext()
+                    .getSharedPreferences("ynfc_polling_guard_mirror", Context.MODE_PRIVATE);
+            if (!p.contains("polling_disabled")
+                    || p.getBoolean("polling_disabled", false) != disabled) {
+                p.edit().putBoolean("polling_disabled", disabled).commit();
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD NFC-process mirror unavailable", t);
+        }
+    }
+
+    private boolean pollingBlocked() {
+        Boolean cached = pollingPolicy.desired();
+        if (cached != null) return cached;
+        // Provider is authoritative. An NFC-process mirror may be stale if the
+        // user toggled the setting immediately before a forced process restart.
+        Boolean provider = configStore.readPollingDisabled();
+        if (provider != null) {
+            pollingPolicy.setDesired(provider);
+            mirrorPollingPreference(provider);
+            return provider;
+        }
+        Boolean mirror = readMirroredPollingPreference();
+        if (mirror != null) {
+            pollingPolicy.setDesired(mirror);
+            return mirror;
+        }
+        // Fail open rather than break NFC / HCE when configuration is unknown.
+        return false;
+    }
+
+    private void startPollingGuardBridge() {
+        Application app = waitForApplication(8_000L);
+        if (app == null) {
+            Log.w(TAG, "POLLING_GUARD bridge waiting for NFC process context");
+            return;
+        }
+        try {
+            ContentObserver observer = new ContentObserver(null) {
+                @Override public void onChange(boolean selfChange) {
+                    pollingExecutor.execute(() -> refreshPollingPreference("provider_change"));
+                }
+                @Override public void onChange(boolean selfChange, Uri uri) {
+                    pollingExecutor.execute(() -> refreshPollingPreference("provider_change"));
+                }
+            };
+            for (Uri uri : new Uri[]{
+                    HookConfigStore.suiteUri(), HookConfigStore.standaloneUri()}) {
+                if (uri != null) app.getContentResolver().registerContentObserver(uri, true, observer);
+            }
+            pollingGuardObserver = observer;
+            ContentValues capabilities = new ContentValues();
+            capabilities.put("polling_capabilities", pollingCapabilitySummary);
+            writeValuesWithRetry(capabilities, 5, 75L);
+            refreshPollingPreference("startup");
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD bridge registration failed", t);
+        }
+    }
+
+    private void refreshPollingPreference(String reason) {
+        if (HookConfigStore.isPassive()) return;
+        Boolean provider = configStore.readPollingDisabled();
+        if (provider == null) return;
+        boolean changed = pollingPolicy.setDesired(provider);
+        mirrorPollingPreference(provider);
+        if (changed) {
+            pollingGuardLastProof = "";
+            Log.i(TAG, "POLLING_GUARD desired=" + provider + " reason=" + reason);
+            if ("startup".equals(reason) && pollingDiscoveryHooksInstalled) {
+                // Discovery hooks were installed before NFC initialized.
+                // The natural OEM discovery transaction owns initial routing.
+                // A second applyRouting() here can rewrite a newly set UID.
+                Log.i(TAG, "POLLING_GUARD startup uses natural discovery hooks; "
+                        + "no extra RF refresh");
+            } else {
+                // An explicit preference toggle while NFC is already ON
+                // still needs one routing update, never a retry loop.
+                requestPollingRoutingRefresh("desired_change:" + reason);
+            }
+        }
+    }
+
+    /**
+     * Live toggling must not rely on restarting com.android.nfc. NFC routing
+     * belongs to the NFC main looper; invoking it from the Provider IO thread
+     * races the controller's queued discovery / HCE state transitions.
+     */
+    private void requestPollingRoutingRefresh(String reason) {
+        if (HookConfigStore.isPassive()) return;
+        final long revision = pollingPolicy.nextRevision();
+        final boolean blocked = pollingBlocked();
+        Log.i(TAG, "POLLING_GUARD live refresh scheduled revision=" + revision
+                + " disabled=" + blocked + " reason=" + reason);
+        pollingMainHandler.post(() -> applyPollingRoutingOnMain(revision, blocked, reason, 0));
+    }
+
+    private void applyPollingRoutingOnMain(long revision, boolean blocked, String reason,
+                                           int attempt) {
+        if (!pollingPolicy.isCurrent(revision) || HookConfigStore.isPassive()
+                || blocked != pollingBlocked()) return;
+        boolean routingRequested = false;
+        try {
+            ClassLoader loader = nfcClassLoader;
+            if (loader == null) throw new IllegalStateException("NFC class loader unavailable");
+            Class<?> service = Class.forName("com.android.nfc.NfcService", false, loader);
+            NfcDiscoveryCapabilityRegistry.ServiceAdapter adapter =
+                    NfcDiscoveryCapabilityRegistry.resolveRouting(service);
+            if (!adapter.available()) {
+                recordPollingGuardState("REFRESH_UNSUPPORTED",
+                        "No safe NFC routing refresh method: " + adapter.detail, blocked);
+                return;
+            }
+            Object owner = adapter.getInstance.invoke(null);
+            if (owner == null) {
+                // NFC service creation can complete after the first Provider signal.
+                schedulePollingRetry(revision, blocked, reason, attempt, "service_unavailable");
+                return;
+            }
+            if (!Boolean.TRUE.equals(adapter.isEnabled.invoke(owner))) {
+                // Desired preference is persisted and will be applied on adapter ON.
+                recordPollingGuardState("WAITING_FOR_NFC_ON",
+                        "disabled=" + blocked + " reason=" + reason, blocked);
+                return;
+            }
+            // Avoid restarting discovery when startup/controller-ready routing
+            // is already in the desired state or cannot be read reliably.
+            // The NFC service itself owns normal discovery after initialize.
+            int maskBefore = readServiceDiscoveryMask(service, owner);
+            boolean automatic = "controller_ready".equals(reason)
+                    || "desired_change:startup".equals(reason);
+            if (NfcControlPolicy.shouldSkipRoutingRefresh(blocked, maskBefore,
+                    automatic, automaticRoutingRefreshAttempted)) {
+                recordPollingGuardState("ROUTING_ALREADY_STABLE_OR_OWNED_BY_SYSTEM",
+                        "disabled=" + blocked + " maskBefore=0x"
+                                + Integer.toHexString(maskBefore)
+                                + " automatic=" + automatic + " reason=" + reason, blocked);
+                return;
+            }
+            // This is ONE routing request, not a keep-alive. Do not retry
+            // when the OEM refuses to publish an updated Java-side mask.
+            if (automatic) automaticRoutingRefreshAttempted = true;
+            routingRequested = true;
+            adapter.applyRouting.invoke(owner, true);
+
+            int observedMask = readServiceDiscoveryMask(service, owner);
+            Log.i(TAG, "POLLING_GUARD LIVE_REFRESH revision=" + revision
+                    + " disabled=" + blocked + " currentMask=0x"
+                    + Integer.toHexString(observedMask) + " attempt=" + attempt
+                    + " thread=" + Thread.currentThread().getName()
+                    + " reason=" + reason);
+            if (blocked && observedMask != 0) {
+                // An unverified outcome is not permission to issue additional
+                // discovery stop/start cycles. Preserve native NFC stability.
+                recordPollingGuardState("LIVE_REFRESH_UNCONFIRMED",
+                        "disabled=" + blocked + " currentMask=0x"
+                                + Integer.toHexString(observedMask)
+                                + " reason=" + reason + " routingRequestedOnce=true", blocked);
+                return;
+            }
+            // This confirms a Java-side routing refresh only. The OEM controller
+            // still needs hardware verification; never claim native RF success.
+            recordPollingGuardState("LIVE_REFRESH_REQUESTED",
+                    "disabled=" + blocked + " currentMask=0x"
+                            + Integer.toHexString(observedMask)
+                            + " revision=" + revision + " reason=" + reason,
+                    blocked);
+        } catch (Throwable t) {
+            Log.w(TAG, "POLLING_GUARD live refresh failed revision=" + revision
+                    + " attempt=" + attempt + " reason=" + reason, t);
+            if (routingRequested) {
+                // A throwing OEM method may still have restarted RF. Retrying
+                // it is unsafe and can race a wallet/card transaction.
+                recordPollingGuardState("LIVE_REFRESH_UNCONFIRMED",
+                        "disabled=" + blocked + " reason=" + reason
+                                + " routingRequestedOnce=true error="
+                                + t.getClass().getSimpleName(), blocked);
+            } else {
+                schedulePollingRetry(revision, blocked, reason, attempt,
+                        t.getClass().getSimpleName());
+            }
+        }
+    }
+
+    private int readServiceDiscoveryMask(Class<?> service, Object instance) {
+        try {
+            Field current = service.getDeclaredField("mCurrentDiscoveryParameters");
+            current.setAccessible(true);
+            Object params = current.get(instance);
+            return params == null ? -1 : NfcPollingGuard.mask(params);
+        } catch (Throwable t) {
+            return -1; // Unknown, never confuse this with an actual zero mask.
+        }
+    }
+
+    private void schedulePollingRetry(long revision, boolean blocked, String reason,
+                                      int attempt, String detail) {
+        if (!pollingPolicy.isCurrent(revision)) return;
+        if (attempt >= 2) {
+            recordPollingGuardState("LIVE_REFRESH_UNCONFIRMED",
+                    "disabled=" + blocked + " reason=" + reason
+                            + " error=" + detail + " retries=" + attempt, blocked);
+            return;
+        }
+        pollingMainHandler.postDelayed(
+                () -> applyPollingRoutingOnMain(revision, blocked, reason, attempt + 1),
+                350L);
+    }
+
+    private void recordPollingGuardState(String status, String detail, boolean blocked) {
+        String proof = status + ":" + detail;
+        if (proof.equals(pollingGuardLastProof)) return;
+        pollingGuardLastProof = proof;
+        Log.i(TAG, "POLLING_GUARD " + proof + " pid=" + Process.myPid());
+        pollingExecutor.execute(() -> {
+            if (HookConfigStore.isPassive()) return;
+            ContentValues values = new ContentValues();
+            values.put("polling_guard_status", status);
+            values.put("polling_guard_pid", Process.myPid());
+            values.put("polling_guard_detail", detail);
+            writeValuesWithRetry(values, 3, 75L);
+        });
     }
 
     /**
@@ -237,6 +655,12 @@ public class NfcInjectionModule extends XposedModule {
             if (firstInvalid) lastControllerInvalidAt = now;
         }
         if (!firstInvalid) return;
+        pollingGuardLastProof = "";
+        pollingPolicy.invalidateRefresh();
+        recordPollingGuardState("CONTROLLER_RESET_PENDING",
+                "controller invalidated: " + reason + "; previous discovery interception is no longer current",
+                pollingBlocked());
+        automaticRoutingRefreshAttempted = false;
         lifecycleFailureGeneration = Long.MIN_VALUE;
         lifecycleFailureControllerEpoch = Long.MIN_VALUE;
         invalidateRfEvidenceForControllerReset(reason);
@@ -266,7 +690,16 @@ public class NfcInjectionModule extends XposedModule {
                 "pid=" + Process.myPid() + ";wasInvalid=" + wasInvalid);
         Log.i(TAG, "CONTROLLER READY reason=" + reason + " pid=" + Process.myPid() +
                 " wasInvalid=" + wasInvalid);
+        recordPollingGuardState("AWAITING_DISCOVERY",
+                "controller ready: " + reason + "; waiting for fresh discovery interception",
+                pollingBlocked());
         scheduleLifecycleRecovery("controller_ready:" + reason);
+        if (!pollingDiscoveryHooksInstalled) {
+            // Legacy fallback only: with natural compute/driver hooks installed,
+            // applying routing here would redundantly restart Discovery and
+            // might overwrite the just-recovered NFCID1.
+            pollingExecutor.execute(() -> requestPollingRoutingRefresh("controller_ready"));
+        }
     }
 
     private void persistControllerLifecycle(String status, String source, String detail) {
@@ -320,6 +753,9 @@ public class NfcInjectionModule extends XposedModule {
                     "NFC Application context unavailable", activeTarget == null ? null : activeTarget.fingerprint());
             return;
         }
+
+        // Use main's RF_CONFIG_WRITE writer discovery and replay.
+        // Experimental HCE interception and Type-A probes are not installed.
 
         List<HookTarget> installTargets = new ArrayList<>();
         List<HookTarget> triggerTargets = discoveryEngine.discoverKnownTriggerCandidates(cl);
@@ -387,14 +823,433 @@ public class NfcInjectionModule extends XposedModule {
         startCommandBridge(app, pid);
     }
 
+    /**
+     * ColorOS 17 NFC Service 17.0.0.260114.apk exposes these methods:
+     * OplusNfcAdapterService#setHceTypeAConfig(boolean,atqa,sak,uid),
+     * HceAccessCard#doSetHceTypeAConfig(boolean,atqa,sak,uid),
+     * NfcChipDeviceImpl#doSetHceTypeAConfig(boolean,atqa,sak,uid),
+     * NfcFeatureFetcher#isSupportHceAccessCardByRegion().
+     * Most callbacks are passive. Only an explicitly armed INTERCEPT profile
+     * can replace HCE Type-A arguments; it invokes the original exactly once
+     * and never fabricates the result or swallows the original exception.
+     */
+    private void installColorOsReadOnlyHooks(ClassLoader cl, int pid) {
+        final int serviceHook = hookColorOsReadOnly(cl, "com.oplus.nfc.OplusNfcAdapterService",
+                "setHceTypeAConfig", "service",
+                boolean.class, byte[].class, byte[].class, byte[].class);
+        final int hceHook = hookColorOsReadOnly(cl, "com.oplus.nfc.hceaccesscard.HceAccessCard",
+                "doSetHceTypeAConfig", "hce",
+                boolean.class, byte[].class, byte[].class, byte[].class);
+        final int chipHook = hookColorOsReadOnly(cl, "com.oplus.nfc.common.NfcChipDeviceImpl",
+                "doSetHceTypeAConfig", "chip",
+                boolean.class, byte[].class, byte[].class, byte[].class);
+        final int regionHook = hookColorOsReadOnly(cl, "com.oplus.nfc.NfcFeatureFetcher",
+                "isSupportHceAccessCardByRegion", "region");
+        // The NCI vendor sender is a general-purpose Android API. Observe it
+        // only when called *from* HceAccessCard's Type-A method on this thread.
+        final int nciHook = hookColorOsReadOnly(cl, "android.nfc.NfcAdapter",
+                "sendVendorNciMessage", "nci",
+                int.class, int.class, int.class, byte[].class);
+        final int count = serviceHook + hceHook + chipHook + regionHook + nciHook;
+        colorOsObserveExecutor.execute(() -> {
+            ContentValues v = baseHookState();
+            v.put("coloros_observe_pid", pid);
+            v.put("coloros_observe_hook_count", count);
+            v.put("coloros_observe_service_hook_installed", serviceHook == 1);
+            v.put("coloros_observe_hce_hook_installed", hceHook == 1);
+            v.put("coloros_observe_chip_hook_installed", chipHook == 1);
+            v.put("coloros_observe_region_hook_installed", regionHook == 1);
+            v.put("coloros_observe_nci_hook_installed", nciHook == 1);
+            v.put("coloros_observe_status", count > 0 ? "READ_ONLY_HOOKS_INSTALLED" : "METHODS_UNAVAILABLE");
+            v.put("coloros_observe_note", "No Type-A commands were initiated by the observer; "
+                    + "absence of a callback is not proof of absent native HAL traffic");
+            writeValuesWithRetry(v, 5, 75L);
+        });
+    }
+
+    private int hookColorOsReadOnly(ClassLoader cl, String className, String methodName,
+                                    String key, Class<?>... parameters) {
+        try {
+            Class<?> cls = Class.forName(className, false, cl);
+            Method method = cls.getDeclaredMethod(methodName, parameters);
+            method.setAccessible(true);
+            hook(method).intercept(chain -> {
+                // A native vendor message can serve several OEM functions.
+                // Do not attribute an unrelated message to Type-A configuration.
+                boolean relevant = !"nci".equals(key) || isColorOsTypeACallOnStack();
+                if (!relevant || HookConfigStore.isPassive()) return chain.proceed();
+                // Only the HCE implementation entrypoint is allowed to replace
+                // parameters. All other hooks remain read-only observers.
+                SimConfig intercepted = cachedConfig;
+                if ("hce".equals(key)) {
+                    long callAtMs = System.currentTimeMillis();
+                    lastColorOsHceCallAtMs = callAtMs;
+                    // The original OEM call may be a disable or may have a
+                    // different layout. Record only metadata, never UID bytes.
+                    Object[] seen = chain.getArgs().toArray();
+                    boolean enabled = seen.length > 0 && Boolean.TRUE.equals(seen[0]);
+                    String lengths = "count=" + seen.length
+                            + ",atqa=" + privateByteLength(seen, 1)
+                            + ",sak=" + privateByteLength(seen, 2)
+                            + ",uid=" + privateByteLength(seen, 3);
+                    boolean activeAtCall = intercepted.initialized &&
+                            intercepted.active && intercepted.useInterceptTypeA();
+                    long generationAtCall = intercepted.generation;
+                    try {
+                        colorOsObserveExecutor.execute(() -> {
+                            ContentValues event = baseHookState();
+                            event.put("coloros_hce_at_ms", callAtMs);
+                            event.put("coloros_hce_pid", Process.myPid());
+                            event.put("coloros_hce_enable", enabled);
+                            event.put("coloros_hce_arg_lengths", lengths);
+                            event.put("coloros_hce_intercept_armed_at_call", activeAtCall);
+                            event.put("coloros_hce_generation_at_call", generationAtCall);
+                            writeValuesWithRetry(event, 4, 75L);
+                        });
+                    } catch (Throwable ignored) {
+                        // Telemetry must never affect the OEM NFC execution.
+                    }
+                }
+                Object[] replacement = null;
+                String interceptSkip = "";
+                if ("hce".equals(key) && intercepted.initialized && intercepted.active
+                        && intercepted.useInterceptTypeA()
+                        && intercepted.generation > 0L
+                        && !"FAILED".equals(intercepted.commandStatus)
+                        && !"RESTART_REQUIRED".equals(intercepted.commandStatus)) {
+                    Object[] originalArgs = chain.getArgs().toArray();
+                    if (originalArgs.length == 4 && Boolean.TRUE.equals(originalArgs[0])
+                            && originalArgs[1] instanceof byte[]
+                            && ((byte[]) originalArgs[1]).length == 2
+                            && originalArgs[2] instanceof byte[]
+                            && ((byte[]) originalArgs[2]).length == 1
+                            && originalArgs[3] instanceof byte[]
+                            && (((byte[]) originalArgs[3]).length == 4
+                                || ((byte[]) originalArgs[3]).length == 7
+                                || ((byte[]) originalArgs[3]).length == 10)) {
+                        byte[] atqa = strictTypeAHex(intercepted.atqa, 2);
+                        byte[] sak = strictTypeAHex(intercepted.sak, 1);
+                        byte[] uid = strictTypeAHex(intercepted.uid, 4, 7, 10);
+                        if (atqa != null && sak != null && uid != null) {
+                            replacement = originalArgs.clone();
+                            replacement[1] = atqa;
+                            replacement[2] = sak;
+                            replacement[3] = uid;
+                            // A failed OEM call can still have partially changed the
+                            // controller. STOP must not claim a stock restore.
+                            vendorTypeAWriteAttempted = true;
+                        } else {
+                            interceptSkip = "INVALID_IMPORTED_PROFILE";
+                        }
+                    } else {
+                        interceptSkip = "ORIGINAL_OEM_ARGUMENT_SHAPE_MISMATCH";
+                    }
+                }
+                final String skipDetail = interceptSkip;
+                final boolean replaced = replacement != null;
+                final long appliedGeneration = replaced ? intercepted.generation : 0L;
+                Object outcome = null;
+                Throwable failure = null;
+                try {
+                    outcome = replaced ? chain.proceed(replacement) : chain.proceed();
+                    return outcome;
+                } catch (Throwable error) {
+                    failure = error;
+                    throw error;
+                } finally {
+                    final String result = failure == null
+                            ? readOnlyResult(outcome) : "THREW_" + failure.getClass().getSimpleName();
+                    final boolean success = failure == null;
+                    final Object finalOutcome = outcome;
+                    final Throwable finalFailure = failure;
+                    // Do not record raw UID/ATQA/SAK, NCI payload, or arbitrary OEM bytes.
+                    // Queued writes are non-blocking and cannot change the Binder result.
+                    try {
+                        colorOsObserveExecutor.execute(() -> {
+                            persistColorOsReadOnlyEvent(key, result, success);
+                            if (!skipDetail.isEmpty()) {
+                                ContentValues skipped = baseHookState();
+                                skipped.put("coloros_intercept_skip_pid", Process.myPid());
+                                skipped.put("coloros_intercept_skip_reason", skipDetail);
+                                skipped.put("coloros_intercept_skip_at_ms", System.currentTimeMillis());
+                                writeValuesWithRetry(skipped, 4, 75L);
+                            }
+                            if (replaced) {
+                                publishTypeAInterceptOutcome(appliedGeneration, finalOutcome,
+                                        finalFailure, result);
+                            }
+                        });
+                    } catch (Throwable ignored) {
+                        // Failed telemetry must never affect the NFC service.
+                    }
+                }
+            });
+            Log.i(TAG, "COLOROS_READ_ONLY_HOOK installed=" + className + "#" + methodName);
+            return 1;
+        } catch (Throwable error) {
+            Log.i(TAG, "COLOROS_READ_ONLY_HOOK unavailable=" + className + "#" + methodName
+                    + " reason=" + error.getClass().getSimpleName());
+            return 0;
+        }
+    }
+
+    /**
+     * A successful intercepted Java call does not prove the UID on the air.
+     * Publish a non-verified state only for the exact generation still selected.
+     * Never mark RF accepted or effective ACTIVE.
+     */
+    private void publishTypeAInterceptOutcome(long generation, Object outcome,
+                                              Throwable error, String result) {
+        SimConfig latest = readConfig();
+        if (!latest.initialized || !latest.active || !latest.useInterceptTypeA()
+                || latest.generation != generation) return;
+        boolean accepted = error == null && Boolean.TRUE.equals(outcome);
+        String stage = accepted ? "INTERCEPT_CALL_ACCEPTED" : "INTERCEPT_CALL_REJECTED";
+        ContentValues v = baseHookState();
+        v.put("state_generation", generation);
+        v.put("command_consumed_generation", generation);
+        v.put("command_handled_generation", generation);
+        v.put("command_action", "APPLY");
+        v.put("command_status", accepted ? "INTERCEPT_CALL_ACCEPTED" : "FAILED");
+        v.put("command_detail", "HceAccessCard original method returned " + result
+                + "; external NFC reader validation required");
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", accepted ? "VERIFYING" : "FAILED");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", accepted ? "UNVERIFIED" : stage);
+        v.put("rf_accepted", false);
+        v.put("rf_status", stage);
+        v.put("rf_uid", "");
+        v.put("rf_source", "file-intercept-hce");
+        v.put("rf_generation", generation);
+        v.put("rf_pid", Process.myPid());
+        v.put("rf_verification", "EXTERNAL_READER_REQUIRED");
+        v.put("full_diag_stage", stage);
+        v.put("full_diag_summary", "Type-A parameters substituted at the OEM HCE entrypoint; "
+                + "method result=" + result + "; over-the-air UID unknown");
+        writeValuesWithRetry(v, 12, 75L);
+        completedGeneration = generation;
+        completedPid = Process.myPid();
+    }
+
+    /**
+     * The standalone native backend currently has no validated ABI for this
+     * SN220T firmware. Refuse to write any NCI packet, load substitute .so,
+     * or fall back to the OEM wallet/RF hooks. A file profile is *input data*
+     * only, not a guarantee of hardware UID programmability.
+     */
+    private void runNativeNciCommand(SimConfig cfg) {
+        if (!cfg.active) {
+            if (noUidWriteToRestore()) {
+                completeNoOverrideStop(cfg,
+                        "Native NCI backend performed no controller write; NFC reload not required");
+            } else {
+                requestControllerRestart(cfg,
+                        "A previous backend attempted a controller write; stock lifecycle recovery required");
+            }
+            return;
+        }
+        String stage = "NATIVE_HAL_ABI_UNVERIFIED";
+        String detail = "Independent NXP SN220T native NCI/HAL writer not installed: "
+                + "device-specific native library ABI and controller support have not been verified. "
+                + "The generated JSON file alone does not configure NFCID1. "
+                + "No NCI packet was sent; ColorOS HCE and RF backends were not invoked.";
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_action", "APPLY");
+        v.put("command_status", "FAILED");
+        v.put("command_detail", detail);
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", "FAILED");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", stage);
+        v.put("rf_accepted", false);
+        v.put("rf_status", stage);
+        v.put("rf_uid", "");
+        v.put("rf_source", "native-nci-abi-preflight");
+        v.put("rf_pid", Process.myPid());
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_error", detail);
+        v.put("rf_verification", "NOT_ATTEMPTED");
+        v.put("native_probe_stage", stage);
+        v.put("native_probe_pid", Process.myPid());
+        v.put("native_probe_no_controller_write", true);
+        v.put("full_diag_stage", stage);
+        v.put("full_diag_summary", detail);
+        writeValuesWithRetry(v, 20, 100L);
+        completedGeneration = cfg.generation;
+        completedPid = Process.myPid();
+        Log.i(TAG, "NATIVE_NCI_PREFLIGHT generation=" + cfg.generation + " " + stage
+                + " - no HAL/NCI call attempted");
+    }
+
+    /**
+     * INTERCEPT never calls the privileged Vendor API or triggers applyRouting.
+     * It only arms an in-process replacement for the next natural OEM HCE call.
+     */
+    private void runFileInterceptCommand(SimConfig cfg) {
+        if (!cfg.active) {
+            if (noUidWriteToRestore()) {
+                completeNoOverrideStop(cfg, "No Type-A parameters were replaced in this NFC process");
+            } else {
+                requestControllerRestart(cfg, "OEM HCE parameters were intercepted; stock restoration "
+                        + "requires explicit NFC service reload and external verification");
+            }
+            return;
+        }
+        if (strictTypeAHex(cfg.uid, 4, 7, 10) == null ||
+                strictTypeAHex(cfg.atqa, 2) == null ||
+                strictTypeAHex(cfg.sak, 1) == null) {
+            failVendorTypeACommand(cfg, "INTERCEPT_INVALID_PARAMETERS",
+                    "File profile requires NFC-A UID (4/7/10), ATQA (2) and SAK (1) bytes");
+            return;
+        }
+        writeSimpleCommandState("INTERCEPT_WAITING",
+                "Waiting for a natural ColorOS HceAccessCard Type-A configuration call; "
+                        + "no OEM request was generated", cfg.generation, "APPLY", false);
+        lifecycleExecutor.execute(() -> {
+            sleep(6_000L);
+            SimConfig latest = readConfig();
+            if (!latest.initialized || latest.generation != cfg.generation ||
+                    latest.handledGeneration == cfg.generation ||
+                    !latest.active || !latest.useInterceptTypeA() ||
+                    isGenerationCompleted(cfg.generation, Process.myPid())) return;
+            // No method invocation is not a controller failure; the persistent
+            // interceptor must remain armed for a later natural OEM call.
+            ContentValues waiting = baseHookState();
+            waiting.put("state_generation", cfg.generation);
+            waiting.put("command_consumed_generation", cfg.generation);
+            waiting.put("command_status", "INTERCEPT_ARMED_NO_CALL");
+            waiting.put("command_action", "APPLY");
+            waiting.put("command_detail", "No ColorOS HCE Type-A call observed yet; "
+                    + "interceptor remains armed until STOP");
+            waiting.put("command_pid", Process.myPid());
+            waiting.put("operation_state", "WAITING");
+            waiting.put("effective_state", "UNKNOWN");
+            waiting.put("verification_confidence", "NO_OEM_CALL");
+            waiting.put("rf_accepted", false);
+            waiting.put("rf_status", "INTERCEPT_ARMED_NO_CALL");
+            waiting.put("rf_uid", "");
+            waiting.put("rf_source", "file-intercept-hce");
+            waiting.put("rf_pid", Process.myPid());
+            waiting.put("rf_generation", cfg.generation);
+            waiting.put("rf_verification", "NOT_OBSERVED");
+            waiting.put("full_diag_stage", "INTERCEPT_ARMED_NO_CALL");
+            long lastHceAt = lastColorOsHceCallAtMs;
+            boolean beforeApply = lastHceAt > 0L && lastHceAt < cfg.generation;
+            waiting.put("coloros_intercept_last_hce_before_apply", beforeApply);
+            waiting.put("coloros_intercept_last_hce_at_ms", lastHceAt);
+            waiting.put("full_diag_summary", beforeApply
+                    ? "ColorOS HCE was called before APPLY; no Type-A call after arm. "
+                        + "Use the explicit NFC-service reload while interception is active."
+                    : "Interception armed, waiting for natural OEM call");
+            writeValuesWithRetry(waiting, 8, 75L);
+        });
+    }
+
+    /** Argument shape telemetry never reads or exports NFC identifiers. */
+    private static int privateByteLength(Object[] args, int index) {
+        return args != null && index >= 0 && index < args.length &&
+                args[index] instanceof byte[] ? ((byte[]) args[index]).length : -1;
+    }
+
+    private static boolean isColorOsTypeACallOnStack() {
+        for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
+            if ("com.oplus.nfc.hceaccesscard.HceAccessCard".equals(frame.getClassName())
+                    && "doSetHceTypeAConfig".equals(frame.getMethodName())) return true;
+        }
+        return false;
+    }
+
+    private static String readOnlyResult(Object value) {
+        if (value instanceof Boolean) return (Boolean) value ? "TRUE" : "FALSE";
+        if (value instanceof Integer) return "INT_" + value;
+        if (value == null) return "VOID_OR_NULL";
+        // Never serialize arbitrary object.toString() into diagnostics.
+        return "RETURNED_" + value.getClass().getSimpleName();
+    }
+
+    private void persistColorOsReadOnlyEvent(String key, String result, boolean completed) {
+        ContentValues v = baseHookState();
+        v.put("coloros_observe_" + key + "_pid", Process.myPid());
+        v.put("coloros_observe_" + key + "_at_ms", System.currentTimeMillis());
+        v.put("coloros_observe_" + key + "_result", result);
+        v.put("coloros_observe_" + key + "_completed", completed);
+        writeValuesWithRetry(v, 4, 75L);
+    }
+
+    /**
+     * Read-only availability inspection. The OEM region getter and Android
+     * read-only system property are invoked, but NO Type-A configuration,
+     * permission grant, routing change or NFC restart is performed.
+     * A region getter's boolean is a policy hint, not an RF UID proof.
+     */
+    private void inspectColorOsRegionSupport(ClassLoader cl, int pid) {
+        String cn = "UNAVAILABLE";
+        String supported = "UNAVAILABLE";
+        String property = "UNAVAILABLE";
+        try {
+            Class<?> cls = Class.forName("com.oplus.nfc.util.NfcRegionUtils", false, cl);
+            Method getter = cls.getDeclaredMethod("isRegionCN");
+            getter.setAccessible(true);
+            cn = readOnlyResult(getter.invoke(null));
+        } catch (Throwable error) {
+            cn = "ERROR_" + error.getClass().getSimpleName();
+        }
+        try {
+            Class<?> cls = Class.forName("android.os.SystemProperties");
+            Method getter = cls.getDeclaredMethod("getBoolean", String.class, boolean.class);
+            getter.setAccessible(true);
+            property = readOnlyResult(getter.invoke(null, "ro.oplus.nfc.hce_accesscard", false));
+        } catch (Throwable error) {
+            property = "ERROR_" + error.getClass().getSimpleName();
+        }
+        try {
+            Class<?> cls = Class.forName("com.oplus.nfc.NfcFeatureFetcher", false, cl);
+            Method getter = cls.getDeclaredMethod("isSupportHceAccessCardByRegion");
+            getter.setAccessible(true);
+            supported = readOnlyResult(getter.invoke(null));
+        } catch (Throwable error) {
+            supported = "ERROR_" + error.getClass().getSimpleName();
+        }
+        ContentValues v = baseHookState();
+        v.put("coloros_region_probe_pid", pid);
+        v.put("coloros_region_cn", cn);
+        v.put("coloros_region_hce_property", property);
+        v.put("coloros_region_support", supported);
+        v.put("coloros_region_source", "OEM getters only; no Type-A command invoked");
+        writeValuesWithRetry(v, 5, 75L);
+        Log.i(TAG, "COLOROS_REGION_READ_ONLY pid=" + pid
+                + " cn=" + cn + " property=" + property + " support=" + supported);
+    }
+
     private void installRfHook(ClassLoader cl, int pid, HookTarget target) throws Exception {
         Method method = target.resolve(cl);
         hook(method).intercept(chain -> {
+            // YSuite already owns the hook graph; never rewrite or trigger STOP from the
+            // still-loaded standalone hook during a live owner handoff.
+            if (HookConfigStore.isPassive()) return chain.proceed();
             Object[] args = chain.getArgs().toArray();
             int payloadArg = findSingleByteArrayArg(args);
-            if (payloadArg < 0) return chain.proceed();
+            if (payloadArg < 0) {
+                observeUidWriter(target, pid, -1, 0, "NO_SINGLE_BYTE_ARRAY", "");
+                return chain.proceed();
+            }
+            // On new firmware setNciConfig consumes a *single parameter value*,
+            // not a CORE_SET_CONFIG frame. It must never enter RawNciCodec:
+            // the direct UID writer below owns the 0x33 argument composition.
+            if ("setNciConfig".equals(target.methodName)) {
+                return chain.proceed();
+            }
             byte[] original = (byte[]) args[payloadArg];
             int payloadScore = payloadEngine.inspectScore(original);
+            // Distinguish a complete CORE_SET_CONFIG command from TLV-only
+            // or vendor-private byte arrays before making any RF assumptions.
+            observeUidWriter(target, pid, original == null ? -1 : original.length,
+                    payloadScore, UidPayloadProbe.shape(original),
+                    UidPayloadProbe.prefixHex(original, 12));
             if (payloadScore <= 0) return chain.proceed();
 
             HookTarget owner = activeTarget;
@@ -419,6 +1274,25 @@ public class NfcInjectionModule extends XposedModule {
                     captureRfInvocationSnapshot(method, chain.getThisObject(), args, payloadArg, target, pid);
                     return chain.proceed();
                 }
+            }
+
+            // Legacy active sessions retain their original backend only until STOP.
+            // Never rewrite RF payloads for an older non-RF session. The current
+            // Provider forces every new APPLY to RF, so this is migration safety
+            // rather than an alternative simulation mode.
+            if (cfg.useVendorTypeA() || cfg.useInterceptTypeA() || cfg.useNativeNci()) {
+                return chain.proceed();
+            }
+
+            // A terminal failed APPLY is not a pending request. If a later OEM
+            // RF write happens naturally, it must not silently apply a UID
+            // while the UI still reports FAILED; only a new APPLY generation
+            // can authorize another UID configuration attempt.
+            if (cfg.active && cfg.generation == cfg.handledGeneration &&
+                    !"SUCCESS".equals(cfg.commandStatus)) {
+                if (cfg.diagnostics) Log.i(TAG, "RFPROBE SKIP_TERMINAL_APPLY status="
+                        + cfg.commandStatus + " generation=" + cfg.generation);
+                return chain.proceed();
             }
 
             // A natural RF write in a new NFC process is the best lifecycle recovery trigger. Mark
@@ -483,7 +1357,9 @@ public class NfcInjectionModule extends XposedModule {
                 disabledFailureGeneration = Long.MIN_VALUE;
             }
 
-            RewriteResult rewritten = payloadEngine.rewrite(original, hexToBytes(uidHex));
+            // Replacement only: never append a second NFCID1 when the real controller
+            // does not supply a fully parsed, unique existing LA_NFCID1 field.
+            RewriteResult rewritten = payloadEngine.replaceExisting(original, hexToBytes(uidHex));
             if (!rewritten.changed) {
                 writeRfProgress(cfg, "WAITING", uidHex, target.methodName + ": " + rewritten.reason, rewritten.codecId);
                 return chain.proceed();
@@ -502,6 +1378,7 @@ public class NfcInjectionModule extends XposedModule {
 
             Object[] rewrittenArgs = args.clone();
             rewrittenArgs[payloadArg] = rewritten.data;
+            nativeUidMutationAttempted = true;
             Object result = chain.proceed(rewrittenArgs);
             NativeOutcome outcome = interpretNativeResult(method, result);
             if (outcome.accepted) {
@@ -562,6 +1439,94 @@ public class NfcInjectionModule extends XposedModule {
             }
             return result;
         });
+    }
+
+    /**
+     * UID-only RF capability evidence for the current NFC process.
+     *
+     * The historical replay target may belong to another PID/controller
+     * generation; never consider it proof. Emit one observation per unique
+     * target and payload shape, without invoking or modifying any RF method.
+     */
+    private void observeUidWriter(HookTarget target, int pid, int bytes, int score,
+                                  String shape, String prefix) {
+        String fingerprint = target == null ? "unknown" : target.fingerprint();
+        String key = pid + "|" + fingerprint + "|" + shape;
+        synchronized (observedUidWriterShapes) {
+            // Bounded per-process records. No repeated Provider writes on the
+            // NFC native configuration call stack.
+            if (observedUidWriterShapes.size() >= 20 || !observedUidWriterShapes.add(key)) return;
+        }
+        Log.i(TAG, "UID_WRITER_OBSERVED pid=" + pid + " target=" + fingerprint
+                + " shape=" + shape + " bytes=" + bytes + " score=" + score
+                + " prefix=" + prefix);
+        commandExecutor.execute(() -> {
+            if (Process.myPid() != pid) return;
+            ContentValues v = baseHookState();
+            v.put("rf_uid_writer_observed_pid", pid);
+            v.put("rf_uid_writer_target", fingerprint);
+            v.put("rf_uid_writer_payload_bytes", bytes);
+            v.put("rf_uid_writer_payload_score", score);
+            v.put("rf_uid_writer_payload_shape", shape);
+            v.put("rf_uid_writer_payload_prefix", prefix);
+            v.put("rf_uid_writer_observed_at", System.currentTimeMillis());
+            writeValuesWithRetry(v, 3, 50L);
+        });
+    }
+
+    /**
+     * Class inventory only: never call an OEM method just because it shares a
+     * familiar name. A discovered method can still be unsuitable for rewriting.
+     */
+    private void inspectUidEntryPoints(ClassLoader cl, int pid) {
+        String[] classes = {
+                "com.android.nfc.dhimpl.NxpNativeNfcManager",
+                "com.android.nfc.dhimpl.NativeNfcManager",
+                "com.android.nfc.nxp.NxpNfcService$NxpNfcAdapterService"
+        };
+        String legacy = describeUidMethod(cl, classes, "changeRfParamsByConfig");
+        String modern = describeUidMethod(cl, classes, "setNciConfig");
+        ContentValues values = baseHookState();
+        values.put("rf_uid_inventory_pid", pid);
+        values.put("rf_uid_legacy_entry", legacy);
+        values.put("rf_uid_modern_entry", modern);
+        writeValuesWithRetry(values, 8, 75L);
+        Log.i(TAG, "UID_ENTRY_INVENTORY pid=" + pid + " legacy=" + legacy
+                + " modern=" + modern);
+    }
+
+    private static String describeUidMethod(ClassLoader cl, String[] candidates, String targetName) {
+        StringBuilder result = new StringBuilder();
+        for (String className : candidates) {
+            try {
+                Class<?> c = Class.forName(className, false, cl);
+                boolean found = false;
+                for (Method method : c.getDeclaredMethods()) {
+                    if (!targetName.equals(method.getName())) continue;
+                    if (result.length() != 0) result.append(" | ");
+                    result.append(className).append('#').append(targetName).append('(');
+                    Class<?>[] args = method.getParameterTypes();
+                    for (int i = 0; i < args.length; i++) {
+                        if (i != 0) result.append(',');
+                        result.append(args[i].getSimpleName());
+                    }
+                    result.append("):").append(method.getReturnType().getSimpleName());
+                    found = true;
+                }
+                if (!found) {
+                    if (result.length() != 0) result.append(" | ");
+                    result.append(className).append(":METHOD_ABSENT");
+                }
+            } catch (ClassNotFoundException error) {
+                if (result.length() != 0) result.append(" | ");
+                result.append(className).append(":CLASS_ABSENT");
+            } catch (Throwable error) {
+                if (result.length() != 0) result.append(" | ");
+                result.append(className).append(":INSPECT_ERROR_")
+                        .append(error.getClass().getSimpleName());
+            }
+        }
+        return result.toString();
     }
 
     private void installRefreshTriggerHook(ClassLoader cl, int pid, HookTarget target) throws Exception {
@@ -634,6 +1599,29 @@ public class NfcInjectionModule extends XposedModule {
         return fallback;
     }
 
+
+    /** A routing request is not UID proof. Terminalize if no native RF write occurred. */
+    private void scheduleRfTriggerTimeout(SimConfig cfg, int pid) {
+        lifecycleExecutor.execute(() -> {
+            sleep(TRIGGER_RF_WINDOW_MS + 500L);
+            if (Process.myPid() != pid || isGenerationCompleted(cfg.generation, pid)) return;
+            SimConfig latest = readConfig();
+            if (!latest.initialized || latest.generation != cfg.generation ||
+                    latest.handledGeneration == cfg.generation ||
+                    !("TRIGGERED".equals(latest.commandStatus) ||
+                            "RUNNING".equals(latest.commandStatus))) return;
+            boolean observed = confirmedTriggerGeneration == cfg.generation;
+            NfcProcessVendorController.Result timeout =
+                    new NfcProcessVendorController.Result(false,
+                            observed ? "RF_UID_WRITE_NOT_ACCEPTED" : "RF_NATIVE_WRITE_NOT_OBSERVED",
+                            observed
+                                    ? "RF configuration writer invoked but no native-accepted UID change recorded"
+                                    : "Java routing refresh completed without a current-PID NFC-A UID configuration writer callback",
+                            null);
+            failRfTriggerCommand(latest, timeout);
+        });
+    }
+
     private void armTriggerWindow(long generation, String source, long windowMs) {
         pendingTriggerGeneration = generation;
         pendingTriggerStartedAt = System.currentTimeMillis();
@@ -680,7 +1668,17 @@ public class NfcInjectionModule extends XposedModule {
                 @Override public void onChange(boolean selfChange) { scheduleCommandRefresh("provider_change"); }
                 @Override public void onChange(boolean selfChange, Uri uri) { scheduleCommandRefresh("provider_change"); }
             };
-            app.getContentResolver().registerContentObserver(CONFIG_URI, true, observer);
+            app.getContentResolver().registerContentObserver(
+                    HookConfigStore.activeUri(), true, observer);
+            // Listen for handoff/fallback changes without restarting the NFC process.
+            if (!HookConfigStore.standaloneUri().equals(HookConfigStore.activeUri())) {
+                app.getContentResolver().registerContentObserver(
+                        HookConfigStore.standaloneUri(), true, observer);
+            }
+            if (!HookConfigStore.suiteUri().equals(HookConfigStore.activeUri())) {
+                app.getContentResolver().registerContentObserver(
+                        HookConfigStore.suiteUri(), true, observer);
+            }
             commandObserver = observer;
             observerRegistered = true;
             registerAdapterStateReceiver(app);
@@ -767,7 +1765,19 @@ public class NfcInjectionModule extends XposedModule {
      */
     private void runLifecycleRecovery(String reason) {
         SimConfig cfg = readConfig();
+        if (cfg.useVendorTypeA()) {
+            Log.i(TAG, "VENDOR_TYPE_A lifecycle: RF replay skipped reason=" + reason
+                    + " generation=" + cfg.generation + "; revalidation required after controller reset");
+            return;
+        }
         int pid = Process.myPid();
+        if (cfg.active && "UNVERIFIED".equals(cfg.commandStatus)) {
+            // The modern native setNciConfig(0x33) method returns void:
+            // its previously submitted request is UNVERIFIED, not SUCCESS.
+            // Do not run legacy multi-retry RF/share-mode fallback here.
+            runOwnNciLifecycleRecovery(cfg, reason);
+            return;
+        }
         if (!cfg.initialized || !cfg.active || cfg.uid == null || cfg.generation <= 0L ||
                 cfg.handledGeneration != cfg.generation || !"SUCCESS".equals(cfg.commandStatus)) return;
         String uidHex = normalizeUid(cfg.uid);
@@ -884,6 +1894,110 @@ public class NfcInjectionModule extends XposedModule {
         }
     }
 
+    /**
+     * A true controller OFF -> ON or service-process restart clears the
+     * transient NFC-A identity. Queue exactly ONE existing single-shot
+     * pause -> setNciConfig(0x33) -> resume sequence per invalidation edge.
+     * No extra NFC service restart, RF discovery hook or retry timer.
+     */
+    private void runOwnNciLifecycleRecovery(SimConfig expected, String reason) {
+        final int pid = Process.myPid();
+        final long invalidAt = lastControllerInvalidAt;
+        HookConfigStore.OwnNciRfEvidence stored = configStore.readOwnNciRfEvidence();
+        if (!OwnNciLifecyclePolicy.shouldRecover(expected, stored, pid,
+                invalidAt, ownNciLastWriteInvalidAt, ownNciLastWriteGeneration)) return;
+
+        // The native initialize() READY signal can precede isNfcEnabled().
+        // Wait for the regular system initialization; do not toggle NFC.
+        boolean ready = false;
+        for (int attempt = 0; attempt < 16; attempt++) {
+            if (!OwnNciLifecyclePolicy.sameDesiredCommand(expected, readConfig())) return;
+            if (isOwnNciServiceEnabled()) { ready = true; break; }
+            sleep(250L);
+        }
+        if (!ready) {
+            persistOwnNciLifecycleStage(expected, "WAITING_FOR_NFC_ON", reason);
+            Log.i(TAG, "OWN_NCI_LIFECYCLE_SKIP reason=NFC_NOT_ON generation="
+                    + expected.generation + " pid=" + pid);
+            return;
+        }
+
+        // NFC Java READY can precede OPlus' final RF/listen routing setup.
+        // The previous device trace showed recovery 53 ms after READY.
+        // Wait once for OEM initialization to settle without manipulating
+        // Discovery or starting a retry task.
+        persistOwnNciLifecycleStage(expected, "WAITING_FOR_OEM_INIT_SETTLE", reason);
+        while (true) {
+            long remaining = OwnNciLifecyclePolicy.remainingSettleMs(
+                    lastControllerReadyAt, System.currentTimeMillis());
+            if (remaining <= 0L) break;
+            if (lastControllerInvalidAt != invalidAt || controllerInvalid ||
+                    !OwnNciLifecyclePolicy.sameDesiredCommand(expected, readConfig())) return;
+            sleep(Math.min(remaining, 200L));
+        }
+
+        // The serial NFC command executor is shared with manual APPLY/STOP.
+        // A newly published STOP or switched card supersedes this operation.
+        commandExecutor.execute(() -> {
+            SimConfig live = readConfig();
+            HookConfigStore.OwnNciRfEvidence current = configStore.readOwnNciRfEvidence();
+            if (!OwnNciLifecyclePolicy.sameDesiredCommand(expected, live) ||
+                    !OwnNciLifecyclePolicy.shouldRecover(live, current, pid,
+                            invalidAt, ownNciLastWriteInvalidAt, ownNciLastWriteGeneration) ||
+                    lastControllerInvalidAt != invalidAt || controllerInvalid ||
+                    !isOwnNciServiceEnabled()) return;
+            synchronized (this) {
+                if (lastControllerInvalidAt != invalidAt ||
+                        (ownNciLastWriteGeneration == live.generation &&
+                         ownNciLastWriteInvalidAt >= invalidAt)) return;
+                // A native exception may occur after the NFCC was changed.
+                // Mark before the attempt to rule out automatic retries.
+                ownNciLastWriteGeneration = live.generation;
+                ownNciLastWriteInvalidAt = invalidAt;
+            }
+            persistOwnNciLifecycleStage(live, "ONE_SHOT_ATTEMPT", reason);
+            Log.i(TAG, "OWN_NCI_LIFECYCLE_ONCE generation=" + live.generation +
+                    " epoch=" + live.controllerEpoch + " invalidAt=" + invalidAt +
+                    " readyAgeMs=" + (System.currentTimeMillis() - lastControllerReadyAt) +
+                    " pid=" + pid + " reason=" + reason);
+            if (!tryOwnNciUidWrite(live, true)) {
+                persistOwnNciLifecycleStage(live, "WRITER_NOT_READY_NO_RETRY", reason);
+                Log.w(TAG, "OWN_NCI_LIFECYCLE_SKIP reason=WRITER_NOT_READY_NO_RETRY");
+            }
+        });
+    }
+
+    private boolean isOwnNciServiceEnabled() {
+        try {
+            if (nfcClassLoader == null) return false;
+            Class<?> cls = Class.forName("com.android.nfc.NfcService", false, nfcClassLoader);
+            Method instance = cls.getDeclaredMethod("getInstance");
+            instance.setAccessible(true);
+            Object service = instance.invoke(null);
+            return service != null &&
+                    Boolean.TRUE.equals(cls.getMethod("isNfcEnabled").invoke(service));
+        } catch (Throwable absent) {
+            return false;
+        }
+    }
+
+    private void persistOwnNciLifecycleStage(SimConfig cfg, String stage, String reason) {
+        ContentValues v = new ContentValues();
+        v.put("state_generation", cfg.generation);
+        v.put("own_nci_lifecycle_stage", stage);
+        v.put("own_nci_lifecycle_reason", reason);
+        v.put("own_nci_lifecycle_generation", cfg.generation);
+        v.put("own_nci_lifecycle_epoch", cfg.controllerEpoch);
+        v.put("own_nci_lifecycle_pid", Process.myPid());
+        long now = System.currentTimeMillis();
+        v.put("own_nci_lifecycle_at", now);
+        v.put("own_nci_lifecycle_ready_at", lastControllerReadyAt);
+        v.put("own_nci_lifecycle_invalid_at", lastControllerInvalidAt);
+        v.put("own_nci_lifecycle_ready_age_ms",
+                lastControllerReadyAt > 0 ? Math.max(0L, now - lastControllerReadyAt) : -1L);
+        writeValuesWithRetry(v, 4, 75L);
+    }
+
     private boolean awaitLateReplayAvailability(long generation, int pid) {
         long end = System.currentTimeMillis() + LIFECYCLE_FINAL_REPLAY_GRACE_MS;
         while (System.currentTimeMillis() < end) {
@@ -915,7 +2029,7 @@ public class NfcInjectionModule extends XposedModule {
         int rfPid = 0;
         boolean accepted = false;
         String effective = "", confidence = "", rfUid = "";
-        try (Cursor c = ctx.getContentResolver().query(CONFIG_URI, null, null, null, null)) {
+        try (Cursor c = ctx.getContentResolver().query(HookConfigStore.activeUri(), null, null, null, null)) {
             if (c == null) return false;
             while (c.moveToNext()) {
                 String key = c.getString(0), value = c.getString(1);
@@ -983,11 +2097,19 @@ public class NfcInjectionModule extends XposedModule {
         // Provider is the durable command authority. A new com.android.nfc process must not replay
         // an already handled generation just because this Java instance lost its in-memory cache.
         boolean persistedTerminal = cfg.generation > 0L && cfg.handledGeneration == cfg.generation &&
-                ("SUCCESS".equals(cfg.commandStatus) || "FAILED".equals(cfg.commandStatus));
+                ("SUCCESS".equals(cfg.commandStatus) || "FAILED".equals(cfg.commandStatus)
+                        || "NO_OVERRIDE".equals(cfg.commandStatus)
+                        || "UNVERIFIED".equals(cfg.commandStatus));
         if (persistedTerminal) {
             completedGeneration = cfg.generation;
             completedPid = pid;
             lastTriggeredGeneration = cfg.generation;
+            // READY may fire before the Provider and its observer become
+            // available on boot. One startup backup closes that gap.
+            if ("startup".equals(reason) && cfg.active &&
+                    "UNVERIFIED".equals(cfg.commandStatus)) {
+                scheduleLifecycleRecovery("process_startup");
+            }
             if ("SUCCESS".equals(cfg.commandStatus) && cfg.active) {
                 if (!isLifecycleVerified(cfg.generation, pid, cfg.uid)) {
                     boolean suppressSelfRetry = "provider_change".equals(reason) &&
@@ -1020,22 +2142,422 @@ public class NfcInjectionModule extends XposedModule {
         Log.i(TAG, "COMMAND " + action + " reason=" + reason + " generation=" + cfg.generation + " uid=" + cfg.uid + " pid=" + pid +
                 " restoreMode=" + restoreMode);
 
-        if (!cfg.active && controllerReinitRequired) {
-            requestControllerRestart(cfg, "Appended LA_NFCID1 requires NFC process/controller restart; direct stock delete is not assumed safe");
+        // Legacy STOP paths remain for safe recovery of already-running sessions.
+        // Provider rejects new non-RF APPLY commands.
+        if (!cfg.active && cfg.useNativeNci()) {
+            runNativeNciCommand(cfg);
+            return;
+        }
+        if (!cfg.active && cfg.useVendorTypeA()) {
+            runVendorTypeACommand(cfg, reason);
+            return;
+        }
+        if (!cfg.active && cfg.useInterceptTypeA()) {
+            runFileInterceptCommand(cfg);
             return;
         }
 
+        if (!cfg.active) {
+            if (noUidWriteToRestore()) {
+                completeNoOverrideStop(cfg, "No UID RF/NCI configuration was written in this NFC process; no restart required");
+                return;
+            }
+            if (controllerReinitRequired || (nativeUidMutationAttempted && reversibleStockPayload == null)) {
+                requestControllerRestart(cfg,
+                        "A UID RF/NCI write was attempted without a reversible stock snapshot; NFC controller restart required");
+                return;
+            }
+        }
+
+        // No OEM emulateNfcATag: try our own single LA_NFCID1 controller write.
+        // Older NFC APKs continue using the existing main RF Hook/refresh.
+        if (cfg.active && tryOwnNciUidWrite(cfg)) return;
+
+        // RF UID-only is fully independent of the ColorOS Vendor backend.
+        // Do not probe or call OEM Type-A/ShareMode just to start RF mode.
         NfcProcessVendorController.Result trigger = triggerRfRefresh(cfg, cfg.active, "command:" + reason);
         if (isGenerationCompleted(cfg.generation, pid)) return;
         if (trigger.success) {
             writeSimpleCommandState("TRIGGERED", trigger.detail + "; waiting for RF confirmation", cfg.generation, action, false);
+            scheduleRfTriggerTimeout(cfg, pid);
         } else {
-            writeSimpleCommandState("TRIGGER_FAILED", trigger.stage + ": " + trigger.detail, cfg.generation, action, false);
-            writeSemanticState("FAILED", "UNKNOWN", "TRIGGER_FAILED", false, null);
+            failRfTriggerCommand(cfg, trigger);
         }
     }
 
+
+    /**
+     * NFC Service 17.0.0.260114: NativeNfcManager#setNciConfig(int,byte[],int,boolean).
+     * Send only LA_NFCID1=0x33 ourselves, without calling the OEM emulator.
+     * Because JNI returns void, dispatch is NEVER counted as verified RF success.
+     */
+    private boolean tryOwnNciUidWrite(SimConfig cfg) {
+        return tryOwnNciUidWrite(cfg, false);
+    }
+
+    private boolean tryOwnNciUidWrite(SimConfig cfg, boolean lifecycleRecovery) {
+        if (!cfg.initialized || !cfg.active || cfg.useVendorTypeA()
+                || cfg.useInterceptTypeA() || cfg.useNativeNci()) return false;
+        if (nfcClassLoader == null) return false;
+        byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
+        if (uid == null) return false;
+        boolean invoked = false;
+        boolean discoveryPauseAttempted = false;
+        Method restoreRouting = null;
+        Object routingOwner = null;
+        try {
+            Class<?> cls = Class.forName("com.android.nfc.NfcService", false, nfcClassLoader);
+            Method instanceMethod = cls.getDeclaredMethod("getInstance");
+            instanceMethod.setAccessible(true);
+            Object service = instanceMethod.invoke(null);
+            if (service == null) return false;
+            if (!Boolean.TRUE.equals(cls.getMethod("isNfcEnabled").invoke(service)))
+                return false;
+            Object host = cls.getMethod("getDeviceHost").invoke(service);
+            if (host == null) return false;
+            Method setter = host.getClass().getMethod("setNciConfig",
+                    int.class, byte[].class, int.class, boolean.class);
+            if (!Modifier.isNative(setter.getModifiers()) ||
+                    !"com.android.nfc.dhimpl.NativeNfcManager".equals(
+                        setter.getDeclaringClass().getName())) return false;
+
+            // On NFC Service 17, both methods are present in the uploaded APK.
+            // NCI Listen-A parameters should be changed while RF Discovery is
+            // stopped. The old direct 0x33 write was sent during an unknown RF
+            // state and the NFCC rejected it with 0x09 (invalid parameter).
+            // This is still our original RF/LSPosed path; do not invoke the
+            // OEM Type-A emulator, vendor Binder, or any new backend.
+            Method stopDiscovery = host.getClass().getMethod("disableDiscovery");
+            restoreRouting = cls.getDeclaredMethod("applyRouting", boolean.class);
+            restoreRouting.setAccessible(true);
+            routingOwner = service;
+            // Record the possible controller mutation before calling void JNI.
+            nativeUidMutationAttempted = true;
+            controllerReinitRequired = true;
+            restoreMode = "CONTROLLER_REINIT";
+            persistRestoreState();
+            invoked = true;
+            // Set the recovery flag before invoking even the first native
+            // transition: a thrown exception may leave discovery suspended.
+            discoveryPauseAttempted = true;
+            Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_REQUEST generation=" + cfg.generation);
+            stopDiscovery.invoke(host);
+            Log.i(TAG, "OWN_NCI_DISCOVERY_PAUSE_RETURN generation=" + cfg.generation);
+            setter.invoke(host, 0x33, uid.clone(), uid.length, true);
+            synchronized (this) {
+                ownNciLastWriteGeneration = cfg.generation;
+                ownNciLastWriteInvalidAt = Math.max(
+                        ownNciLastWriteInvalidAt, lastControllerInvalidAt);
+            }
+            if (lifecycleRecovery) {
+                // JNI is void; keep the original user command UNVERIFIED.
+                // Never forge RF success or mutate a terminal generation.
+                persistOwnNciLifecycleStage(cfg, "WRITE_REQUESTED_RF_UNVERIFIED",
+                        "controller_reinitialized");
+                Log.i(TAG, "OWN_NCI_LIFECYCLE_WRITE_REQUESTED generation="
+                        + cfg.generation + " epoch=" + cfg.controllerEpoch
+                        + " uidBytes=" + uid.length + " pid=" + Process.myPid());
+                return true;
+            }
+            ContentValues v = baseHookState();
+            v.put("state_generation", cfg.generation);
+            v.put("command_consumed_generation", cfg.generation);
+            v.put("command_handled_generation", cfg.generation);
+            v.put("command_action", "APPLY");
+            v.put("command_status", "UNVERIFIED");
+            v.put("command_detail", "Own LA_NFCID1 0x33 write invoked after discovery-pause request; NCI response pending");
+            v.put("command_pid", Process.myPid());
+            v.put("operation_state", "WAITING_FOR_RF");
+            v.put("effective_state", "UNKNOWN");
+            v.put("verification_confidence", "NCI_WRITE_UNVERIFIED");
+            v.put("rf_status", "OWN_NCI_UID_REQUESTED");
+            v.put("rf_uid", normalizeUid(cfg.uid));
+            v.put("rf_source", "own-nci-0x33");
+            v.put("rf_accepted", false);
+            v.put("rf_pid", Process.myPid());
+            v.put("rf_generation", cfg.generation);
+            v.put("rf_controller_epoch", cfg.controllerEpoch);
+            v.put("rf_native_result_type", "void-no-ack");
+            v.put("rf_verification", "EXTERNAL_RF_NOT_VERIFIED");
+            v.put("full_diag_stage", "OWN_NCI_UID_REQUESTED");
+            v.put("full_diag_summary", "RF discovery pause requested, direct NCI 0x33 sent, routing resume queued; await NCI response");
+            writeValuesWithRetry(v, 20, 100L);
+            completedGeneration = cfg.generation;
+            completedPid = Process.myPid();
+            Log.i(TAG, "OWN_NCI_UID_REQUESTED generation=" + cfg.generation +
+                    " uidBytes=" + uid.length + " nativeVoid=true");
+            return true;
+        } catch (ClassNotFoundException | NoSuchMethodException absent) {
+            return false;
+        } catch (Throwable err) {
+            Throwable cause = err.getCause() == null ? err : err.getCause();
+            Log.e(TAG, "OWN_NCI_UID_EXCEPTION generation=" + cfg.generation, cause);
+            if (invoked) {
+                if (lifecycleRecovery) {
+                    persistOwnNciLifecycleStage(cfg, "WRITE_FAILED_NO_RETRY",
+                            cause.getClass().getSimpleName());
+                } else {
+                    failRfTriggerCommand(cfg, new NfcProcessVendorController.Result(false,
+                            "OWN_NCI_NATIVE_EXCEPTION",
+                            cause.getClass().getSimpleName() + ": " + cause.getMessage()
+                            + "; recover NFC controller via STOP", null));
+                }
+                return true;
+            }
+            return false;
+        } finally {
+            if (discoveryPauseAttempted && restoreRouting != null && routingOwner != null) {
+                final Method method = restoreRouting;
+                final Object owner = routingOwner;
+                final long generation = cfg.generation;
+                final int pid = Process.myPid();
+                // The OEM NFC service owns discovery/routing on its main looper.
+                // Posting the restore avoids invoking applyRouting from a
+                // command executor and preserves HCE and polling policies.
+                boolean scheduled = pollingMainHandler.post(() -> {
+                    try {
+                        method.invoke(owner, true);
+                        Log.i(TAG, "OWN_NCI_DISCOVERY_RESUME_REQUEST generation="
+                                + generation + " pid=" + pid + " mainThread=true");
+                    } catch (Throwable failure) {
+                        Log.e(TAG, "OWN_NCI_DISCOVERY_RESUME_FAILED generation="
+                                + generation + " pid=" + pid + " (STOP can restore service)",
+                                failure);
+                    }
+                });
+                if (!scheduled) {
+                    Log.e(TAG, "OWN_NCI_DISCOVERY_RESUME_NOT_SCHEDULED generation="
+                            + generation + " pid=" + pid);
+                }
+            }
+        }
+    }
+
+    /**
+     * Persist RF trigger errors as a single terminal generation update.
+     * A split TRIGGER_FAILED + semantic FAILED write left command_handled_generation
+     * stale, full_diag_stage stuck at COMMAND_PENDING and UI waiting indefinitely.
+     */
+    private void failRfTriggerCommand(SimConfig cfg, NfcProcessVendorController.Result trigger) {
+        String detail = trigger.stage + ": " + trigger.detail;
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_action", cfg.active ? "APPLY" : "STOP");
+        v.put("command_status", "FAILED");
+        v.put("command_detail", detail);
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", "FAILED");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", "TRIGGER_FAILED");
+        v.put("rf_accepted", false);
+        v.put("rf_status", "TRIGGER_FAILED");
+        v.put("rf_uid", "");
+        v.put("rf_source", "rf-trigger");
+        v.put("rf_pid", Process.myPid());
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_verification", "FAILED");
+        v.put("rf_error", detail);
+        v.put("full_diag_stage", "TRIGGER_FAILED");
+        v.put("full_diag_summary", detail);
+        writeValuesWithRetry(v, 20, 100L);
+        completedGeneration = cfg.generation;
+        completedPid = Process.myPid();
+    }
+
+    private boolean noUidWriteToRestore() {
+        return !nativeUidMutationAttempted && !vendorTypeAWriteAttempted
+                && !controllerReinitRequired && reversibleStockPayload == null;
+    }
+
+    /**
+     * Terminal STOP acknowledgement for a controller never modified by YNFC
+     * in this process. This is NOT a VERIFIED stock RF response: it only proves
+     * that stopping needs no UID rollback or NFC service restart.
+     */
+    private void completeNoOverrideStop(SimConfig cfg, String detail) {
+        int pid = Process.myPid();
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_action", "STOP");
+        v.put("command_status", "NO_OVERRIDE");
+        v.put("command_detail", detail);
+        v.put("command_pid", pid);
+        v.put("operation_state", "IDLE");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", "NO_MODIFICATION");
+        v.put("rf_status", "NO_OVERRIDE");
+        v.put("rf_accepted", false);
+        v.put("rf_uid", "");
+        v.put("rf_source", "no-uid-write");
+        v.put("rf_pid", pid);
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_controller_epoch", cfg.controllerEpoch);
+        v.put("rf_verification", "NO_UID_WRITE");
+        v.put("rf_error", "");
+        v.put("full_diag_stage", "STOP_NO_OVERRIDE");
+        v.put("full_diag_summary", detail);
+        writeValuesWithRetry(v, 20, 100L);
+        completedGeneration = cfg.generation;
+        completedPid = pid;
+        Log.i(TAG, "STOP_NO_OVERRIDE generation=" + cfg.generation
+                + " pid=" + pid + " no NFC restart");
+    }
+
+    /**
+     * Opt-in ColorOS Vendor Type-A. A Vendor return value proves only acceptance
+     * by the OEM API, not external RF identity. RF Hook and replay stay idle.
+     * STOP always hands off to the existing controller restart/stock restoration.
+     */
+    private void runVendorTypeACommand(SimConfig cfg, String reason) {
+        // A rejected Vendor APPLY (e.g. OEM signature permission denial) has
+        // never modified Type-A hardware. Do not restart NFC merely to STOP.
+        if (!cfg.active && noUidWriteToRestore()) {
+            completeNoOverrideStop(cfg, "Vendor Type-A never changed the controller in this NFC process; no restart required");
+            return;
+        }
+        byte[] uid = strictTypeAHex(cfg.uid, 4, 7, 10);
+        byte[] sak = strictTypeAHex(cfg.sak, 1);
+        byte[] atqa = strictTypeAHex(cfg.atqa, 2);
+        String action = cfg.active ? "APPLY" : "STOP";
+        if (uid == null || sak == null || atqa == null) {
+            String error = "Vendor Type-A requires explicit valid UID (4/7/10 bytes), "
+                    + "SAK (1 byte), and ATQA (2 bytes); source=stored card";
+            Log.w(TAG, "VENDOR_TYPE_A_INVALID " + error);
+            if (!cfg.active) {
+                requestControllerRestart(cfg, error + "; recover stock controller");
+            } else {
+                failVendorTypeACommand(cfg, "TYPE_A_INVALID_PARAMETERS", error);
+            }
+            return;
+        }
+
+        if (!cfg.active) {
+            // Never assume the vendor disable call alone restores eSE and RF
+            // routing. Always restart the NFC process afterward for stock state.
+            NfcProcessVendorController.Result disabled =
+                    vendorController.setTypeAConfig(false, atqa, sak, uid);
+            Log.i(TAG, "VENDOR_TYPE_A_STOP stage=" + disabled.stage
+                    + " accepted=" + disabled.success + " reason=" + reason);
+            if (!disabled.success) {
+                // ColorOS persists its access-card mode. An NFC-process restart by itself
+                // cannot prove that a rejected OEM disable restored the stock RF state.
+                failVendorTypeACommand(cfg, "TYPE_A_DISABLE_REJECTED",
+                        "ColorOS Type-A disable failed: " + disabled.stage + ": " + disabled.detail);
+                return;
+            }
+            requestControllerRestart(cfg, "Vendor Type-A disable accepted: " + disabled.stage
+                    + "; stock NFC process/controller restart required");
+            return;
+        }
+
+        NfcProcessVendorController.Result capability = vendorController.probeTypeA();
+        Log.i(TAG, "VENDOR_TYPE_A_DISCOVERY generation=" + cfg.generation
+                + " selectedBackend=VENDOR capability=" + capability.stage
+                + " methodPresent=" + capability.success + " detail=" + capability.detail);
+        if (!capability.success) {
+            String stage = "TYPE_A_PERMISSION_DENIED".equals(capability.stage)
+                    ? "TYPE_A_PERMISSION_DENIED" : "TYPE_A_UNAVAILABLE";
+            failVendorTypeACommand(cfg, stage,
+                    "Vendor Type-A unavailable: " + capability.stage + ": " + capability.detail);
+            return;
+        }
+
+        boolean previousAttempt = vendorTypeAWriteAttempted;
+        vendorTypeAWriteAttempted = true;
+        NfcProcessVendorController.Result result =
+                vendorController.setTypeAConfig(true, atqa, sak, uid);
+        // Permission denial occurs before an OEM configuration is dispatched.
+        // Keep an older successful/uncertain attempt sticky if one existed.
+        if ("TYPE_A_PERMISSION_DENIED".equals(result.stage)) {
+            vendorTypeAWriteAttempted = previousAttempt;
+        }
+        Log.i(TAG, "VENDOR_TYPE_A_APPLY generation=" + cfg.generation
+                + " stage=" + result.stage + " accepted=" + result.success
+                + " uid=" + cfg.uid + " reason=" + reason);
+        if (!result.success) {
+            boolean permissionDenied = "TYPE_A_PERMISSION_DENIED".equals(result.stage);
+            failVendorTypeACommand(cfg,
+                    permissionDenied ? "TYPE_A_PERMISSION_DENIED" : "TYPE_A_REJECTED",
+                    (permissionDenied ? "Vendor Type-A permission denied: " : "Vendor Type-A rejected: ")
+                            + result.stage + ": " + result.detail);
+            return;
+        }
+
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_status", "VENDOR_API_ACCEPTED");
+        v.put("command_detail", "OEM accepted Type-A configuration; external reader verification required");
+        v.put("command_action", "APPLY");
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", "VERIFYING");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", "UNVERIFIED");
+        v.put("rf_status", "VENDOR_API_ACCEPTED");
+        v.put("rf_accepted", false);
+        v.put("rf_uid", "");
+        v.put("rf_source", "vendor-type-a");
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_verification", "EXTERNAL_READER_REQUIRED");
+        v.put("full_diag_stage", "VENDOR_API_ACCEPTED");
+        v.put("full_diag_summary", "Vendor method accepted; NFC controller/reader not verified");
+        writeValuesWithRetry(v, 20, 100L);
+    }
+
+    private void failVendorTypeACommand(SimConfig cfg, String stage, String detail) {
+        // Publish all terminal fields together. ConfigProvider protects terminal
+        // generations against subsequent partial writes, so separate status and
+        // semantic updates could leave the runtime showing stale PENDING values.
+        ContentValues v = baseHookState();
+        v.put("state_generation", cfg.generation);
+        v.put("command_consumed_generation", cfg.generation);
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_action", cfg.active ? "APPLY" : "STOP");
+        v.put("command_status", "FAILED");
+        v.put("command_detail", detail);
+        v.put("command_pid", Process.myPid());
+        v.put("operation_state", "FAILED");
+        v.put("effective_state", "UNKNOWN");
+        v.put("verification_confidence", stage);
+        v.put("rf_accepted", false);
+        v.put("rf_status", stage);
+        v.put("rf_uid", "");
+        v.put("rf_source", "vendor-type-a");
+        v.put("rf_pid", Process.myPid());
+        v.put("rf_generation", cfg.generation);
+        v.put("rf_error", detail);
+        v.put("rf_verification", "FAILED");
+        v.put("full_diag_stage", stage);
+        v.put("full_diag_summary", detail);
+        writeValuesWithRetry(v, 20, 100L);
+    }
+
+    private static byte[] strictTypeAHex(String raw, int... allowedBytes) {
+        if (raw == null) return null;
+        String hex = raw.replaceAll("[\\s:.-]", "").trim();
+        if (hex.isEmpty() || !hex.matches("(?i)[0-9a-f]+") || (hex.length() & 1) != 0)
+            return null;
+        boolean validLength = false;
+        for (int length : allowedBytes) {
+            if (hex.length() == length * 2) {
+                validLength = true;
+                break;
+            }
+        }
+        if (!validLength) return null;
+        byte[] result = new byte[hex.length() / 2];
+        for (int i = 0; i < result.length; i++)
+            result[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+        return result;
+    }
+
     private synchronized void clearRestoreState() {
+        // Explicit stock restoration was accepted on the same native writer.
+        nativeUidMutationAttempted = false;
         reversibleStockPayload = null;
         reversibleTargetFingerprint = null;
         reversibleCapturedGeneration = Long.MIN_VALUE;
@@ -1315,6 +2837,8 @@ public class NfcInjectionModule extends XposedModule {
     private void reportStatusWithRetry(int pid, boolean ready, int count, String stage, String summary, String targetId) {
         ContentValues v = new ContentValues();
         v.put("hook_build", HOOK_BUILD);
+        v.put("hook_impl_revision", BuildConfig.INTERCEPT_IMPL_REVISION);
+        v.put("hook_impl_revision_pid", Process.myPid());
         v.put("scope_ok", true);
         v.put("scope_process", "com.android.nfc");
         v.put("scope_pid", pid);
@@ -1496,6 +3020,8 @@ public class NfcInjectionModule extends XposedModule {
         int pid = Process.myPid();
         ContentValues v = new ContentValues();
         v.put("hook_build", HOOK_BUILD);
+        v.put("hook_impl_revision", BuildConfig.INTERCEPT_IMPL_REVISION);
+        v.put("hook_impl_revision_pid", Process.myPid());
         v.put("scope_ok", true);
         v.put("scope_process", "com.android.nfc");
         v.put("scope_pid", pid);

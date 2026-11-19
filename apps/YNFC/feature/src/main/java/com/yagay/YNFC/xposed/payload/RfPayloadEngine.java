@@ -28,6 +28,44 @@ public final class RfPayloadEngine {
                 first.id() + ':' + firstResult.reason + " | " + second.id() + ':' + secondResult.reason);
     }
 
+    /**
+     * RF execution path for UID replacement. Never creates a new 0x33
+     * parameter and never guesses the layout of an OEM-private payload.
+     * Legacy rewrite() is retained for historical compatibility tests only.
+     */
+    public RewriteResult replaceExisting(byte[] input, byte[] uid) {
+        int oplusScore = inspect(oplusCodec, input);
+        int rawScore = inspect(rawCodec, input);
+        if (oplusScore <= 0 && rawScore <= 0)
+            return RewriteResult.skip("none", "NO_REPLACEABLE_NCI_CONFIG_PAYLOAD");
+
+        RfPayloadCodec first = oplusScore >= rawScore ? oplusCodec : rawCodec;
+        RfPayloadCodec second = first == oplusCodec ? rawCodec : oplusCodec;
+        int secondScore = first == oplusCodec ? rawScore : oplusScore;
+        RewriteResult firstResult = strictReplaceSafely(first, input, uid);
+        if (firstResult.changed) return firstResult;
+        if (secondScore <= 0)
+            return RewriteResult.skip("none", first.id() + ':' + firstResult.reason);
+        RewriteResult secondResult = strictReplaceSafely(second, input, uid);
+        if (secondResult.changed) return secondResult;
+        return RewriteResult.skip("none",
+                first.id() + ':' + firstResult.reason + " | "
+                        + second.id() + ':' + secondResult.reason);
+    }
+
+    private static RewriteResult strictReplaceSafely(RfPayloadCodec codec, byte[] input, byte[] uid) {
+        try {
+            if (codec instanceof OplusTextConfigCodec)
+                return ((OplusTextConfigCodec) codec).replaceExisting(input, uid);
+            if (codec instanceof RawNciCodec)
+                return ((RawNciCodec) codec).replaceExisting(input, uid);
+            return RewriteResult.skip(codec.id(), "STRICT_REPLACE_CODEC_NOT_SUPPORTED");
+        } catch (Throwable error) {
+            return RewriteResult.skip(codec.id(),
+                    error.getClass().getSimpleName() + ": " + error.getMessage());
+        }
+    }
+
     private static int inspect(RfPayloadCodec codec, byte[] input) {
         try { return codec.inspect(input); } catch (Throwable ignored) { return 0; }
     }

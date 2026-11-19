@@ -2,35 +2,48 @@ package com.yagay.YFloat;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
-import com.yagay.yui.YAppearanceSettings;
-
-/**
- * Backward-compatible facade for existing YFloat callers. The setting is owned by YUI.
- * Do not add feature-local theme preferences here.
- */
+/** Persistent app appearance preference with system/light/dark modes. */
 final class ThemeSettings {
-    static final int MODE_SYSTEM = YAppearanceSettings.MODE_SYSTEM;
-    static final int MODE_LIGHT = YAppearanceSettings.MODE_LIGHT;
-    static final int MODE_DARK = YAppearanceSettings.MODE_DARK;
+    static final int MODE_SYSTEM = 0;
+    static final int MODE_LIGHT = 1;
+    static final int MODE_DARK = 2;
 
-    static int mode(Context context) {
-        return context == null ? MODE_SYSTEM : YAppearanceSettings.mode(context);
+    /** Theme selection is an inherited YUI value, never a second local preference. */
+    static int mode(Context c) {
+        if (c == null) return MODE_SYSTEM;
+        String current = new com.yagay.yui.YAppearanceStore(c)
+            .value(com.yagay.yui.YSettingKey.THEME, "yfloat");
+        return "dark".equals(current) ? MODE_DARK
+            : "light".equals(current) ? MODE_LIGHT : MODE_SYSTEM;
     }
 
-    static boolean setMode(Context context, int value) {
-        return context != null && YAppearanceSettings.setMode(context, value);
+    static boolean setMode(Context c, int mode) {
+        if (c == null) return false;
+        int next = clamp(mode);
+        if (next == mode(c)) return false;
+        String value = next == MODE_DARK ? "dark" : next == MODE_LIGHT ? "light" : "system";
+        new com.yagay.yui.YAppearanceStore(c)
+            .set(com.yagay.yui.YSettingKey.THEME, value, "yfloat");
+        // Shared YUI runtime handles active Activity refresh; no second theme lifecycle.
+        return true;
     }
 
-    static void applySavedMode(Context context) {
-        if (context != null) YAppearanceSettings.applySavedMode(context);
-    }
+    /** Shared YUI owns theme changes and window styling; do not change AppCompat globally. */
+    static void applySavedMode(Context c) { }
 
-    static boolean isDark(Context context) {
-        return context != null && YAppearanceSettings.isDark(context);
+    static boolean isDark(Context c) {
+        if (c == null) return false;
+        int mode = mode(c);
+        if (mode == MODE_DARK) return true;
+        if (mode == MODE_LIGHT) return false;
+        int night = c.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK;
+        return night == Configuration.UI_MODE_NIGHT_YES;
     }
 
     static void applySystemBars(Activity activity) {
@@ -42,6 +55,11 @@ final class ThemeSettings {
             controller.setAppearanceLightStatusBars(light);
             controller.setAppearanceLightNavigationBars(light);
         } catch (Throwable ignored) { }
+    }
+
+    private static int clamp(int mode) {
+        if (mode < MODE_SYSTEM || mode > MODE_DARK) return MODE_SYSTEM;
+        return mode;
     }
 
     private ThemeSettings() { }

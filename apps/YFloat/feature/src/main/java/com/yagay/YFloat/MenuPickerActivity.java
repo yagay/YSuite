@@ -2,6 +2,8 @@ package com.yagay.YFloat;
 
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
+import com.yagay.yui.YView;
+import com.yagay.suite.api.InstalledAppCatalog;
 import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.Context;
@@ -19,6 +21,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
@@ -39,6 +42,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
     public static final String EXTRA_MODE = "mode";
     public static final String SECTION_CUSTOM = "custom";
     public static final String SECTION_TARGET = "target";
+    public static final String SECTION_IMAGE = "image";
 
     private String section;
     private String targetMode;
@@ -56,6 +60,10 @@ public final class MenuPickerActivity extends AppCompatActivity {
                         ? TargetMenuStore.MODE_PROCESS : TargetMenuStore.MODE_SHARE);
     }
 
+    public static Intent imageIntent(Context c) {
+        return new Intent(c, MenuPickerActivity.class).putExtra(EXTRA_SECTION, SECTION_IMAGE);
+    }
+
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -63,12 +71,170 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 handleBackNavigation();
             }
         });
-        section = SECTION_TARGET.equals(getIntent().getStringExtra(EXTRA_SECTION))
-                ? SECTION_TARGET : SECTION_CUSTOM;
+        String requested = getIntent().getStringExtra(EXTRA_SECTION);
+        section = SECTION_TARGET.equals(requested) ? SECTION_TARGET
+                : SECTION_IMAGE.equals(requested) ? SECTION_IMAGE : SECTION_CUSTOM;
         targetMode = TargetMenuStore.MODE_PROCESS.equals(getIntent().getStringExtra(EXTRA_MODE))
                 ? TargetMenuStore.MODE_PROCESS : TargetMenuStore.MODE_SHARE;
-        if (isTargetSection()) showTargetManager();
+        if (SECTION_IMAGE.equals(section)) showImageManager();
+        else if (isTargetSection()) showTargetManager();
         else showCustomHome();
+    }
+
+    private void showImageManager() {
+        boolean zh = java.util.Locale.getDefault().getLanguage().equals("zh");
+        LinearLayout root = page(zh ? "图片与圈画截图菜单" : "Image and screenshot menu",
+                zh ? "与文字菜单共用数量、圆角、颜色及按钮大小；操作内容独立管理。"
+                        : "Shares menu count, corners, colors and sizing with text actions.",
+                null);
+        YViewSection common = YViewLayout.section(this,
+                zh ? "统一菜单设置" : "Shared menu settings", null);
+        YViewLayout.addRow(common.body, YViewLayout.navRow(this,
+                zh ? "菜单主栏数量" : "Primary action count",
+                TextMenuSettings.mainItemCount(this)
+                        + (zh ? " 个 · 同时控制文字与图片" : " · shared by text and images"),
+                () -> startActivity(new Intent(this, AppearanceSettingsActivity.class))));
+        YViewLayout.addSection(root, common);
+        YViewSection add = YViewLayout.section(this,
+                zh ? "添加图片操作" : "Add image actions",
+                zh ? "仅显示支持接收图片的应用操作。" : "Shows activities that can receive images.");
+        YViewLayout.addRow(add.body,YViewLayout.navRow(this,
+                zh ? "添加图片分享应用" : "Add image sharing app",
+                zh ? "添加支持图片分享的应用快捷操作" : "Add an app shortcut for image sharing",
+                () -> showImageAddTargets(ImageCustomMenuStore.SEND)));
+        YViewLayout.addRow(add.body,YViewLayout.navRow(this,
+                zh ? "添加图片打开／编辑应用" : "Add image open/edit app",
+                zh ? "添加支持打开图片的应用快捷操作" : "Add a shortcut for opening images",
+                () -> showImageAddTargets(ImageCustomMenuStore.VIEW)));
+        YViewLayout.addSection(root,add);
+
+        YViewSection items = YViewLayout.section(this,
+                zh ? "图片操作顺序与显示" : "Image action order and visibility",
+                zh ? "点击操作可隐藏、显示、上移或下移。" : "Tap an action to show, hide or move it.");
+        for (String id : ImageMenuSettings.ordered(this)) {
+            String subtitle = ImageMenuSettings.isVisible(this,id)
+                    ? (zh ? "已显示" : "Visible") : (zh ? "已隐藏" : "Hidden");
+            if (ImageMenuSettings.DONE.equals(id) || ImageMenuSettings.RESET.equals(id)) {
+                subtitle += zh ? " · 仅圈画截图" : " · crop selection only";
+            }
+            View item = YViewLayout.navRow(this, ImageMenuSettings.label(this,id), subtitle, null);
+            item.setOnClickListener(v -> showImageOptions(id, v));
+            YViewLayout.addRow(items.body, item);
+        }
+        YViewLayout.addSection(root, items);
+        YViewSection reset = YViewLayout.section(this,
+                zh ? "恢复设置" : "Restore defaults", null);
+        YViewLayout.addRow(reset.body, YViewLayout.navRow(this,
+                zh ? "重置图片菜单" : "Reset image actions",
+                zh ? "恢复默认排序、全部显示" : "Restore default order and visibility",
+                () -> { ImageMenuSettings.reset(this); showImageManager(); }));
+        YViewLayout.addSection(root, reset);
+        show(root);
+    }
+
+    private void showImageOptions(String id, View anchor) {
+        boolean zh = java.util.Locale.getDefault().getLanguage().equals("zh");
+        PopupMenu popup = com.yagay.yui.YViewTransientControls.popupMenu(this, anchor);
+        List<String> order = ImageMenuSettings.ordered(this);
+        boolean visible = ImageMenuSettings.isVisible(this,id);
+        popup.getMenu().add(0,1,0,visible ? (zh ? "隐藏" : "Hide") : (zh ? "显示" : "Show"));
+        popup.getMenu().add(0,2,1,zh ? "上移" : "Move up")
+                .setEnabled(order.indexOf(id) > 0);
+        popup.getMenu().add(0,3,2,zh ? "下移" : "Move down")
+                .setEnabled(order.indexOf(id) < order.size()-1);
+        if(ImageCustomMenuStore.isCustom(id)) {
+            popup.getMenu().add(0,4,3,zh ? "重命名" : "Rename");
+            popup.getMenu().add(0,5,4,zh ? "删除" : "Remove");
+        }
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId()==1) ImageMenuSettings.setVisible(this,id,!visible);
+            else if (item.getItemId()==2) ImageMenuSettings.move(this,id,-1);
+            else if (item.getItemId()==3) ImageMenuSettings.move(this,id,1);
+            else if (item.getItemId()==4) {
+                editImageActionLabel(id);
+                return true;
+            }
+            else if (item.getItemId()==5) ImageMenuSettings.removeCustom(this,id);
+            showImageManager();
+            return true;
+        });
+        popup.show();
+    }
+
+    private void editImageActionLabel(String id) {
+        ImageCustomMenuStore.Item item=ImageCustomMenuStore.find(this,id);
+        if(item==null)return;
+        android.widget.EditText input=new android.widget.EditText(this);
+        YViewLayout.styleInput(this,input);
+        input.setSingleLine(true);
+        input.setText(item.label);
+        input.selectAll();
+        boolean zh=java.util.Locale.getDefault().getLanguage().equals("zh");
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(zh?"重命名图片操作":"Rename image action")
+                .setView(input)
+                .setNegativeButton(zh?"取消":"Cancel",null)
+                .setPositiveButton(zh?"保存":"Save",(dialog,which) -> {
+                    ImageCustomMenuStore.rename(this,id,input.getText().toString());
+                    showImageManager();
+                }).show();
+    }
+
+    private void showImageAddTargets(String mode) {
+        boolean zh=java.util.Locale.getDefault().getLanguage().equals("zh");
+        boolean send=ImageCustomMenuStore.SEND.equals(mode);
+        Intent probe=send
+                ? new Intent(Intent.ACTION_SEND).setType("image/png")
+                : new Intent(Intent.ACTION_VIEW).setDataAndType(
+                        android.net.Uri.parse("content://com.yagay.yfloat.menu/image.png"),
+                        "image/png");
+        List<ResolveInfo> handlers=query(probe);
+        handlers.removeIf(ri -> ri.activityInfo==null
+                || !ri.activityInfo.exported
+                || getPackageName().equals(ri.activityInfo.packageName));
+        handlers.sort(Comparator.comparing(this::resolveAppThenActivityLabel,
+                String.CASE_INSENSITIVE_ORDER));
+        LinearLayout root=page(
+                send ? (zh?"图片分享应用":"Image sharing apps")
+                        : (zh?"图片打开／编辑应用":"Image open/edit apps"),
+                zh?"选择操作后，将作为图片菜单中的快捷按钮。"
+                        :"Select a receiver to add it as a screenshot menu shortcut.",
+                this::showImageManager);
+        addLocalBack(root,zh?"返回图片菜单":"Back to image menu");
+        YViewSection targets=YViewLayout.section(this,
+                zh?"兼容应用（"+handlers.size()+"）":"Compatible handlers ("+handlers.size()+")",null);
+        renderImageTargets(targets.body,handlers,mode,"");
+        addSearchField(root,zh?"搜索应用或操作":"Search apps or actions",
+                query -> renderImageTargets(targets.body,handlers,mode,query));
+        YViewLayout.addSection(root,targets);
+        show(root);
+    }
+
+    private void renderImageTargets(LinearLayout body,List<ResolveInfo> handlers,
+                                    String mode,String query) {
+        body.removeAllViews();
+        boolean zh=java.util.Locale.getDefault().getLanguage().equals("zh");
+        int shown=0;
+        for(ResolveInfo ri:handlers) {
+            if(ri==null||ri.activityInfo==null)continue;
+            ActivityInfo ai=ri.activityInfo;
+            String application=appLabel(ai.applicationInfo);
+            String name=resolveLabel(ri);
+            if(!matchesSearch(query,application,name,ai.packageName,ai.name))continue;
+            String title=application+": "+name;
+            YViewLayout.addRow(body,actionRow(title,shortClass(ai.name),
+                    appIcon(ai.packageName),() -> {
+                        boolean added=ImageCustomMenuStore.add(this,title,
+                                ai.packageName,ai.name,mode);
+                        Toast.makeText(this,added
+                                ? (zh?"已添加图片操作":"Image action added")
+                                : (zh?"操作已存在或无法添加":"Already added or unavailable"),
+                                Toast.LENGTH_SHORT).show();
+                        if(added)showImageManager();
+                    },zh?"添加":"Add"));
+            shown++;
+        }
+        if(shown==0)addEmpty(body,zh?"没有找到兼容的图片操作":"No compatible image actions found");
     }
 
     // -----------------------------------------------------------------------------------------
@@ -153,9 +319,14 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 this::showCustomHome);
         addLocalBack(root, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_d35e0660dc9b));
 
-        List<ApplicationInfo> apps;
-        try { apps = new ArrayList<>(pm().getInstalledApplications(0)); }
-        catch (Throwable t) { apps = new ArrayList<>(); }
+        List<ApplicationInfo> apps = new ArrayList<>();
+        try {
+            for (InstalledAppCatalog.Entry entry : InstalledAppCatalog.list(this, 0)) {
+                apps.add(entry.info);
+            }
+        } catch (RuntimeException ignored) {
+            // Keep the page usable if the package service is temporarily unavailable.
+        }
         apps.removeIf(a -> a == null || !a.enabled || getPackageName().equals(a.packageName));
         apps.sort(Comparator.comparing(this::appLabel, String.CASE_INSENSITIVE_ORDER));
 
@@ -252,8 +423,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
                                                    String hint,
                                                    java.util.function.Consumer<String> onQuery) {
         LinearLayout box = YViewLayout.settingBlock(this);
-        box.setPadding(YViewLayout.dp(this, 2), YViewLayout.dp(this, 2),
-                YViewLayout.dp(this, 2), YViewLayout.dp(this, 7));
+        box.setPadding(Math.max(0, YView.controlGap(this) / 4), Math.max(0, YView.controlGap(this) / 4),
+                Math.max(0, YView.controlGap(this) / 4), YView.controlGap(this));
 
         android.widget.EditText input = new android.widget.EditText(this);
         YViewLayout.styleInput(this, input);
@@ -264,7 +435,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = YViewLayout.dp(this, 3);
+        lp.bottomMargin = Math.max(0, YView.controlGap(this) / 4);
         root.addView(box, lp);
 
         input.addTextChangedListener(new android.text.TextWatcher() {
@@ -397,10 +568,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
                 null);
 
         YViewSection tools = YViewLayout.section(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_1e1616217b08), null);
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setPadding(YViewLayout.dp(this, 14), YViewLayout.dp(this, 8),
-                YViewLayout.dp(this, 14), YViewLayout.dp(this, 8));
+        LinearLayout buttons = YViewLayout.buttonRow(this);
         MaterialButton add = YViewLayout.secondaryButton(this,
                 isShareTarget() ? com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c) : com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_31b59703873c));
         add.setOnClickListener(v -> showTargetAdd());
@@ -411,12 +579,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
             Toast.makeText(this, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_ac034f023e0c), Toast.LENGTH_SHORT).show();
             showTargetManager();
         });
-        LinearLayout.LayoutParams aLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        aLp.setMarginEnd(YViewLayout.dp(this, 6));
-        buttons.addView(add, aLp);
-        LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        rLp.setMarginStart(YViewLayout.dp(this, 6));
-        buttons.addView(reset, rLp);
+        YViewLayout.addAction(buttons, add);
+        YViewLayout.addAction(buttons, reset);
         YViewLayout.addRow(tools.body, buttons);
         YViewLayout.addSection(root, tools);
 
@@ -550,9 +714,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
                              Runnable moveUp,
                              Runnable moveDown,
                              Runnable remove) {
+        // YUI baseRow is the sole owner of normal-screen row spacing.
         LinearLayout row = YViewLayout.baseRow(this);
-        row.setPadding(YViewLayout.dp(this, 6), YViewLayout.dp(this, 7),
-                YViewLayout.dp(this, 6), YViewLayout.dp(this, 7));
 
         ImageView handle = iconButton(
                 R.drawable.yfloat_ic_drag_handle,
@@ -563,44 +726,61 @@ public final class MenuPickerActivity extends AppCompatActivity {
             ClipData clip = ClipData.newPlainText("YFloat menu item", dragKey);
             return row.startDragAndDrop(clip, new View.DragShadowBuilder(row), dragKey, 0);
         });
-        row.addView(handle, new LinearLayout.LayoutParams(dp(36), dp(52)));
+        // Dragging remains available. Every actionable target is at least 48dp wide.
+        row.addView(handle, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
 
-        addIcon(row, icon, 34, 10);
+        addIcon(row, icon, 34, 8);
 
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView titleView = YViewLayout.text(this, title, 14, false);
-        titleView.setSingleLine(true);
+        TextView titleView = YViewLayout.rowTitle(this, title);
         texts.addView(titleView);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = YViewLayout.caption(this, subtitle, 11);
-            sub.setSingleLine(true);
-            sub.setPadding(0, dp(2), 0, 0);
+            TextView sub = YViewLayout.rowSubtitle(this, subtitle);
             texts.addView(sub);
         }
-        row.addView(texts, new LinearLayout.LayoutParams(0, dp(52), 1f));
+        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        ImageView up = iconButton(
-                R.drawable.yfloat_ic_arrow_up,
-                index > 0,
-                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a283bf829d2e));
-        up.setOnClickListener(v -> { if (moveUp != null) moveUp.run(); });
-        row.addView(up, new LinearLayout.LayoutParams(dp(34), dp(42)));
+        String upLabel = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a283bf829d2e);
+        String downLabel = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e8ccedf0f78c);
+        String removeLabel = com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a5758272df8c);
+        if (getResources().getConfiguration().screenWidthDp < 480) {
+            // Three 48dp buttons would leave almost no room for app/component names.
+            // Compact layouts keep all commands in one accessible overflow menu.
+            TextView more = YViewLayout.text(this, "⋮", 22, false);
+            more.setGravity(Gravity.CENTER);
+            more.setContentDescription(upLabel + ", " + downLabel + ", " + removeLabel);
+            more.setClickable(true);
+            more.setFocusable(true);
+            more.setBackground(YViewLayout.rowBackground(this));
+            more.setOnClickListener(v -> {
+                PopupMenu popup = com.yagay.yui.YViewTransientControls.popupMenu(this, more);
+                popup.getMenu().add(0, 1, 0, upLabel).setEnabled(index > 0 && moveUp != null);
+                popup.getMenu().add(0, 2, 1, downLabel).setEnabled(index < total - 1 && moveDown != null);
+                popup.getMenu().add(0, 3, 2, removeLabel).setEnabled(remove != null);
+                popup.setOnMenuItemClickListener(item -> {
+                    if (item.getItemId() == 1 && moveUp != null) moveUp.run();
+                    else if (item.getItemId() == 2 && moveDown != null) moveDown.run();
+                    else if (item.getItemId() == 3 && remove != null) remove.run();
+                    return true;
+                });
+                popup.show();
+            });
+            row.addView(more, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
+        } else {
+            ImageView up = iconButton(R.drawable.yfloat_ic_arrow_up, index > 0, upLabel);
+            up.setOnClickListener(v -> { if (moveUp != null) moveUp.run(); });
+            row.addView(up, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
 
-        ImageView down = iconButton(
-                R.drawable.yfloat_ic_arrow_down,
-                index < total - 1,
-                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_e8ccedf0f78c));
-        down.setOnClickListener(v -> { if (moveDown != null) moveDown.run(); });
-        row.addView(down, new LinearLayout.LayoutParams(dp(34), dp(42)));
+            ImageView down = iconButton(R.drawable.yfloat_ic_arrow_down, index < total - 1, downLabel);
+            down.setOnClickListener(v -> { if (moveDown != null) moveDown.run(); });
+            row.addView(down, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
 
-        ImageView delete = iconButton(
-                R.drawable.yfloat_ic_close,
-                true,
-                com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a5758272df8c));
-        delete.setOnClickListener(v -> { if (remove != null) remove.run(); });
-        row.addView(delete, new LinearLayout.LayoutParams(dp(36), dp(42)));
+            ImageView delete = iconButton(R.drawable.yfloat_ic_close, true, removeLabel);
+            delete.setOnClickListener(v -> { if (remove != null) remove.run(); });
+            row.addView(delete, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
+        }
         return row;
     }
 
@@ -619,25 +799,22 @@ public final class MenuPickerActivity extends AppCompatActivity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView a = YViewLayout.text(this, title, 15, false);
-        a.setSingleLine(true);
+        TextView a = YViewLayout.rowTitle(this, title);
         texts.addView(a);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView b = YViewLayout.caption(this, subtitle, 12);
-            b.setSingleLine(true);
-            b.setPadding(0, dp(2), dp(8), 0);
+            TextView b = YViewLayout.rowSubtitle(this, subtitle);
             texts.addView(b);
         }
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
 
         if (sideText != null) {
-            MaterialButton side = YViewLayout.compactButton(this, sideText);
+            MaterialButton side = YViewLayout.secondaryButton(this, sideText);
             side.setOnClickListener(v -> { if (action != null) action.run(); });
             row.addView(side, new LinearLayout.LayoutParams(-2, -2));
         } else {
             ImageView arrow = iconButton(R.drawable.yfloat_ic_chevron_right, true, null);
             arrow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            row.addView(arrow, new LinearLayout.LayoutParams(dp(28), dp(42)));
+            row.addView(arrow, new LinearLayout.LayoutParams(YView.touchTarget(this), YView.touchTarget(this)));
         }
         row.setOnClickListener(v -> { if (action != null) action.run(); });
         return row;
@@ -655,7 +832,7 @@ public final class MenuPickerActivity extends AppCompatActivity {
 
     private void addEmpty(LinearLayout parent, String message) {
         LinearLayout row = YViewLayout.baseRow(this);
-        TextView empty = YViewLayout.caption(this, message, 13);
+        TextView empty = YViewLayout.rowSubtitle(this, message);
         empty.setGravity(Gravity.CENTER_VERTICAL);
         row.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         YViewLayout.addRow(parent, row);
@@ -674,13 +851,13 @@ public final class MenuPickerActivity extends AppCompatActivity {
         MaterialButton back = YViewLayout.secondaryButton(this, label);
         back.setIconResource(R.drawable.yfloat_ic_arrow_back);
         back.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
-        back.setIconPadding(dp(8));
+        back.setIconPadding(Math.max(0, YView.controlGap(this) / 2));
         back.setOnClickListener(v -> {
             Runnable action = localBackAction;
             if (action != null) action.run();
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = YViewLayout.dp(this, 12);
+        lp.bottomMargin = YView.sectionGap(this);
         root.addView(back, lp);
     }
 
@@ -701,7 +878,8 @@ public final class MenuPickerActivity extends AppCompatActivity {
         view.setClickable(enabled);
         view.setFocusable(enabled);
         view.setContentDescription(contentDescription);
-        view.setPadding(dp(8), dp(8), dp(8), dp(8));
+        int padding = Math.max(0, YView.controlGap(this) / 2);
+        view.setPadding(padding, padding, padding, padding);
         view.setAlpha(enabled ? 1f : 0.38f);
         view.setColorFilter(enabled ? YViewLayout.textPrimary(this) : YViewLayout.textSecondary(this));
         android.util.TypedValue out = new android.util.TypedValue();
@@ -712,13 +890,12 @@ public final class MenuPickerActivity extends AppCompatActivity {
     }
 
     private TextView sortButton(String value, boolean enabled) {
-        TextView tv = YViewLayout.text(this, value, 19, false);
+        MaterialButton tv = YViewLayout.secondaryButton(this, value);
         tv.setGravity(Gravity.CENTER);
         tv.setEnabled(enabled);
         tv.setAlpha(enabled ? 1f : .25f);
         tv.setClickable(enabled);
         tv.setFocusable(enabled);
-        tv.setBackground(YViewLayout.rowBackground(this));
         return tv;
     }
 
@@ -764,16 +941,12 @@ public final class MenuPickerActivity extends AppCompatActivity {
 
     private String appLabel(ApplicationInfo ai) {
         if (ai == null) return com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_360008c909ca);
-        try {
-            CharSequence c = ai.loadLabel(pm());
-            if (c != null && !c.toString().isBlank()) return c.toString();
-        } catch (Throwable ignored) {}
-        return ai.packageName;
+        String label = InstalledAppCatalog.label(this, ai.packageName);
+        return label == null || label.isBlank() ? ai.packageName : label;
     }
 
     private Drawable appIcon(String pkg) {
-        try { return pm().getApplicationIcon(pkg); }
-        catch (Throwable ignored) { return null; }
+        return InstalledAppCatalog.icon(this, pkg, 64);
     }
 
     private Drawable targetIcon(TargetMenuStore.Item item) {

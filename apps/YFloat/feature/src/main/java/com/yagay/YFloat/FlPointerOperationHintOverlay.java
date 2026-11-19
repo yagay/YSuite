@@ -2,12 +2,16 @@ package com.yagay.YFloat;
 
 import android.content.Context;
 import android.graphics.Color;
+import com.yagay.yui.YOverlayUi;
+import com.yagay.yui.YOverlayTokens;
+import com.yagay.yui.YView;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -16,20 +20,17 @@ import android.widget.TextView;
 public final class FlPointerOperationHintOverlay {
     public enum Mode { TEXT, IMAGE, SCREENSHOT }
 
-    private static final float HINT_HEIGHT_DP = 20f;
-    private static final float PROBE_X_OFFSET_DP = 15f;
-    private static final float ICON_SIZE_DP = 20f;
-    private static final float TEXT_SIZE_DP = 10f;
-    private static final float TEXT_MAX_WIDTH_DP = 120f;
-    private static final int FL_YELLOW = 0xFFFBC02D;
-    private static final int FL_PICTURE = 0xFFC2185B;
+    private static final float PROBE_X_OFFSET_DP = 15f; // Physical probe geometry, not UI styling.
 
     private final Context context;
     private final FlOverlayWindowHost windowHost;
     private final int hintHeightPx;
     private final int probeXOffsetPx;
     private final int iconSizePx;
+    private final FrameLayout windowRoot;
     private final LinearLayout root;
+    private final int[] windowOrigin = new int[2];
+    private int screenX, screenY;
     private final ImageView icon;
     private final TextView text;
     private final WindowManager.LayoutParams lp;
@@ -40,9 +41,10 @@ public final class FlPointerOperationHintOverlay {
     public FlPointerOperationHintOverlay(Context c) {
         context = c.getApplicationContext();
         windowHost = new FlOverlayWindowHost(context);
-        hintHeightPx = dp(HINT_HEIGHT_DP);
+        iconSizePx = YView.iconSize(YOverlayUi.scopedContext(context, "yfloat"));
+        hintHeightPx = Math.max(iconSizePx,
+                YOverlayUi.actionHeightPx(context, "yfloat") / 2);
         probeXOffsetPx = dp(PROBE_X_OFFSET_DP);
-        iconSizePx = dp(ICON_SIZE_DP);
 
         root = new LinearLayout(context);
         root.setOrientation(LinearLayout.HORIZONTAL);
@@ -56,50 +58,77 @@ public final class FlPointerOperationHintOverlay {
         icon.setVisibility(View.GONE);
         root.addView(icon, new LinearLayout.LayoutParams(iconSizePx, iconSizePx));
 
-        text = new TextView(context);
-        text.setTextColor(Color.BLACK);
-        text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DP);
+        text = new TextView(YOverlayUi.scopedContext(context, "yfloat"));
+        YOverlayUi.styleHintText(text, "yfloat");
         text.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        text.setMaxWidth(dp(TEXT_MAX_WIDTH_DP));
+        text.setMaxWidth(Math.max(iconSizePx * 3,
+                ScreenGeometry.usableBounds(context).width() / 3));
         text.setMaxLines(1);
         text.setVisibility(View.GONE);
         root.addView(text, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.MATCH_PARENT));
 
+        // Keep the actual WindowManager surface fixed. Only translate the
+        // small content child on the GPU instead of sending a binder
+        // updateViewLayout() transaction on every Direct MOVE.
+        windowRoot = new FrameLayout(context);
+        windowRoot.setBackgroundColor(Color.TRANSPARENT);
+        windowRoot.addView(root, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, hintHeightPx));
+
         lp = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                hintHeightPx,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                         | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                         | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                        | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
+                        | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
-        lp.x = -hintHeightPx;
+        lp.x = 0;
         lp.y = 0;
+        lp.setFitInsetsTypes(0);
+        lp.setFitInsetsSides(0);
+        lp.setFitInsetsIgnoringVisibility(true);
+        lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
     }
 
     public void syncToProbeWindow(int probeWindowX, int probeWindowY) {
         int nextX = probeWindowX + probeXOffsetPx;
         int nextY = probeWindowY - hintHeightPx;
-        boolean changed = lp.x != nextX || lp.y != nextY;
-        lp.x = nextX;
-        lp.y = nextY;
+        if (screenX == nextX && screenY == nextY && attached) return;
+        screenX = nextX;
+        screenY = nextY;
 
         if (!attached) {
-            attached = windowHost.add(root, lp, "pointer_hint");
+            attached = windowHost.addFollowingIconLayer(windowRoot, lp, "pointer_hint");
             if (attached) {
+                windowRoot.getLocationOnScreen(windowOrigin);
+                // One origin update after layout covers status bar/cutout
+                // differences; following pointer motion stays view-local.
+                windowRoot.post(() -> {
+                    if (attached) {
+                        windowRoot.getLocationOnScreen(windowOrigin);
+                        updateContentTranslation();
+                    }
+                });
                 DiagnosticLog.i(context, "FL_POINTER_HINT",
-                        "ATTACH pos=" + lp.x + "," + lp.y
+                        "ATTACH fixed_fullscreen_render_only pos=" + screenX + "," + screenY
                                 + " height=" + hintHeightPx + " xOffset=" + probeXOffsetPx
-                                + " accessibilityHost=" + windowHost.isAccessibilityHosted());
+                                + " type=" + lp.type
+                                + " accessibilityHost=" + windowHost.isAccessibilityHosted(windowRoot));
             }
-            return;
         }
-        if (changed) windowHost.update(root, lp, "pointer_hint");
+        updateContentTranslation();
+    }
+
+    private void updateContentTranslation() {
+        if (!attached) return;
+        root.setTranslationX(screenX - windowOrigin[0]);
+        root.setTranslationY(screenY - windowOrigin[1]);
     }
 
     public void show(Mode next, int probeWindowX, int probeWindowY) {
@@ -111,32 +140,42 @@ public final class FlPointerOperationHintOverlay {
         syncToProbeWindow(probeWindowX, probeWindowY);
         if (!attached) return;
 
-        if (mode != next) {
+        boolean modeChanged = mode != next;
+        boolean iconHidden = icon.getVisibility() != View.VISIBLE;
+        boolean textChanged = optionalText == null
+                ? text.getVisibility() != View.GONE
+                : text.getVisibility() != View.VISIBLE
+                    || !optionalText.contentEquals(text.getText());
+        // Position changes are already queued by syncToProbeWindow. Avoid
+        // remeasuring the hint and submitting a second WindowManager transaction
+        // on every MOVE if its actual content has not changed.
+        if (!modeChanged && !iconHidden && !textChanged && contentVisible) return;
+
+        if (modeChanged) {
             mode = next;
             int drawableRes;
             int background;
             switch (next) {
-                case TEXT -> { drawableRes = R.drawable.fl_pointer_text; background = FL_YELLOW; }
-                case IMAGE -> { drawableRes = R.drawable.fl_pointer_image; background = FL_PICTURE; }
-                case SCREENSHOT -> { drawableRes = R.drawable.fl_pointer_screenshot; background = FL_YELLOW; }
-                default -> { drawableRes = R.drawable.fl_pointer_screenshot; background = FL_YELLOW; }
+                case TEXT -> { drawableRes = R.drawable.fl_pointer_text; background = YOverlayTokens.warning(YOverlayUi.scopedContext(context, "yfloat")); }
+                case IMAGE -> { drawableRes = R.drawable.fl_pointer_image; background = YOverlayTokens.accent(YOverlayUi.scopedContext(context, "yfloat")); }
+                case SCREENSHOT -> { drawableRes = R.drawable.fl_pointer_screenshot; background = YOverlayTokens.warning(YOverlayUi.scopedContext(context, "yfloat")); }
+                default -> { drawableRes = R.drawable.fl_pointer_screenshot; background = YOverlayTokens.warning(YOverlayUi.scopedContext(context, "yfloat")); }
             }
             icon.setImageResource(drawableRes);
             icon.setBackground(makeCircle(background));
         }
 
-        icon.setVisibility(View.VISIBLE);
+        if (iconHidden) icon.setVisibility(View.VISIBLE);
         if (optionalText == null) {
-            text.setVisibility(View.GONE);
-        } else {
+            if (textChanged) text.setVisibility(View.GONE);
+        } else if (textChanged) {
             text.setText(optionalText);
             text.setVisibility(View.VISIBLE);
         }
         contentVisible = true;
         root.requestLayout();
-        windowHost.update(root, lp, "pointer_hint");
         DiagnosticLog.i(context, "FL_POINTER_HINT",
-                "SHOW mode=" + mode + " pos=" + lp.x + "," + lp.y
+                "SHOW mode=" + mode + " pos=" + screenX + "," + screenY
                         + " icon=" + iconSizePx + "x" + iconSizePx
                         + " text=" + (optionalText == null ? "none" : optionalText));
     }
@@ -148,13 +187,12 @@ public final class FlPointerOperationHintOverlay {
         icon.setVisibility(View.GONE);
         text.setVisibility(View.GONE);
         root.requestLayout();
-        windowHost.update(root, lp, "pointer_hint");
-        DiagnosticLog.i(context, "FL_POINTER_HINT", "CONTENT_HIDE pos=" + lp.x + "," + lp.y);
+        DiagnosticLog.i(context, "FL_POINTER_HINT", "CONTENT_HIDE pos=" + screenX + "," + screenY);
     }
 
     public void close() {
         contentVisible = false;
-        if (attached) windowHost.remove(root, "pointer_hint");
+        if (attached) windowHost.remove(windowRoot, "pointer_hint");
         attached = false;
         mode = null;
     }

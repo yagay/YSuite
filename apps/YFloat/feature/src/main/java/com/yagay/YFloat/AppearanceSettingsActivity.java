@@ -4,11 +4,9 @@ import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewSection;
 import android.os.Bundle;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.yagay.yui.YView;
 
 /** App appearance plus text-toolbar density and menu-management settings. */
 public final class AppearanceSettingsActivity extends AppCompatActivity {
@@ -16,27 +14,26 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
         super.onCreate(state);
 
         LinearLayout root = YViewLayout.pageRoot(this,
-                getString(R.string.yfloat_text_menu_title),
-                getString(R.string.yfloat_text_menu_desc));
+                getString(R.string.yfloat_appearance_title),
+                getString(R.string.yfloat_appearance_desc));
 
-        // The integrated YSuite build is configured from the host's unified appearance page.
-        // Retain the selector only for an independently installed YFloat APK, which has its
-        // own application sandbox and cannot read the host's private preferences.
-        if (!"com.yagay.YSuite".equals(getPackageName())) {
+        // Available in both packages; theme and menu count are module-scoped
+        // YAppearanceStore values, not separately maintained preferences.
+        {
             YViewSection theme = YViewLayout.section(this, getString(R.string.yfloat_theme_title), null);
             addThemeSpinner(theme.body);
             YViewLayout.addSection(root, theme);
+
+            YViewSection textMenu = YViewLayout.section(this,
+                    getString(R.string.yfloat_text_menu_title),
+                    getString(R.string.yfloat_text_menu_desc));
+            addMainItemCountSlider(textMenu.body);
+            YViewLayout.addRow(textMenu.body, YViewLayout.sectionNote(this,
+                    java.util.Locale.getDefault().getLanguage().equals("zh")
+                        ? "文字选择与圈画截图共用菜单数量、按钮尺寸、字体、间距和 YUI 外观。"
+                        : "Text and screenshot selection share the menu count and all YUI appearance settings."));
+            YViewLayout.addSection(root, textMenu);
         }
-
-        YViewSection textMenu = YViewLayout.section(this,
-                getString(R.string.yfloat_text_menu_title),
-                getString(R.string.yfloat_text_menu_desc));
-        addMainItemCountSlider(textMenu.body);
-        YViewLayout.addSection(root, textMenu);
-
-        TextView note = YViewLayout.caption(this, getString(R.string.yfloat_text_menu_note), 12);
-        note.setPadding(Math.max(1, YView.controlGap(this) / 3), 0, Math.max(1, YView.controlGap(this) / 3), Math.max(1, YView.controlGap(this) / 3));
-        root.addView(note);
 
         YViewSection menus = YViewLayout.section(this,
                 getString(R.string.yfloat_menu_management),
@@ -45,6 +42,13 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
                 getString(R.string.yfloat_text_action_menu),
                 getString(R.string.yfloat_text_action_menu_desc),
                 () -> startActivity(MenuPickerActivity.customIntent(this))));
+        YViewLayout.addRow(menus.body, YViewLayout.navRow(this,
+                java.util.Locale.getDefault().getLanguage().equals("zh")
+                        ? "图片与圈画截图菜单" : "Image and screenshot actions",
+                java.util.Locale.getDefault().getLanguage().equals("zh")
+                        ? "分别管理图片操作的显示与顺序，外观与文字统一"
+                        : "Configure image actions and order; appearance shared with text",
+                () -> startActivity(MenuPickerActivity.imageIntent(this))));
         YViewLayout.addRow(menus.body, YViewLayout.navRow(this,
                 getString(R.string.yfloat_share_menu),
                 getString(R.string.yfloat_share_menu_desc),
@@ -88,9 +92,8 @@ public final class AppearanceSettingsActivity extends AppCompatActivity {
                 value -> getString(R.string.yfloat_item_count, value),
                 value -> TextMenuSettings.setMainItemCount(this, value)));
 
-        TextView hint = YViewLayout.caption(this, getString(R.string.yfloat_main_menu_count_hint), 12);
-        hint.setPadding(0, Math.max(1, YView.controlGap(this) / 4), 0, 0);
-        parent.addView(hint);
+        YViewLayout.addRow(parent, YViewLayout.sectionNote(this,
+                getString(R.string.yfloat_main_menu_count_hint)));
     }
 
 }

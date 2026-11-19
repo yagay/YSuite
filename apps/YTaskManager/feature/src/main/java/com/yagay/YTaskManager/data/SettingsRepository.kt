@@ -12,8 +12,8 @@ class SettingsRepository(context: Context) {
         set(value) = prefs.putBoolean("proc_auto_refresh", value)
 
     var refreshIntervalMs: Long
-        get() = prefs.long("update_frequency", 800L).coerceIn(250L, 10_000L)
-        set(value) = prefs.putLong("update_frequency", value.coerceIn(250L, 10_000L))
+        get() = prefs.long("update_frequency", 2_500L).coerceIn(1_000L, 10_000L)
+        set(value) = prefs.putLong("update_frequency", value.coerceIn(1_000L, 10_000L))
 
     var showSystemApps: Boolean
         get() = prefs.boolean("show_system_apps", true)

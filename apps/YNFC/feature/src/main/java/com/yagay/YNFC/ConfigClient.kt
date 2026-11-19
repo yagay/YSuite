@@ -22,6 +22,14 @@ class ConfigClient(private val resolver: ContentResolver) {
         )?.getLong(ConfigProvider.RESULT_GENERATION, 0L) ?: 0L
     }
 
+    fun setPollingDisabled(disabled: Boolean): Boolean =
+        resolver.call(
+            ConfigProvider.URI,
+            ConfigProvider.METHOD_SET_POLLING_DISABLED,
+            null,
+            Bundle().apply { putBoolean(ConfigProvider.EXTRA_ENABLED, disabled) }
+        )?.getBoolean(ConfigProvider.RESULT_SUCCESS, false) == true
+
     fun setDiagnosticLogging(enabled: Boolean): Boolean =
         resolver.call(
             ConfigProvider.URI,

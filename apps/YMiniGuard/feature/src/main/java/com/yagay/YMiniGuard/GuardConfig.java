@@ -2,6 +2,7 @@ package com.yagay.YMiniGuard;
 
 import android.content.SharedPreferences;
 
+import com.yagay.suite.api.HostIdentity;
 import com.yagay.suite.api.RuntimeOwnerGate;
 
 import java.util.Collections;
@@ -62,8 +63,11 @@ final class GuardConfig {
     }
 
     static String hostPackage() {
-        String value = string(ConfigKeys.HOST_PACKAGE).trim();
-        return value.isEmpty() ? DEFAULT_HOST : value;
+        // The same source is built into either the standalone APK or YSuite. The APK being
+        // executed is fixed at build time; remote preferences may not be synchronized yet
+        // when system_server starts, and may still contain an older standalone package.
+        // Never route the engine or its status heartbeat to that stale package.
+        return HostIdentity.compiledPackage(BuildConfig.HOST_PACKAGE, DEFAULT_HOST);
     }
 
     static long moduleVersion() {

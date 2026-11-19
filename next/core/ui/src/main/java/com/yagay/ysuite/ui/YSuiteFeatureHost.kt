@@ -14,11 +14,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiModalDrawerSheet as ModalDrawerSheet
+import com.yagay.yui.YUiModalNavigationDrawer as ModalNavigationDrawer
+import com.yagay.yui.YUiNavigationDrawerItem as NavigationDrawerItem
+import com.yagay.yui.YUiSurface as Surface
+import com.yagay.yui.YUiText as Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -141,7 +141,7 @@ fun YSuiteFeatureHost(
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
-                    ModalDrawerSheet {
+                    ModalDrawerSheet(drawerState = drawerState) {
                         Column(
                             modifier =
                                 Modifier

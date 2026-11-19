@@ -5,10 +5,14 @@
 ## 当前版本
 
 - 应用版本：`1.0.56`（versionCode `57`）
-- Hook 构建：`40`
+- Hook 构建：`46`
 - Provider 协议：`7`
 
 ## 主要能力
+
+- **唯一模拟路径：main 的 RF_CONFIG_WRITE Hook。** 不提供 VENDOR / INTERCEPT / NATIVE 模拟模式，卡片模拟时始终发送 RF 命令。
+- 通过已发现的 Java RF 刷新触发器，必要时使用 main 原有的 `enableNfcShareMode` 回退。刷新调用不代表 UID 已成功写入，只有匹配的原生 RF 结果才可判定成功。
+- 旧安装已激活其他后端时，先执行 STOP，再启动新的 RF 模拟；保留旧会话的停止恢复入口。NFC 进程的 Hook 更新需要显式重新加载 NFC 服务，不要求整机重启。
 
 - 读取并保存 4/7/10 字节 NFC UID。
 - APPLY、STOP 和恢复流程均绑定命令 generation、控制器 epoch 与 NFC 进程 PID。
@@ -47,7 +51,7 @@
 3. 重启 NFC 进程或手机，使新 Hook 构建被加载。
 4. 首次验证时执行一次 APPLY、STOP、再次 APPLY，并导出完整诊断。
 
-版本升级后不能只覆盖安装就判断 Hook 是否更新；诊断中的 Hook build 应为 `40`，Provider protocol 应为 `7`。
+版本升级后不能只覆盖安装就判断 Hook 是否更新；诊断中的 Hook build 应为 `46`，Provider protocol 应为 `7`。
 
 ## 自动检查
 
@@ -61,3 +65,268 @@ GitHub Actions 会构建 APK、运行 JVM 单元测试，并校验：
 ## 安全边界
 
 本项目直接作用于系统 NFC 进程。结构重构必须保持命令协议、generation/PID/epoch 归属与 RF 原生结果判定不变。没有设备日志证明收益时，不拆分 Hook 安装、生命周期恢复和早期 RF 回放之间的时序关键路径。
+
+## 新版系统的自定义 UID 写入（需设备验证）
+
+新系统已移除 NxpNativeNfcManager.changeRfParamsByConfig(byte[])；新增 NativeNfcManager.setNciConfig(int,byte[],int,boolean)。RF 模式直接获取 NfcService 的 DeviceHost，并仅发送自己构造的 LA_NFCID1 (0x33) 参数；从不调用系统 emulateNfcATag()，也没有新的模拟后端菜单。该方法返回 void：状态 UNVERIFIED 表示请求已下发而非实际射频验证成功。停止后采用 NFC 服务恢复，不要求整机重启。
+
+## Wallet / payment coexistence and HAL observation (test branch)
+
+- Native NXP HAL writer replacement is **not installed**. We only analyze existing
+  `NxpNciX`/`NxpNciR` logcat. This path does not change routing, AIDs,
+  RF discovery, payment APDUs, or the secure element.
+- The NCI diagnostic distinguishes a post-APPLY `LA_NFCID1=33 00` request
+  from a 4/7/10-byte NFCID1 request, and records later discovery, routing,
+  and RF activation counts **without persisting raw packets or UID bytes**.
+  Counts cannot identify wallet transactions or prove the UID seen over RF.
+- YNFC's existing active UID emulation is different: its controller-wide
+  `setNciConfig(0x33)` and discovery reassertion **can interfere with**
+  HCE or secure-element wallet tap transactions, even though payment AIDs
+  and APDUs are not modified. Simultaneous wallet compatibility is not proven.
+- When using Google Wallet or any off-host/eSE payment, **STOP YNFC first**.
+  Wait for the existing stock NFC recovery; if not confirmed, verify the wallet
+  in a safe non-transaction test before relying on it. No automatic HAL patch,
+  NFC service restart, wallet AID hook, or transaction interception is introduced
+  by the read-only diagnostic change.
+
+## 2026-11-07 follow-up: discovery gating and accurate NCI acknowledgement
+
+A diagnostic captured initial 4-byte LA_NFCID1 configuration accepted by the
+NFCC, but during OEM Extended Field Detect Mode the prior reassertion fired
+also on an observed Listen-Disabled route. A subsequent 850ms throttle could
+then skip a useful later Listen-Enabled phase. The reassertion is now
+fail-closed unless the verified NFC discovery parameter contract reports host
+routing enabled and reader mode disabled. Every skip can be logged while
+diagnostic logging is enabled. This does not prove OEM-specific Listen masking,
+so over-the-air verification is still required.
+
+Only the matching LA_NFCID1 CORE_SET_CONFIG response is now reported as
+`nci_config_response`; unrelated SET_CONFIG responses appear separately.
+Do not treat unrelated 0x00 successes or a rejected empty-param command as
+an NFCID1 result. No new HAL native hook, wallet AID changes, or automatic
+service restart are introduced.
+
+## Discovery one-shot rollback (2026-11-07)
+
+The primary RF mode is restored to the **first hardware-accepted single-shot
+implementation** from commit `6c062c0f`: per explicit APPLY, pause discovery
+once, send exactly one LA_NFCID1 (`0x33`) config, then post exactly one
+`NfcService.applyRouting(true)` resume to the NFC main looper.
+
+Removed the later `NativeNfcManager.enableDiscovery()` hook and all automatic
+UID reassertion during natural OEM discovery changes. In particular, YNFC
+does **not** repeatedly send `0x33` when OPlus ExtendedFieldDetectMode
+cycles Listen ON/OFF. There is no periodic task and no NFC-process reboot
+to maintain the UID. The firmware can still naturally rotate identities;
+the app must report that as unverified, not claim on-air stability.
+
+The separately user-controlled polling guard now skips duplicate/unknown
+automatic startup/controller-ready routing refreshes; after attempting an
+actual routing refresh it never retries simply because the OEM Java mask
+is unverified. Explicit user preference changes retain a single request.
+`STOP` continues using the pre-existing stock-controller recovery if a
+native UID write has occurred and no reversible stock snapshot exists.
+That may reload NFC **once on explicit STOP**, not repeatedly during emulation.
+
+OPlus firmware's own discovery cycling on RF-field detection is not
+suppressed. Intercepting it would risk HCE, wallet payments and eSE routes.
+
+## 2026-11-07: direct UID write without RF Discovery pause (experimental)
+
+This branch intentionally tests **one** `NativeNfcManager#setNciConfig(0x33)`
+call per user APPLY, with **no explicit `disableDiscovery()`,
+`applyRouting(true)`, RF restart, or UID retry** in the direct write path.
+The OEM itself may still cycle RF discovery for normal NFC behavior; this
+experiment does not suppress those system operations.
+
+The original unpaused attempt on SN220T previously returned
+`NCI_STATUS_INVALID_PARAM (0x09)`; no guarantee is made that the direct
+unpaused request will work. Capture `LA_NFCID1_RSP_STATUS` and verify actual
+UID using a separate NFC-A reader. The API returns void and must stay
+`UNVERIFIED` until evidence is available.
+
+If the exact modern native writer is installed but not ready, YNFC now fails
+closed instead of starting an older RF refresh/share-mode fallback (which
+could restart Discovery). On older firmware without the modern writer,
+the legacy RF_CONFIG_WRITE path is left unchanged.
+
+STOP remains a separate explicit safety action: after a possible UID
+controller mutation, stock restoration may still reload the NFC service once.
+Changing the manual STOP recovery is outside this experiment.
+
+## No-discovery-pause experiment outcome (2026-11-07)
+
+The experimental direct-only `setNciConfig(0x33)` APPLY without
+`disableDiscovery()` or `applyRouting(true)` built successfully, but the
+device owner confirmed **card emulation did not work**. This is a device-level
+negative test; no new NCI response log was provided, so do not claim the
+experiment specifically returned `0x09`. An earlier unpaused attempt had
+returned `0x09 INVALID_PARAM`.
+
+The experiment is now reverted **only for the NFC-A write path**, restoring
+commit `f444bdd6`'s known working one-shot RF pause/write/resume:
+- On each explicit APPLY: one `disableDiscovery()` call, one
+  `setNciConfig(0x33)` call, and one posted `applyRouting(true)`.
+- No recurring `enableDiscovery()` reassertion and no automatic retries of
+  routing when the OEM cannot verify the Java mask.
+- Normal OEM field-detection discovery cycles are not blocked.
+- An NFC OFF/ON or reboot clears controller RF config; restoring that only on
+  controller READY (at most once per epoch) is a **separate future change**,
+  not introduced here.
+- STOP preserves the stock NFC controller recovery path.
+
+This rollback changes NFC commands, not UID or card data. Test only with
+the owner's own test card; avoid wallet payment while emulation is active.
+
+## Fast switching and one-tap stock restoration UI
+
+The saved-card list now offers **Switch UID** when another UID is selected.
+Selecting another card issues a new serialized APPLY directly; it does not
+interpose STOP or restart the NFC process, and retains the existing *one*
+Discovery pause / NCI 0x33 write / routing resume for each manual switch.
+
+A prominent **Stop and restore stock NFC** control appears directly under
+the runtime status while emulation is selected. It uses the existing serialized
+STOP and verified stock-recovery fallback (which may reload com.android.nfc
+once if there is no reversible native stock snapshot). UI taps are guarded
+while an operation is in flight so users cannot accidentally queue repeated
+switches/stops. No new native hooks or controller recovery assumptions have
+been introduced.
+
+HAL startup configuration replacement alone is NOT the active fast-switch
+backend: it would require the next HAL initialization to apply another UID.
+In particular, a zero-length 0x33 soft restore must not be treated as a
+successful stock restoration without a matching NCI response and actual
+reader verification.
+
+## Modern NFCID1 one-shot restoration after OFF/ON and boot
+
+The current SN220T `setNciConfig(0x33)` call returns `void`, so a
+manually submitted command remains terminal `UNVERIFIED`, not `SUCCESS`.
+The older lifecycle recovery was only eligible for legacy `SUCCESS`
+commands. The new bridge accepts just a selected, terminal
+`UNVERIFIED` RF `APPLY` whose prior RF source was `own-nci-0x33`,
+where a real NFC controller invalidation occurred and the RF epoch or PID
+has become stale.
+
+The bridge waits for Android NFC to become enabled after initialization
+and, on the serialized command executor, performs **one** existing
+`disableDiscovery -> setNciConfig(0x33) -> applyRouting(true)` write
+per controller invalidation. A newer manual STOP or card switch cancels
+a queued recovery. Native throws, missing writer and rejected writes are
+never auto-retried in that epoch. Normal Discovery/EFDM callbacks have
+no effect, and no NFC process reboot or HAL injection is introduced.
+
+The diagnostic snapshot includes `own_nci_lifecycle_stage`, `reason`,
+`generation`, `epoch`, `pid`, and `at`. A lifecycle request only proves
+Java dispatched an NCI command; it does not certify NFCC acceptance or
+the on-air UID. Testing on real SN220T after NFC OFF/ON and device reboot
+is required; this change has not been hardware-validated yet.
+
+## Hook implementation freshness after APK replacement
+
+The 2026-11-07 OFF/ON report retained NFC PID 18697 from the earlier
+diagnostic (before the one-shot lifecycle patch was compiled). The new
+code was therefore NOT loaded in that process despite `HOOK_READY`:
+`HOOK_BUILD=46` is a stable interface protocol, not the Hook's
+implementation revision. The earlier `INTERCEPT_IMPL_REVISION=3`
+remained unchanged and concealed that mismatch.
+
+`INTERCEPT_IMPL_REVISION=4` marks the controller-reset restore patch.
+The UI, coordinator, diagnostics and hook-evidence publisher now all
+require the installed Hook revision AND owning PID to match. A stale
+`com.android.nfc` reports `HOOK_IMPLEMENTATION_STALE` and shows the
+explicit service-only reload action (after STOP). The stable
+`HOOK_BUILD=46` has NOT changed. No automatic NFC service restart,
+device reboot, extra RF Discovery hook, or UID write was introduced.
+For future hot code changes the implementation freshness marker
+must be advanced, independently of the stable protocol number.
+
+## 2026-11-07: single NFC OFF/ON restore after OEM initialization settles
+
+Device diagnostic with Hook impl 4/4 proves automatic lifecycle
+restoration was requested but at just **53 ms** after native READY.
+NCI response for that lifecycle write was not retained. This is a
+potential race with later OPlus RF routing or configuration; it is
+not proof of an overwrite or a rejected write.
+
+Impl 5 waits **1800 ms after native controller READY** (only after
+one genuine OFF/ON or process restart) before the existing one-shot
+disableDiscovery -> setNciConfig(0x33) -> applyRouting(true) sequence.
+The wait is bounded, guarded by the active command and controller
+epoch, and interrupted by STOP, a new card selection, or a reset.
+No retry, polling loop, Discovery hook, HAL patch or service restart
+is introduced.
+
+New diagnostic fields: own_nci_lifecycle_ready_at,
+own_nci_lifecycle_invalid_at, own_nci_lifecycle_ready_age_ms.
+The exported diagnostic separately correlates read-only logcat NCI
+frames to own_nci_lifecycle_at. It must not infer a successful
+on-air UID simply from NCI acceptance; an external reader is needed.
+The stable HOOK_BUILD stays 46; implementation marker is now 5.
+
+### Passive lifecycle NCI capture when YNFC is open
+
+While the app is open with diagnostic-log refresh enabled, its
+read-only Provider status observation detects
+`WRITE_REQUESTED_RF_UNVERIFIED` and captures a sanitized
+NXP logcat summary immediately and again after 1200 ms. Cache entries
+are keyed by both command generation and exact lifecycle event time,
+so manual APPLY's earlier 0x00 ACK cannot be confused with a restore.
+The export prints both cached snapshots and the currently retained
+logcat frames. Nothing here sends NCI packets or restarts Discovery.
+If the app was not open/diagnostics disabled during NFC restart,
+early cached snapshots may be unavailable.
+
+## 2026-11-07: persistent HCE-only active NFC polling suppression on NFC Service 17
+
+The user's NFC Service 17 APK was inspected directly. Compared with
+older NfcNci.apk, the current `NfcDiscoveryParameters` class no longer has
+`getTechMask()` or `shouldEnableHostRouting()` methods. Its compatible
+public fields are `mTechMask`, `mEnableHostRouting`,
+`mEnableLowPowerDiscovery`, `mEnableReaderMode`,
+`mTechAPollingLoopAnnotation`, and `mExtraAnnotation`. The class still
+has an empty constructor. `NfcService.computeDiscoveryParameters(int)`
+and `NativeNfcManager.enableDiscovery(NfcDiscoveryParameters, boolean)`
+remain present. The old guard required the missing getters and therefore
+installed zero compute/driver hooks on this firmware (compute=false,
+driverHooks=0).
+
+Impl revision 6 supports BOTH validated contracts: old getter-driven
+objects and new Android 17 field-only objects. It clones a discovery
+parameters object, changes only the polling `mTechMask` to zero, and
+checks that host HCE routing, low-power/reader flags and ALL other
+fields were preserved. Neither the original argument object nor any
+HAL files are mutated. Normal native Discovery calls are intercepted
+at their existing entrypoints, including future OEM routing cycles.
+The Java interceptor logs `JAVA_DISCOVERY_MASK_BLOCKED` or
+`PARAMETERS_INTERCEPTED`; these prove Java arguments were modified,
+NOT that native RF or payment routing is verified.
+
+Natural compute/driver hooks eliminate the previously unconditional
+controller-READY `applyRouting(true)` call; no repeated Discovery
+restart, UID rewrite, or process reboot is added. Explicit user
+changes still request one normal routing refresh. If no compatible
+target exists, the guard reports unsupported rather than pretending
+success. Unit tests use an APK-shaped field-only fixture, plus legacy
+getter and obfuscated-builder fixtures.
+
+The setting disables *active reader polling*; the phone can still
+respond as an NFC-A/HCE card. The existing UID-only write path and
+automatic ON/boot restore are intentionally unchanged. Any real
+contactless payments should be tested only after STOP and stock
+restoration.
+
+## No false STALE status after one-shot UID recovery
+
+A successful one-shot NFCID1 lifecycle *request* in the current NFC PID,
+controller epoch and command generation now displays a dedicated
+`UID_RECOVERY_REQUESTED_UNVERIFIED` state, rather than rendering only
+stale RF evidence from an earlier NFC process. The old RF proof remains
+stale and `rf_accepted` stays false. No acceptance or on-air UID success
+is fabricated; STOP, a new UID or any reset invalidates this display.
+
+When persistent HCE_ONLY is desired but runtime capability discovery
+reports `compute=false;driverHooks=0`, the UI explicitly reports
+`UNSUPPORTED_NO_DISCOVERY_HOOKS`. A checked setting does not count as
+an installed active-reader suppression hook. Unit tests cover both.

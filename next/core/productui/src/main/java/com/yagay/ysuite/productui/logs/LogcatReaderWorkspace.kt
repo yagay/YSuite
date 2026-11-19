@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import com.yagay.yui.YUiSurface as Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
+import com.yagay.ysuite.productui.fitPanes
+import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.productui.YSuiteProductPage
 
 /**
@@ -43,6 +45,9 @@ fun LogcatReaderWorkspace(
             filters()
         },
     ) { adaptive ->
+        val panes = adaptive.fitPanes(
+            trailing = if (details != null) ProductLayoutTokens.LogDetailPaneWidth else 0.dp,
+        )
         Row(modifier = Modifier.fillMaxSize()) {
             ProductPaneAdaptiveBox(
                 modifier =
@@ -52,11 +57,11 @@ fun LogcatReaderWorkspace(
             ) { paneAdaptive ->
                 content(paneAdaptive)
             }
-            if (adaptive.isExpanded && details != null) {
+            if (adaptive.isExpanded && details != null && panes.hasTrailing) {
                 Surface(
                     modifier =
                         Modifier
-                            .width(ProductLayoutTokens.LogDetailPaneWidth)
+                            .width(panes.trailing)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme

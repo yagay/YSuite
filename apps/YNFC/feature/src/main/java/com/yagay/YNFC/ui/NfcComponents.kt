@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -18,6 +18,7 @@ import com.yagay.YNFC.CardModel
 import com.yagay.YNFC.R
 import com.yagay.YNFC.RuntimeStatus
 import com.yagay.YNFC.StatusTone
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
 import com.yagay.yui.YPrimaryButton
@@ -28,7 +29,11 @@ import com.yagay.yui.YDivider
 
 @Composable
 fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readModeEnabled: Boolean) {
-    val hookReady = status.currentPid > 0 && status.scopeOk && status.hookInstalled && status.hookBuild == BuildConfig.HOOK_BUILD
+    val hookReady = status.currentPid > 0 && status.scopeOk &&
+        status.hookInstalled && status.hookPid == status.currentPid &&
+        status.hookBuild == BuildConfig.HOOK_BUILD &&
+        status.hookImplementationPid == status.currentPid &&
+        status.hookImplementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION
     val commandInFlight = status.commandStatus in setOf("PENDING", "RUNNING", "TRIGGERED", "RESTART_REQUIRED") &&
         status.commandGeneration != status.handledGeneration
     val semanticBusy = status.operationState in setOf("APPLYING", "STOPPING", "RESETTING_CONTROLLER")
@@ -56,6 +61,9 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             status.commandGeneration,
             status.commandPid,
         )
+        status.commandStatus == "FAILED" &&
+            status.verificationConfidence == "NATIVE_HAL_ABI_UNVERIFIED" ->
+            stringResource(R.string.ynfc_native_abi_unverified)
         commandFailed -> stringResource(
             R.string.ynfc_cmd_failed,
             status.commandAction.ifBlank { unknown },
@@ -63,6 +71,10 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             status.commandGeneration,
             status.commandPid,
         )
+        status.commandStatus == "INTERCEPT_CALL_ACCEPTED" ->
+            stringResource(R.string.ynfc_intercept_call_accepted)
+        status.commandStatus == "INTERCEPT_ARMED_NO_CALL" ->
+            stringResource(R.string.ynfc_intercept_call_waiting)
         else -> stringResource(R.string.ynfc_cmd_idle)
     }
 
@@ -80,9 +92,28 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
                 simulationTone = StatusTone.OK
                 simulationDetail = stringResource(R.string.ynfc_sim_active, status.selectedUid ?: "-")
             }
+            commandFailed && status.verificationConfidence == "NATIVE_HAL_ABI_UNVERIFIED" -> {
+                simulationTone = StatusTone.ERROR
+                simulationDetail = stringResource(R.string.ynfc_native_abi_unverified)
+            }
             commandFailed -> {
                 simulationTone = StatusTone.ERROR
                 simulationDetail = stringResource(R.string.ynfc_sim_failed, status.commandStatus)
+            }
+            status.commandStatus == "INTERCEPT_CALL_ACCEPTED" -> {
+                simulationTone = StatusTone.WARNING
+                simulationDetail = stringResource(R.string.ynfc_intercept_call_accepted)
+            }
+            status.commandStatus == "INTERCEPT_ARMED_NO_CALL" -> {
+                simulationTone = StatusTone.WARNING
+                simulationDetail = stringResource(R.string.ynfc_intercept_call_waiting)
+            }
+            status.ownNciRecoveryRequested -> {
+                simulationTone = StatusTone.WARNING
+                simulationDetail = stringResource(
+                    R.string.ynfc_sim_reapply_requested_unverified,
+                    status.selectedUid ?: "-",
+                )
             }
             status.rfStatus.startsWith("STALE") -> {
                 simulationTone = StatusTone.WARNING
@@ -149,9 +180,52 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
     ) {
         YStatusLine(
             label = stringResource(R.string.ynfc_nfc_hook),
-            value = "pid=${status.currentPid} · runtimePid=${status.runtimePid} · hookBuild=${status.hookBuild}/${BuildConfig.HOOK_BUILD} · hookPid=${status.hookPid}",
+            value = "pid=${status.currentPid} · runtimePid=${status.runtimePid} · hookBuild=${status.hookBuild}/${BuildConfig.HOOK_BUILD} · impl=${status.hookImplementationRevision}/${BuildConfig.INTERCEPT_IMPL_REVISION} · hookPid=${status.hookPid}",
             tone = if (hookReady) YStatusTone.Good else YStatusTone.Error,
         )
+        if (!hookReady) {
+            val problem = when {
+                status.currentPid <= 0 -> R.string.ynfc_hook_problem_process
+                status.scopePid == 0 && status.hookPid == 0 -> R.string.ynfc_hook_problem_injection
+                (status.scopePid > 0 && status.scopePid != status.currentPid) ||
+                    (status.hookPid > 0 && status.hookPid != status.currentPid) ->
+                    R.string.ynfc_hook_problem_stale
+                !status.scopeOk -> R.string.ynfc_hook_problem_scope
+                !status.hookInstalled -> R.string.ynfc_hook_problem_install
+                status.hookBuild != BuildConfig.HOOK_BUILD -> R.string.ynfc_hook_problem_build
+                status.hookImplementationPid != status.currentPid ||
+                    status.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ->
+                    R.string.ynfc_hook_problem_implementation
+                else -> R.string.ynfc_hook_problem_unknown
+            }
+            Text(
+                stringResource(problem),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        YStatusLine(
+            label = stringResource(R.string.ynfc_polling_status),
+            value = "${if (status.pollingDisabled) stringResource(R.string.ynfc_polling_hce_only) else stringResource(R.string.ynfc_polling_normal)} · ${status.pollingGuardStatus} · pid=${status.pollingGuardPid}",
+            tone = when {
+                status.pollingGuardStatus.startsWith("UNSUPPORTED")
+                    || status.pollingGuardStatus.startsWith("STALE")
+                    || status.pollingGuardStatus.contains("UNCONFIRMED")
+                    || status.pollingGuardStatus.startsWith("REFRESH_UNSUPPORTED") -> YStatusTone.Error
+                status.pollingGuardStatus == "PENDING"
+                    || status.pollingGuardStatus == "UNKNOWN"
+                    || status.pollingGuardStatus == "WAITING_FOR_NFC_ON" -> YStatusTone.Warning
+                else -> YStatusTone.Neutral
+            },
+        )
+        status.pollingGuardDetail?.let { detail ->
+            Text(detail, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        status.pollingCapabilitySummary?.let { capability ->
+            Text(capability, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         YStatusLine(stringResource(R.string.ynfc_simulation_status), simulationDetail, simulationTone.toYUiTone())
         YStatusLine(stringResource(R.string.ynfc_command), commandDisplay, commandTone.toYUiTone())
         YStatusLine(
@@ -242,11 +316,10 @@ fun ReadCardPanel(
                 )
                 CardDetails(card)
                 YHorizontalActions {
-                    YPrimaryButton(stringResource(R.string.ynfc_save_card), { onSave(card) }, Modifier.weight(1f))
+                    YPrimaryButton(stringResource(R.string.ynfc_save_card), { onSave(card) })
                     YSecondaryButton(
                         stringResource(R.string.ynfc_read_again),
                         { onClear(); onStartRead() },
-                        Modifier.weight(1f),
                     )
                 }
                 YSecondaryButton(
@@ -261,7 +334,7 @@ fun ReadCardPanel(
 
 @Composable
 fun CardDetails(card: CardModel) {
-    Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(3.dp)) {
+    Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 4f).dp)) {
         Text(stringResource(R.string.ynfc_card_name, card.name), style = MaterialTheme.typography.bodyMedium)
         Text(
             stringResource(R.string.ynfc_card_uid, card.uid),
@@ -302,6 +375,10 @@ fun CardItem(
     onToggleDetails: () -> Unit,
     onSimulate: () -> Unit,
     onStop: () -> Unit,
+    simulateLabel: String? = null,
+    simulateBusy: Boolean = false,
+    stopBusy: Boolean = false,
+    operationHint: String? = null,
     onDelete: () -> Unit,
 ) {
     YSection(
@@ -315,11 +392,19 @@ fun CardItem(
         modifier = Modifier.clickable { onToggleDetails() },
         trailing = {
             if (isActive) {
-                YSecondaryButton(stringResource(R.string.ynfc_stop), onStop)
+                YSecondaryButton(
+                    text = stringResource(R.string.ynfc_stop),
+                    onClick = onStop,
+                    enabled = !stopBusy,
+                )
             } else {
-                YPrimaryButton(stringResource(R.string.ynfc_simulate), onSimulate)
+                YPrimaryButton(
+                    text = simulateLabel ?: stringResource(R.string.ynfc_simulate),
+                    onClick = onSimulate,
+                    enabled = !simulateBusy,
+                )
             }
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width((LocalYAppearance.current.effectiveGapDp / 3f).dp))
             YSecondaryButton(
                 text = stringResource(R.string.ynfc_delete),
                 onClick = onDelete,
@@ -329,6 +414,13 @@ fun CardItem(
         if (expanded) {
             YDivider()
             CardDetails(card)
+        }
+        operationHint?.takeIf { it.isNotBlank() }?.let { hint ->
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

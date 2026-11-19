@@ -4,6 +4,8 @@ import com.yagay.ysuite.productui.ProductSurfaceKind
 
 import com.yagay.ysuite.productui.ProductLayoutTokens
 import com.yagay.ysuite.productui.ProductPaneAdaptiveBox
+import com.yagay.ysuite.productui.fitPanes
+import androidx.compose.ui.unit.dp
 
 /*
  * Interaction structure adapted from alorma/Compose-Settings (MIT).
@@ -26,17 +28,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiRadioButton as RadioButton
+import com.yagay.yui.YUiSlider as Slider
+import com.yagay.yui.YUiSurface as Surface
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.yagay.ysuite.designsystem.theme.YSuiteSpacing
+import com.yagay.yui.LocalYAppearance
+import com.yagay.yui.YUiGeometry
 import com.yagay.yui.YSwitchItem
+import com.yagay.yui.YListItem
+import com.yagay.yui.YIntSliderField
 import com.yagay.ysuite.productui.ProductAdaptiveInfo
 import com.yagay.ysuite.productui.YSuiteProductPage
 
@@ -56,12 +60,15 @@ fun ComposeSettingsSurface(
         navigationIcon = navigationIcon,
         actions = actions,
     ) { adaptive ->
+        val panes = adaptive.fitPanes(
+            leading = if (categoryPane != null) ProductLayoutTokens.SettingsCategoryPaneWidth else 0.dp,
+        )
         Row(modifier = Modifier.fillMaxSize()) {
-            if (adaptive.isExpanded && categoryPane != null) {
+            if (adaptive.isExpanded && categoryPane != null && panes.hasLeading) {
                 Surface(
                     modifier =
                         Modifier
-                            .width(ProductLayoutTokens.SettingsCategoryPaneWidth)
+                            .width(panes.leading)
                             .fillMaxHeight(),
                     color =
                         MaterialTheme.colorScheme
@@ -94,15 +101,11 @@ fun ComposeSettingsSurface(
                                     rememberScrollState(),
                                 )
                                 .padding(
-                                    horizontal =
-                                        YSuiteSpacing.Medium,
-                                    vertical =
-                                        YSuiteSpacing.Large,
+                                    horizontal = YUiGeometry.pagePadding(),
+                                    vertical = YUiGeometry.pageVerticalPadding(),
                                 ),
                         verticalArrangement =
-                            Arrangement.spacedBy(
-                                YSuiteSpacing.Large,
-                            ),
+                            Arrangement.spacedBy(YUiGeometry.sectionGap()),
                     ) {
                         content(paneAdaptive)
                     }
@@ -118,9 +121,11 @@ fun ComposeSettingsGroup(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    // A settings group defines semantic grouping, never forces a card layout.
+    // Feature pages retain their structure while child controls use YUI.
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(YSuiteSpacing.Small),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap()),
     ) {
         if (title != null) {
             Text(
@@ -128,8 +133,8 @@ fun ComposeSettingsGroup(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(
-                    horizontal = YSuiteSpacing.Medium,
-                    vertical = YSuiteSpacing.Small,
+                    horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                    vertical = YUiGeometry.compactGap(),
                 ),
             )
         }
@@ -162,17 +167,12 @@ fun ComposeSettingsLink(
     action: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent =
-            subtitle?.let { value ->
-                { Text(value) }
-            },
-        trailingContent = action,
-        modifier = Modifier.clickable(
-            enabled = enabled,
-            onClick = onClick,
-        ),
+    YListItem(
+        title = title,
+        subtitle = subtitle,
+        enabled = enabled,
+        trailing = action,
+        onClick = onClick,
     )
 }
 
@@ -190,16 +190,15 @@ fun ComposeSettingsChoiceGroup(
 ) {
     ComposeSettingsGroup(title = title) {
         choices.forEach { choice ->
-            ListItem(
-                headlineContent = { Text(choice.label) },
-                leadingContent = {
+            YListItem(
+                title = choice.label,
+                selected = choice.id == selectedId,
+                onClick = { onSelected(choice.id) },
+                leading = {
                     RadioButton(
                         selected = choice.id == selectedId,
                         onClick = null,
                     )
-                },
-                modifier = Modifier.clickable {
-                    onSelected(choice.id)
                 },
             )
         }
@@ -214,42 +213,10 @@ fun ComposeSettingsIntSlider(
     range: IntRange,
     onValueChange: (Int) -> Unit,
     subtitle: String? = null,
-) {
-    val safeValue = value.coerceIn(range.first, range.last)
-    Column(modifier = Modifier.fillMaxWidth()) {
-        ListItem(
-            headlineContent = { Text(title) },
-            supportingContent =
-                subtitle?.let { valueText ->
-                    { Text(valueText) }
-                },
-            trailingContent = {
-                Text(
-                    text = safeValue.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-        )
-        Slider(
-            value = safeValue.toFloat(),
-            onValueChange = {
-                onValueChange(
-                    it.toInt().coerceIn(
-                        range.first,
-                        range.last,
-                    ),
-                )
-            },
-            valueRange =
-                range.first.toFloat()..
-                    range.last.toFloat(),
-            steps =
-                (range.last - range.first - 1)
-                    .coerceAtLeast(0),
-            modifier =
-                Modifier.padding(
-                    horizontal = YSuiteSpacing.Medium,
-                ),
-        )
-    }
-}
+) = YIntSliderField(
+    title = title,
+    value = value,
+    range = range,
+    onValueChange = onValueChange,
+    subtitle = subtitle,
+)

@@ -11,21 +11,20 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
+import com.yagay.yui.YUiAlertDialog as AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import com.yagay.yui.YUiFilterChip as FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
+import com.yagay.yui.YUiModalBottomSheet as ModalBottomSheet
+import com.yagay.yui.YUiOutlinedButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
+import com.yagay.yui.YUiRadioButton as RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @Composable
 fun YIconAction(
@@ -51,14 +51,7 @@ fun YIconAction(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier.sizeIn(
-            minWidth = YAccessibility.MinimumTouchTarget,
-            minHeight = YAccessibility.MinimumTouchTarget,
-        ),
-        enabled = enabled,
-    ) {
+    YUiIconButton(onClick = onClick, modifier = modifier, enabled = enabled) {
         Icon(icon, contentDescription = contentDescription)
     }
 }
@@ -78,7 +71,7 @@ fun YTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
-    OutlinedTextField(
+    YUiOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
@@ -95,7 +88,8 @@ fun YTextField(
         isError = !errorText.isNullOrBlank(),
         keyboardOptions = keyboardOptions,
         visualTransformation = visualTransformation,
-        shape = MaterialTheme.shapes.medium,
+        // Use the same field radius configured for every other YUI input.
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(LocalYAppearance.current.fieldRadiusDp.dp),
     )
 }
 
@@ -182,20 +176,90 @@ fun YSliderField(
     valueLabel: String? = null,
     enabled: Boolean = true,
 ) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             if (!valueLabel.isNullOrBlank()) {
                 Text(valueLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Slider(
+        YUiSlider(
             value = value.coerceIn(valueRange.start, valueRange.endInclusive),
             onValueChange = onValueChange,
             valueRange = valueRange,
             steps = steps,
             enabled = enabled,
         )
+    }
+}
+
+/** Canonical integer-slider settings row shared by every product's settings page. */
+@Composable
+fun YIntSliderField(
+    title: String,
+    value: Int,
+    range: IntRange,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    enabled: Boolean = true,
+) {
+    require(!range.isEmpty()) { "YIntSliderField needs a nonempty range" }
+    val safeValue = value.coerceIn(range.first, range.last)
+    var exact by remember(value, range.first, range.last) { mutableStateOf(safeValue.toString()) }
+    val entered = exact.toIntOrNull()
+    val valid = entered != null && entered in range
+    val applyExact = {
+        if (enabled && valid && entered != null) onValueChange(entered)
+    }
+    Column(modifier.fillMaxWidth()) {
+        YListItem(
+            title = title,
+            subtitle = subtitle,
+            trailing = {
+                Text(text = safeValue.toString(), style = MaterialTheme.typography.titleMedium)
+            },
+        )
+        if (range.first != range.last) {
+            YUiSlider(
+                value = safeValue.toFloat(),
+                onValueChange = { onValueChange(it.roundToInt().coerceIn(range.first, range.last)) },
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
+                enabled = enabled,
+                valueRange = range.first.toFloat()..range.last.toFloat(),
+                steps = 0,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
+            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            YUiOutlinedTextField(
+                value = exact,
+                onValueChange = { input ->
+                    if (input.length <= 11 && input.all { it.isDigit() || it == '-' }) exact = input
+                },
+                modifier = Modifier.weight(1f),
+                label = { Text(androidx.compose.ui.res.stringResource(R.string.yui_exact_value)) },
+                supportingText = { Text("${range.first}–${range.last}") },
+                isError = exact.isNotEmpty() && !valid,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    onDone = { applyExact() },
+                ),
+                singleLine = true,
+                enabled = enabled,
+            )
+            OutlinedButton(
+                onClick = applyExact,
+                enabled = enabled && valid && entered != safeValue,
+            ) { Text(androidx.compose.ui.res.stringResource(R.string.yui_apply_value)) }
+        }
     }
 }
 
@@ -210,8 +274,8 @@ fun <T> YSegmentedControl(
 ) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(YUiGeometry.gap()),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.gap()),
     ) {
         options.forEach { option ->
             FilterChip(
@@ -236,11 +300,10 @@ fun <T> YDropdownField(
     var expanded by remember { mutableStateOf(false) }
     val selected = options.firstOrNull { it.value == value }
     Box(modifier.fillMaxWidth()) {
-        YMaterialButton(
+        OutlinedButton(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            variant = YButtonVariant.OUTLINED,
         ) {
             Column(Modifier.fillMaxWidth()) {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -299,21 +362,12 @@ fun YConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = MaterialTheme.shapes.extraLarge,
-        containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
-        text = { Text(message, style = MaterialTheme.typography.bodyMedium) },
+        title = { Text(title) },
+        text = { Text(message) },
         confirmButton = {
-            YMaterialButton(
-                onClick = onConfirm,
-                variant = if (dangerous) YButtonVariant.DANGER else YButtonVariant.FILLED,
-            ) { Text(confirmLabel) }
+            YDialogConfirmButton(confirmLabel, onConfirm, dangerous = dangerous)
         },
-        dismissButton = {
-            YMaterialButton(onClick = onDismiss, variant = YButtonVariant.TEXT) {
-                Text(dismissLabel)
-            }
-        },
+        dismissButton = { YDialogDismissButton(dismissLabel, onDismiss) },
     )
 }
 
@@ -327,11 +381,11 @@ fun YBottomSheet(
     ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier) {
         Column(
             Modifier.fillMaxWidth().padding(
-                start = YDimens.ScreenHorizontal,
-                end = YDimens.ScreenHorizontal,
-                bottom = YDimens.ScreenVertical,
+                start = LocalYAppearance.current.screenPaddingDp.dp,
+                end = LocalYAppearance.current.screenPaddingDp.dp,
+                bottom = LocalYAppearance.current.pageVerticalPaddingDp.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
+            verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
         ) { content() }
     }
 }

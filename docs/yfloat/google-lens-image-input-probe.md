@@ -1,0 +1,384 @@
+# Google Lens image-input experiment (YFloat)
+
+Branch: `experiment/yfloat-google-lens-image-bridge`.
+
+## Purpose
+
+Test **YFloat frozen screenshot -> Google Lens native image processing -> YFloat native-selected OCR text** without replacing existing Google CTS. Chromium's Lens handoff uses an ACTION_VIEW data URI (googleapp://lens, optionally google://lens), with `LensBitmapUriKey` referencing a content:// image shared with AGSA. This is an **image-input path**, NOT a public OCR result API.
+
+Reference: Chromium LensUtils.java, `getShareWithGoogleLensIntent`:
+https://chromium.googlesource.com/chromium/src/+/5ce55c161eed982e49ceb58e0d3265ef58c14238/chrome/android/java/src/org/chromium/chrome/browser/share/LensUtils.java
+
+## Changes
+
+- Explicit **Google OCR（实验）** action on YFloat's native frozen Circle image popup uses the selected crop. Ordinary **识图 / Find** retains its original external app behavior; **完成 / Done** still opens the screenshot result.
+- The screenshot result dialog now also has a dedicated **Google OCR** magnifying-glass icon, next to local OCR. It clones the existing captured image before closing the result dialog, then starts the same experiment. This matches the action the tester chose in the 2026-10-17 20:59 log.
+- Encode crop off the main thread through the existing host FileProvider, send a specifically package-bound Lens Intent with `LensBitmapUriKey`, grant Google temporary read access.
+- Exact workflow token markers permit existing YFloat Google Hook to observe Lens selection callbacks if Google preserves the extras.
+- The Google image-input probe explicitly **does not block Google search or hide native Lens views**, unlike the normal CTS custom-menu path. An actual OCR result is only confirmed by a live selection callback.
+- On successful callback, pair Google-selected text / optional bounds with the exact cropped image URI for that session; never log OCR text.
+- On launch failure, terminal close, or 120-second timeout, revoke the URI grant, delete the temporary image, and discard in-memory OCR data.
+
+## Test on OnePlus / Google App 17.66+
+
+1. Install the **ARM64 debug APK** from this branch. Enable the existing YFloat LSPosed Google scope.
+2. Open YFloat's **native** frozen circle, draw a closed image region, then tap **Google OCR（实验）** in its image menu, OR tap **完成 / Done** and then the new **Google OCR** magnifying-glass icon in the screenshot result dialog.
+3. Verify Google Lens opens with **the selected YFloat image**, not the live screen or a blank picture. If Google Lens won't open, input contract is not supported on this version/device.
+4. Inside Google Lens, use **Select text**, select recognizable text and observe whether YFloat gets a floating text menu.
+5. Export the YFloat diagnostic log and look for:
+   - `LENS_IMAGE_INPUT selected_from=native_crop` / `selected_from=result_dialog` -- the explicit experimental command was actually invoked.
+   - `LENS_IMAGE_INPUT encode_begin` -- screenshot conversion started.
+   - `LENS_IMAGE_INPUT intent_dispatched` -- YFloat handed the image URI to Android (NOT proof of Google reading it).
+   - `GOOGLE_CTS_HOOK V2 LENS_IMAGE_INPUT marked_activity` -- Hook saw the tagged Activity.
+   - `LENS_IMAGE_INPUT native_ocr_callback` -- **proof** Google returned selected OCR text to YFloat.
+   - `LENS_IMAGE_INPUT image_released` -- exact URI and temporary-file cleanup.
+6. Repeat 3 times, cold and warm, and verify native Google CTS still operates independently.
+
+## Pass/fail gates
+
+A launch `startActivity()` success is NOT OCR success. Google may repackage the activity and strip YFloat extras, or run a different Lens selection pipeline; both require evidence-based adaptation. Do **not** auto-hide Google, apply Hook symbol guesses, intercept network traffic, extend ownership to unrelated Google sessions, or claim full-screen OCR availability before observing a live result.
+
+If input fails, investigate exported Google Activity/Intent contract first. If input works but OCR return fails, inspect selection output specifically with the Google 17.66 diagnostics; don't replace the working image input or re-enable speculative search blocking.
+
+## 2026-10-17 21:10 log findings and next gate
+
+- Real native crop at 21:09:55 had 648x609 pixels; the YFloat temporary PNG was 460035 bytes.
+- Legacy googleapp://lens Intent entered GoogleAppGatewayActivity, but no Google screenshot read or OCR selection was observed before diagnostic export. The earlier 21:03 input was revoked by top_package_changed at ~5 seconds.
+- New candidate caller fix follows Chromium's actual startActivityForResult pattern with a private transparent YFloat Activity. It is an experimental source-attribution adjustment, NOT a confirmed AGSA 17.66 OCR result API.
+- When the installed Google App exposes a separate direct Lens activity for google://lens, use it in preference to the generic gateway. This is determined by PackageManager.resolveActivity; never guess an obfuscated class.
+- Diagnostic hook now reports ContentResolver opens of the **exact YFloat image authority** and whether the Java open returned successfully, without logging image bytes or OCR contents. Native/binder-level opens may not be visible, so a missing open event is inconclusive.
+- If Google navigates away, leave the one-shot image URI readable for at most 2 minutes instead of immediately deleting on an accessibility top-package change.
+
+The refreshed runtime evidence should be read in this order:
+
+1. `selected_from`, `encode_begin`, `resolvers gateway=... direct=... chosen=...`
+2. `caller_started`, `intent_dispatched caller=startActivityForResult`
+3. `GOOGLE_CTS_HOOK V2 LENS_IMAGE_INPUT google_activity=...`
+4. `google_image_open_attempt` / `google_image_open_result success=true`
+5. `native_ocr_callback` (ONLY this confirms YFloat received Google-selected OCR text)
+6. `workflow_ended_input_retained` vs `image_released` with reason.
+
+Even if steps 1–4 succeed, Google Lens may implement OCR selection in a different process/controller than Circle to Search. Do not claim a working OCR results interface until a genuine Google text selection event is observed.
+
+## 21:22 follow-up: verify the host-side PNG read
+
+The latest capture is 615x742 pixels / 511140 bytes. The direct scheme resolved
+to com.google.android.apps.lens.MainActivity, entered LensExportedActivity
+and returned a custom result code 1 about 204 ms later; no text was returned.
+A custom Activity result code is not proof of an OCR result or image read.
+
+The current build prefers the Chromium default gateway contract, and only
+falls back to direct when the gateway is unavailable. Resolver availability
+alone no longer changes the protocol.
+
+YSuite's original host .files FileProvider has a compatible concrete subclass
+with the same authority, paths and URI permission policy. It records
+host_file_open_attempt / host_file_open_result / host_file_open_failed only
+for the YFloat_*.png images, without recording image contents or filenames.
+A verified host_file_open_result success=true proves the Android provider
+opened the PNG for a client; it does not prove Google completed OCR.
+The old Google process ContentResolver tracing remains supplementary.
+
+## Google 17.66.12 APK + 21:37 diagnosis (verified 2026-10-17)
+
+The user-provided APKS bundle contains a 245.54 MiB base APK and separate
+on-device Lens engine modules (feature 18.55 MiB; Play ML 67.72 MiB).
+The recognition implementation is therefore not reducible to the main
+Activity handoff, and none of the static inspection proves OCR results
+are accessible through a public API.
+
+The 21:37 trial captured **685 × 743** pixels and sent **638152** PNG bytes.
+`resolvers ... chosen=gateway_default`, then
+`GoogleAppGatewayActivity scheme=googleapp`. The caller received an
+empty RESULT_CANCELED (code 0), with **no** `host_file_open_result` and
+**no** `native_ocr_callback`. This indicates a gateway launch but does not
+prove the PNG was ever accessed. LSPosed status reported googleStale=true;
+that is a separate caveat for custom Hook validation.
+
+In the actual 17.66.12 DEX:
+- `classes6.dex Lcuqi.e` reads **LensBitmapUriKey**,
+  **AccountNameUriKey**, **IncognitoUriKey**, **ImageSrc**, **PageDomain**,
+  **Gid**, and **ActivityLaunchTimestampNanos**, plus
+  **lens_intent_type** from a `googleapp://lens` URI.
+  This proves these protocol keys exist. A separate
+  **lens_data**/LensDeeplinkRequest branch checks Entry Point ID; this
+  must NOT be confused with a missing mandatory query parameter for
+  the legacy bitmap URI branch.
+- `classes8.dex Ldufb.a` includes a caller-package requirement for
+  LensExportedActivity. Identity and successful Activity resolution are
+  not sufficient evidence that image processing ran.
+- The base AndroidManifest.xml declares
+  **com.google.android.apps.search.lens.LensShareEntryPointActivity**
+  as **exported=true**, with an **ACTION_SEND** filter for
+  **image/jpeg** and **image/png**.
+- `classes6.dex LensShareEntryPointActivity.onCreate` explicitly checks
+  **android.intent.action.SEND**, **image/** MIME type, and
+  **android.intent.extra.STREAM** before handling the shared image.
+  This is a materially stronger, directly APK-confirmed image-input
+  route than a generalized URI gateway.
+
+**Changed behavior:** the explicit experimental Google OCR command now
+prefers the APK's exported ACTION_SEND LensShareEntryPointActivity when
+it is installed and exported. The request uses
+`Intent.EXTRA_STREAM=content://<YSuite>.files/...`,
+`type=image/png`, `FLAG_GRANT_READ_URI_PERMISSION`, and ClipData.
+Other Google versions retain the original gateway and direct-scheme
+fallback; ordinary YFloat and Google CTS paths remain unaffected.
+
+On next run, check `resolvers share=true chosen=apk_verified_image_share`,
+then `host_file_open_result success=true`, then Google activity
+transitions, then a native OCR text callback. The ACTION_SEND activity
+may still use its own selection implementation, so old Circle-to-Search
+selection Hooks may not emit the desired callback. That must be measured
+independently; image-read success is not OCR-result success.
+
+## 22:05 trace: the image path is now proven; keep screenshot regions separate
+
+The exact-session native crop was 675x695 pixels, PNG 543066 bytes. Google
+successfully launched LensShareEntryPointActivity followed by
+LensExportedActivity. The host's URI provider observed several successful
+read-mode opens from Google uid 10135. The Google process decoded an identical
+675x695 ARGB_8888 Bitmap from `injected_image_uri.source_uri`; the frame
+subsequently reached YFloat through SharedMemory. These are runtime facts,
+not a heuristic based on Activity launches.
+
+At 22:04:53 the semantic selection hook `dwqi.z(dwpz)` was reached, but no
+`LIVE_TEXT_CALLBACK` or `native_ocr_callback` was observed. A late
+region/gesture event was incorrectly interpreted as a regular full-screen
+Circle-to-Search region, even though Google's source bitmap was only 675x695.
+YFloat displayed its own giant region confirmation Rect(0,7-1251,2772),
+then delivered an extra screenshot result, released the URI and ended the
+experiment at `v2_result_visible`. This host-induced transition explains
+why the previous trial could not accurately test native OCR selection.
+
+Now, only for the ACTION_SEND experiment:
+- The Google Hook does not forward native image-local region rectangles to
+  the host as full-screen CTS regions; it also leaves FrozenImageView
+  transformations alone instead of blocking setTranslationY.
+- The host ignores image-share region and region-confirm events as a
+  second boundary defense. No screenshot-result overlay is synthesized.
+- Google retains its own Lens region/selection UI. The existing OCR
+  text-selection hooks remain active. If text genuinely arrives, YFloat
+  can display its own text actions, but it must not draw a screen outline
+  using untransformed Lens image-local coordinates.
+- Ordinary Google CTS sessions still preserve their existing screen-region
+  handling, viewport guards and screenshot result behavior.
+
+Next run acceptance: `host_file_open_result success=true` and
+`GOOGLE_FRAME_CAPTURED bitmap=675x695` should remain true; there should
+be no `GOOGLE_REGION confirm overlay`, `GOOGLE_V2 screenshot delivered`,
+or `v2_result_visible` from a shared-image selection. The next critical
+signal is `LIVE_TEXT_CALLBACK` or `TEXT_SELECTION_READY` followed by
+`native_ocr_callback`. The Google LSPosed process was still marked
+STALE v56 in the supplied diagnostic, so reload before attributing
+callback absence to the Google 17.66 implementation.
+
+## 2026-10-17 22:26 trace: first **confirmed** Google-selected OCR return
+
+The full diagnostic has **three** image-input sessions, not only the last one.
+At 22:20:19 session `2a467d41`, with a verified 614x719 Google image
+source and successful host URI opens, emitted:
+- `LIVE_TEXT_CALLBACK chars=1 bounds=true`
+- `native_ocr_callback chars=1` then `native_ocr_callback chars=3`
+- `GOOGLE_V2 text menu visible=true` twice.
+
+This is strong device evidence that the image-share -> Google Lens selection ->
+YFloat text callback / own floating text menu chain works **for selected
+fragments**, not proof of an automatic full-image OCR API. The 22:25:34
+585x862-image session had successful file reads and Google image decoding but
+only `SELECTION_SNAPSHOT_EMPTY` until `TEXT_SELECTION_NOT_DELIVERED` at 8s;
+it does not refute the earlier positive test. Current Google LSPosed status was
+`googleStale=false`, `UP_TO_DATE v56`.
+
+Real lifecycle bug: after receiving selected text at 22:20:19/22:20:21, the
+session ended at 22:20:49 via `v2_google_end:v2:activity_stopped` as
+`CANCELLED success=false` and discarded its in-memory selection, incorrectly
+treating a delivered OCR result as an unsuccessful workflow. The coordinator
+now computes successful termination from **either** screenshot result success
+or verified `GoogleLensImageInputProbe.hasNativeText(token)` *before cleanup*
+and logs `nativeTextDelivered`. It does not count resolved Activities or
+empty semantic snapshots as successful OCR.
+
+The Google live-word hook's `readStateBounds` already projects the selection
+word geometry onto screen via `GoogleSelectionCoordinateSpace.map` and embeds
+`space=...` and `screen=...` in its callback detail. For these **verified
+liveFilter=accepted** word-list callbacks only, share mode now anchors the
+YFloat text popup to the projected screen Rect without drawing YFloat's own
+outline over Google's native selection UI. Generic image-local rectangles
+remain untrusted for popup placement. No selected text is logged.
+
+The 8-second watcher is diagnostic, not a failure verdict: 22:20 selected
+text only became available 15 seconds after activation. The log event is now
+`TEXT_SELECTION_PENDING` to avoid labeling legitimate late selections as
+failed.
+
+Check next APK on device:
+1. Image input and host PNG read success remain unchanged.
+2. Select one or more recognizable words within Lens and observe
+   `native_ocr_callback` and `text menu visible=true anchorVerified=true`.
+3. Exit Lens: `GOOGLE_CTS_SESSION terminal=... success=true
+   nativeTextDelivered=true` and workflow `FINISHED` if OCR was returned;
+   `CANCELLED` only if no selected text was ever delivered.
+4. 22:16 in the previous diagnostic still showed a blocked FrozenImageView
+   transform despite an image share. The latest 22:20/22:25 runs did not show
+   that event; if it recurs with the same installed build, inspect multiple
+   Hook installers or stale process state rather than assuming cause.
+
+## 2026-10-17 22:41 diagnostic and stale Google process safeguard
+
+Latest **22:40:41** exact-session `5135027e`: native YFloat crop
+508x680, PNG 422609 bytes, image share sent to the APK-confirmed
+LensShareEntryPointActivity. The host provider returned TWO successful
+read-only opens from Google UID 10135, so this is **not** a screenshot,
+Content URI, or Android permission problem.
+
+Unlike the previous 22:20 successful word-selection experiment, there
+was NO `GOOGLE_CTS_SESSION hook_ready`, `GOOGLE_FRAME_CAPTURED`,
+`LIVE_TEXT_CALLBACK`, or `native_ocr_callback`. At 22:40:53 the startup
+watchdog printed `bootstrap_confirmed=false googleLoaded=true`, and
+the final LSPosed status was `googleStale=true`; Google process roles
+`:googleapp`, `:search`, and `:interactor` were all `[STALE v56]`.
+
+The installed APK can update, but an already-running Google process retains
+the old LSPosed Hook generation until that process restarts. To prevent a
+misleading "Lens opened but OCR doesn't work" trial, the explicit Google OCR
+experiment now refreshes LSPosed status while encoding and **blocks the
+external Lens launch when scoped, loaded Google processes are known stale**.
+It closes the prepared image share, logs
+`launch_blocked reason=stale_google_hook recovery=restart_google_processes_or_device`,
+and shows a short actionable toast. It NEVER force-stops Google in the
+background and does not block cold starts with no Google process yet running.
+A fresh `googleStale=false` image trial still proceeds normally.
+
+The accessibility cleanup trace previously said
+`owned session committing screenshot; skip navigation exit` even when
+a share-image lease was merely being kept alive. The message now explicitly
+distinguishes `lens_image_input_navigation_held` and
+`screenshot_result_handoff_navigation_held`. This is a diagnostic correction,
+not an extra change to Google activity ownership.
+
+To test on-device:
+1. Restart device or manually restart Google's process group after installing
+   the latest LSPosed module build; verify `googleStale=false`.
+2. Open Google OCR (experimental), select a real word in the Google UI.
+3. Require `hook_ready`, `native_ocr_callback`, and the text menu.
+4. After returning, verify `nativeTextDelivered=true` and `success=true`
+   for successful text selections. A mere successful URI read is not OCR.
+
+## Native YFloat circle integration; screenshot workflows kept local
+
+User-requested production-behavior change on the experimental branch:
+**YFloat's own native circle text recognition uses Google Lens, while
+screenshot capture/results remain YFloat-local.** The experiment's validated
+Google 17.66 LensShareEntryPointActivity / exact-token Hook bridge is reused;
+we do not reintroduce Google CTS frozen-screen capture as a prerequisite.
+
+| YFloat native gesture/action | After change |
+| --- | --- |
+| Tap a word (TAP) | Encode a padded, bounded crop and open Google Lens OCR |
+| Drag across text (HIGHLIGHT) | Encode padded neighbourhood, open Google Lens OCR |
+| Closed circle (CIRCLE) | Keep adjustable image crop and native YFloat image menu |
+| Scribble (SCRIBBLE) | Keep adjustable image crop and native YFloat image menu |
+| Circle image menu -> 谷歌识别 | Open Google Lens OCR on selected image crop |
+| Circle image menu -> 完成 | **Local YFloat screenshot result only** |
+| Screenshot result's OCR action | Existing **local** OCR, not Google |
+| Screenshot result image context menu | No Google OCR item |
+| Copy, Save, Share, Find on screenshot | Unchanged local/external actions |
+
+Before this change, NativeCircleWorkspace invoked
+CircleStableOcr.recognizeFullScreenSelected immediately on show and attempted
+local text glyph matching to route TAP/HIGHLIGHT. This duplicated the Google
+engine and delayed text gestures. Native text intent now takes only a
+minimal padded crop using NativeCircleGoogleRecognitionCrop; **no local
+full-screen OCR starts on entry**. Readable tap neighbourhoods and highlight
+strokes are expanded enough to include real glyph height, clipped/shunted
+inside the captured bitmap. The test policy asserts correct edge dimensions.
+
+NativeCircleWorkspace no longer owns a parallel OCR document and character
+handle UI; Google handles OCR word selection and the shared YFloat menu shows
+the selected text via the existing authenticated live-word callback. In
+particular, Google OCR is *not* launched from the screenshot result dialog
+or regular screenshot ImageActionMenu. The persisted google_ocr action ID
+remains unchanged, but is only visible in the editable circle image menu.
+
+The 22:40 trial had old Google Hook processes. The launch readiness preflight
+from the preceding commit remains active: if an old Google LSPosed generation
+is known running, the experimental OCR launch is blocked with a restart prompt
+instead of falsely claiming an OCR read failure.
+
+This does not provide automatic full-image text enumeration without a Google
+selection gesture: the proven integration receives selected Google OCR text
+after the user selects it in Lens.
+
+## 2026-10-17: do not force a restart on every upgrade
+
+User feedback: updating YFloat does NOT automatically mean Google must
+restart; even a process status `googleStale=true` is insufficient to block
+normal use. Previous preflight code rejected `launch()` before Google could
+demonstrate a live Hook. That safeguard was too aggressive.
+
+New behaviour:
+- Always launch the native YFloat text crop through the APK-confirmed Lens
+  ACTION_SEND path. Status is logged as `preflight ... policy=allow_runtime_hook_check`,
+  regardless of whether `googleStale` is currently true. The image is not
+  discarded just because app versions have changed.
+- A real `hook_ready` callback from the active token overrides stale process
+  metadata; no restart is suggested if the callback actually works.
+- At **30 seconds** into an experimental image session, ONLY if Google is
+  scoped and running, the process is reported STALE, **and** no exact-session
+  Hook acknowledgement arrived, log `hook_recovery_check ... restartSuggestion=true`
+  and suggest (not mandate) manually restarting Google's process if OCR still
+  does not work. Never force-stop Google or automatically reboot the device.
+- If the Hook responds, the app operates normally even if process-generation
+  metadata has not yet refreshed. Non-image CTS workflows receive no new toast.
+- Keep session start, image sharing, full-text-selection callbacks, and the
+  local screenshot Done flow entirely separate.
+
+Thus **upgrading alone is not a trigger** for a restart message. A concrete
+failed Hook startup is necessary, and a running stale version is a
+secondary diagnostic hint, not an absolute failure verdict.
+
+## 23:09 diagnostic: original-image text selection vs launching Lens
+
+The user wants to select text **on YFloat's existing frozen screenshot** and
+keep YFloat's own text handles/menu. Exporting a crop to Google's separate
+Lens Activity does NOT achieve that.
+
+The 23:09:32 run proves the regression: `native_text_gesture kind=HIGHLIGHT`
+-> `closed google_text_recognition` -> explicit `ACTION_SEND` into
+`LensShareEntryPointActivity`. Google successfully opened the content
+provider twice, but no current YFloat Hook bootstrap or native OCR text
+callback followed. This is a Lens image export, not in-place recognition.
+
+The YFloat original-frame workflow is restored:
+- `NativeCircleWorkspace.show` asynchronously indexes the **whole frozen frame**
+  through `CircleStableOcr.recognizeFullScreenSelected`; its default Google
+  ML Kit recognizer returns an `OcrDocument` with per-character positions.
+- TAP / HIGHLIGHT select matching original-image character spans with native
+  selection handles and a floating text action toolbar. Neither action calls
+  `GoogleLensImageInputProbe.launch` or closes the workspace.
+- CIRCLE / SCRIBBLE remain purely local editable crop / screenshot routes.
+  The screenshot result panel has only the original local OCR/copy/save/close
+  buttons and NO Google Lens entry.
+- Only a **separate, explicit** Google OCR action from the editable native
+  image-crop menu still exports to Lens. It remains experimental, and does
+  not claim a headless Google Lens API exists.
+- The short-lived Google process version flag is advisory; the current branch
+  already allows launch despite a stale-looking tag, and suggests a restart
+  only after an actual Hook handshake timeout. Updating the app alone must
+  never require a restart.
+
+**Important implementation distinction:** the local in-place engine is
+Google ML Kit (or optional configured Paddle OCR), **not Google's proprietary
+Google Lens OCR backend**. This restores functional in-place selection now.
+An actual Google Lens backend with in-place word boxes still needs a separately
+verified internal OCR-result callback that returns a complete document without
+switching into the visible Lens Activity. Prior `native_ocr_callback` proved
+selected fragments after interaction inside Lens, not that headless interface.
+
+Regression: unit tests cover TAP/HIGHLIGHT native text routing, CIRCLE/SCRIBBLE
+local image routing, and the NativeCircleState `TEXT_READY`/IMAGE_READY
+terminal invariants. Check runtime log
+`ready ... textSelection=local_in_place screenshots=local_only` then
+`auto route=text kind=HIGHLIGHT` without any
+`selected_from=native_text_gesture` or Lens Activity launch.

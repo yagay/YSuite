@@ -3,6 +3,8 @@ package com.yagay.YMiniGuard;
 import android.app.Activity;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
+import android.widget.ImageView;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -20,6 +22,7 @@ import android.widget.Toast;
 
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.yagay.yui.YView;
+import com.yagay.suite.api.InstalledAppCatalog;
 import com.yagay.yui.YViewLayout;
 import com.yagay.yui.YViewStatusTone;
 import com.yagay.yui.YViewListRow;
@@ -135,30 +138,15 @@ public final class TargetAppsActivity extends Activity {
             Throwable failure = null;
             try {
                 PackageManager pm = getPackageManager();
-                List<ApplicationInfo> infos;
-                if (android.os.Build.VERSION.SDK_INT >= 33) {
-                    infos = pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0));
-                } else {
-                    infos = pm.getInstalledApplications(0);
-                }
-
-                for (ApplicationInfo info : infos) {
+                for (InstalledAppCatalog.Entry entry : InstalledAppCatalog.list(this, 0)) {
                     if (Thread.currentThread().isInterrupted()) return;
-                    if (info == null || info.packageName == null || getPackageName().equals(info.packageName)) {
-                        continue;
-                    }
-                    if (pm.getLaunchIntentForPackage(info.packageName) == null) continue;
-
-                    String label;
-                    try {
-                        CharSequence cs = info.loadLabel(pm);
-                        label = cs == null ? info.packageName : cs.toString().trim();
-                        if (label.isEmpty()) label = info.packageName;
-                    } catch (Throwable ignored) {
-                        label = info.packageName;
-                    }
-                    boolean system = (info.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
-                    loaded.add(new AppItem(label, info.packageName, system));
+                    if (getPackageName().equals(entry.packageName)) continue;
+                    // MiniGuard protects launchable apps; this is module policy,
+                    // not a restriction on the centrally cached inventory.
+                    if (pm.getLaunchIntentForPackage(entry.packageName) == null) continue;
+                    loaded.add(new AppItem(entry.label.trim().isEmpty() ? entry.packageName : entry.label.trim(),
+                            entry.packageName, entry.system,
+                            entry.icon(this, YView.listIconSize(this))));
                 }
 
                 loaded.sort(Comparator
@@ -251,6 +239,7 @@ public final class TargetAppsActivity extends Activity {
 
             AppItem item = filteredApps.get(position);
             holder.title.setText(item.label);
+            holder.icon.setImageDrawable(item.icon);
             holder.subtitle.setText(item.packageName
                     + (item.system ? getString(R.string.ymg_system_app_suffix) : ""));
             holder.check.setOnCheckedChangeListener(null);
@@ -261,13 +250,13 @@ public final class TargetAppsActivity extends Activity {
         }
 
         private RowHolder createRow() {
-            YViewListRow row = YViewLayout.listItem(TargetAppsActivity.this, false);
+            YViewListRow row = YViewLayout.listItem(TargetAppsActivity.this, true);
             MaterialCheckBox check = YViewLayout.checkBoxControl(
                     TargetAppsActivity.this,
                     false,
                     null);
             row.trailing.addView(check);
-            RowHolder holder = new RowHolder(row.root, row.title, row.subtitle, check);
+            RowHolder holder = new RowHolder(row.root, row.title, row.subtitle, row.icon, check);
             row.root.setTag(holder);
             return holder;
         }
@@ -277,12 +266,14 @@ public final class TargetAppsActivity extends Activity {
         final LinearLayout root;
         final TextView title;
         final TextView subtitle;
+        final ImageView icon;
         final MaterialCheckBox check;
 
-        RowHolder(LinearLayout root, TextView title, TextView subtitle, MaterialCheckBox check) {
+        RowHolder(LinearLayout root, TextView title, TextView subtitle, ImageView icon, MaterialCheckBox check) {
             this.root = root;
             this.title = title;
             this.subtitle = subtitle;
+            this.icon = icon;
             this.check = check;
         }
     }
@@ -291,11 +282,13 @@ public final class TargetAppsActivity extends Activity {
         final String label;
         final String packageName;
         final boolean system;
+        final Drawable icon;
 
-        AppItem(String label, String packageName, boolean system) {
+        AppItem(String label, String packageName, boolean system, Drawable icon) {
             this.label = label;
             this.packageName = packageName;
             this.system = system;
+            this.icon = icon;
         }
     }
 }

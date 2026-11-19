@@ -1,6 +1,8 @@
 package com.yagay.yui
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,8 +17,8 @@ fun YComponentCatalogScreen() {
     var text by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(0) }
     var enabled by remember { mutableStateOf(true) }
-    var checked by remember { mutableStateOf(false) }
-    var showDialog by remember { mutableStateOf(false) }
+    var checkboxChecked by remember { mutableStateOf(false) }
+    var sliderValue by remember { mutableStateOf(3) }
     val title = stringResource(R.string.yui_catalog_title)
     val subtitle = stringResource(R.string.yui_catalog_subtitle)
     val primary = stringResource(R.string.yui_catalog_primary)
@@ -36,7 +38,6 @@ fun YComponentCatalogScreen() {
                         YActionSpec(primary, style = YActionStyle.PRIMARY, onClick = {}),
                         YActionSpec(secondary, style = YActionStyle.SECONDARY, onClick = {}),
                         YActionSpec(error, style = YActionStyle.DANGER, onClick = {}),
-                        YActionSpec(optionB, style = YActionStyle.SECONDARY, onClick = { showDialog = true }),
                     ),
                 )
             }
@@ -52,14 +53,6 @@ fun YComponentCatalogScreen() {
                     subtitle = secondary,
                     checked = enabled,
                     onCheckedChange = { enabled = it },
-                )
-            }
-            item {
-                YCheckboxItem(
-                    title = optionB,
-                    subtitle = secondary,
-                    checked = checked,
-                    onCheckedChange = { checked = it },
                 )
             }
             item {
@@ -84,17 +77,54 @@ fun YComponentCatalogScreen() {
                     onSelected = { selected = it },
                 )
             }
+            item {
+                YUiFilterChip(
+                    selected = selected == 0,
+                    onClick = { selected = if (selected == 0) 1 else 0 },
+                    label = { androidx.compose.material3.Text(optionA) },
+                )
+            }
+            item {
+                YUiSurface {
+                    androidx.compose.material3.Text(
+                        subtitle,
+                        modifier = androidx.compose.ui.Modifier.padding(
+                            LocalYAppearance.current.cardPaddingDp.dp,
+                        ),
+                    )
+                }
+            }
+            item {
+                YCheckboxItem(
+                    title = optionB,
+                    subtitle = secondary,
+                    checked = checkboxChecked,
+                    onCheckedChange = { checkboxChecked = it },
+                )
+            }
+            item {
+                YRadioGroup(
+                    value = selected,
+                    options = listOf(YChoiceSpec(0, optionA), YChoiceSpec(1, optionB)),
+                    onSelected = { selected = it },
+                )
+            }
+            item {
+                YIntSliderField(
+                    title = stringResource(R.string.yui_catalog_field),
+                    value = sliderValue,
+                    range = 1..5,
+                    onValueChange = { sliderValue = it },
+                )
+            }
+            item {
+                YTabBar(
+                    tabs = listOf(YTabSpec("first", optionA), YTabSpec("second", optionB)),
+                    selectedKey = if (selected == 0) "first" else "second",
+                    onSelected = { selected = if (it.key == "first") 0 else 1 },
+                )
+            }
         }
-    }
-    if (showDialog) {
-        YConfirmDialog(
-            title = title,
-            message = subtitle,
-            confirmLabel = primary,
-            dismissLabel = secondary,
-            onConfirm = { showDialog = false },
-            onDismiss = { showDialog = false },
-        )
     }
 }
 

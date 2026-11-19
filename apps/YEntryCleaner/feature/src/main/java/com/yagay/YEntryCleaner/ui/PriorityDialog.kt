@@ -16,13 +16,13 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.yagay.yui.YUiSurface as Surface
+import com.yagay.yui.YUiText as Text
+import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -52,6 +52,7 @@ import com.yagay.YEntryCleaner.domain.priorityAppGroups
 import com.yagay.YEntryCleaner.domain.priorityCandidates
 import com.yagay.yui.YCheckboxControl
 import com.yagay.yui.YSection
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YStatusLine
 import com.yagay.yui.YStatusTone
@@ -172,8 +173,12 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
     val currentVisible by rememberUpdatedState(moveTargets)
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val edge = with(density) { 56.dp.toPx() }
-    val speed = with(density) { 640.dp.toPx() }
+    val appearance = LocalYAppearance.current
+    // Drag parameters follow the same editable row geometry as the visible list.
+    val edge = with(density) { appearance.rowHeightDp.dp.toPx() }
+    val speed = with(density) { (appearance.rowHeightDp * 12f).dp.toPx() }
+    val markerInsetPx = with(density) { (appearance.rowVerticalPaddingDp / 3f).dp.toPx() }
+    val markerStrokePx = with(density) { (appearance.rowVerticalPaddingDp / 2f).dp.toPx() }
     LaunchedEffect(kind, openPreset, browserHost, viewFilter, appTypeFilter, state.query, rankedRaw, moveTargets) { dragState.cancel() }
     DisposableEffect(dragState) { onDispose { dragState.cancel() } }
     LaunchedEffect(drag?.packageName) {
@@ -222,14 +227,14 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                 )
             },
             state = listState,
-            contentPadding = PaddingValues(bottom = 16.dp)
+            contentPadding = PaddingValues(bottom = LocalYAppearance.current.sectionSpacingDp.dp)
         ) {
             item(key = "status") {
                 ModuleStatusRow(state, compact = true) { vm.setDestination(Destination.DASHBOARD) }
                 if (state.runtime.needsDecision) RuntimePanel(state, vm, showUpdateTools = false)
             }
             stickyHeader(key = "controls") {
-                Surface(tonalElevation = 2.dp) {
+                Surface(tonalElevation = (LocalYAppearance.current.rowVerticalPaddingDp / 3f).dp) {
                     Column {
                         ListControls(
                             state.copy(filter = kind, uiFilter = viewFilter),
@@ -348,7 +353,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                     else stringResource(R.string.app_list_count_type, groups.size, presetTitle),
                     subtitle = stringResource(R.string.priority_intro),
                     detail = stringResource(R.string.priority_drag_help),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp),
                     trailing = {
                         if (hasReset) {
                             TextButton(
@@ -419,13 +424,13 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             .drawWithContent {
                                 drawContent()
                                 if (drag?.target == packageName && drag.packageName != packageName) {
-                                    val y = if (drag.movingDown) size.height - 2.dp.toPx() else 2.dp.toPx()
-                                    drawLine(marker, Offset(0f, y), Offset(size.width, y), 3.dp.toPx())
+                                    val y = if (drag.movingDown) size.height - markerInsetPx else markerInsetPx
+                                    drawLine(marker, Offset(0f, y), Offset(size.width, y), markerStrokePx)
                                 }
                             }
                             .clickable(onClickLabel = expandLabel, onClick = onExpand)
-                            .heightIn(min = 64.dp)
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                            .padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         YCheckboxControl(
@@ -447,7 +452,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             }
                         )
                         AppIcon(first.appIcon, first.appLabel)
-                        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                        Column(Modifier.weight(1f).padding(start = LocalYAppearance.current.effectiveGapDp.dp)) {
                             Text(first.appLabel, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                             val rankText = group.rank?.let {
                                 stringResource(
@@ -466,7 +471,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                             Icon(
                                 Icons.Rounded.Lock,
                                 contentDescription = stringResource(R.string.bulk_lock_full),
-                                modifier = Modifier.padding(horizontal = 8.dp).size(20.dp)
+                                modifier = Modifier.padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp).size(LocalYAppearance.current.iconVisualSizeDp.dp)
                             )
                         }
                         IconButton(onClick = onExpand) {
@@ -483,7 +488,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                         item(key = "order|$key") {
                             val index = moveTargets.indexOf(packageName)
                             Row(
-                                Modifier.fillMaxWidth().padding(start = 24.dp, end = 16.dp),
+                                Modifier.fillMaxWidth().padding(start = (LocalYAppearance.current.rowHorizontalPaddingDp * 1.5f).dp, end = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
@@ -506,7 +511,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                     },
                                     enabled = index > 0
                                 ) {
-                                    Icon(Icons.Rounded.ArrowUpward, null, Modifier.size(18.dp))
+                                    Icon(Icons.Rounded.ArrowUpward, null, Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp))
                                     Text(stringResource(R.string.priority_move_up))
                                 }
                                 TextButton(
@@ -521,7 +526,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                     },
                                     enabled = index >= 0 && index < moveTargets.lastIndex
                                 ) {
-                                    Icon(Icons.Rounded.ArrowDownward, null, Modifier.size(18.dp))
+                                    Icon(Icons.Rounded.ArrowDownward, null, Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp))
                                     Text(stringResource(R.string.priority_move_down))
                                 }
                             }
@@ -545,7 +550,7 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                                 else -> R.string.priority_empty_category
                             }
                         ),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp)
                     )
                 }
             }
@@ -556,15 +561,16 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
                 val first = group.components.first()
                 Surface(
                     Modifier.fillMaxWidth().offset { IntOffset(0, moving.top.roundToInt()) }.zIndex(1f),
-                    tonalElevation = 6.dp,
-                    shadowElevation = 8.dp
+                    tonalElevation = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+                    shadowElevation = (LocalYAppearance.current.effectiveGapDp * 2f / 3f).dp
                 ) {
                     Row(
-                        Modifier.heightIn(min = 64.dp).padding(horizontal = 16.dp, vertical = 8.dp),
+                        Modifier.heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                            .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         AppIcon(first.appIcon, first.appLabel)
-                        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                        Column(Modifier.weight(1f).padding(start = LocalYAppearance.current.effectiveGapDp.dp)) {
                             Text(first.appLabel, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                             Text(
                                 stringResource(
@@ -585,7 +591,13 @@ fun PriorityDialogContent(state: MainState, vm: MainViewModel) {
 private fun ComponentInfoRow(item: ComponentCandidate, customTitle: String?, onEditTitle: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-            .heightIn(min = 48.dp).padding(start = 24.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
+            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+            .padding(
+                start = (LocalYAppearance.current.rowHorizontalPaddingDp * 1.5f).dp,
+                end = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                top = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+                bottom = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {

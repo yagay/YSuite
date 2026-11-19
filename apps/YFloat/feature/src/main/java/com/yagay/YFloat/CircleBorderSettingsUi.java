@@ -3,17 +3,16 @@ package com.yagay.YFloat;
 import com.yagay.yui.YViewLayout;
 import android.widget.LinearLayout;
 
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 /** Focused settings widgets for the Circle Select active-state border. */
 final class CircleBorderSettingsUi {
-    private static final int[] COLOR_VALUES = {
-            0xFF4285F4, 0xFF34A853, 0xFF00B8D4, 0xFF9C6ADE,
-            0xFFFF8A00, 0xFFEA4335, 0xFFFFFFFF
-    };
+    private static final int[] COLOR_VALUES = YFloatVisualSettings.borderColors();
 
     static void add(SettingsActivity activity, FloatSettings fs, LinearLayout parent) {
-        SwitchMaterial enabled = YViewLayout.switchRow(activity,
+        // All three edits are forwarded via FloatSettings into the shared YUI
+        // appearance store for module yfloat; no local visual state is created.
+        MaterialSwitch enabled = YViewLayout.switchRow(activity,
                 activity.getString(R.string.yfloat_circle_border_show),
                 activity.getString(R.string.yfloat_circle_border_show_desc),
                 fs.circleBorderEnabled(),
@@ -48,8 +47,8 @@ final class CircleBorderSettingsUi {
         YViewLayout.addRow(parent, YViewLayout.sliderSetting(
                 activity,
                 activity.getString(R.string.yfloat_circle_border_width),
-                1,
-                8,
+                0,
+                48,
                 fs.circleBorderWidthDp(),
                 value -> activity.getString(R.string.yfloat_dimension_dp, value),
                 value -> {

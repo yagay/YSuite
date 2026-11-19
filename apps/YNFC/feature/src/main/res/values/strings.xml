@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ynfc_subtitle">NFC access cards and HCE status</string>
+    <string name="ynfc_polling_guard">Persistent reader block (keep HCE)</string>
+    <string name="ynfc_polling_status">NFC discovery policy</string>
+    <string name="ynfc_polling_hce_only">HCE only requested</string>
+    <string name="ynfc_polling_normal">Normal NFC requested</string>
+    <string name="ynfc_polling_guard_desc">Keeps NFC on, requests polling mask 0 on discovery and restart, preserves HCE. Verify via runtime logs and hardware tests.</string>
+    <string name="ynfc_polling_blocked_read">Reader blocking is on. Disable it before scanning a card.</string>
+    <string name="ynfc_polling_save_failed">Failed to save NFC reader blocking setting.</string>
     <string name="ynfc_saved_cards">Saved cards (%1$d)</string>
     <string name="ynfc_saved_cards_desc">Tap a card to view UID, SAK, and ATQA, then start or stop emulation.</string>
     <string name="ynfc_no_saved_cards">No saved cards. Enter read mode, tap a card, verify its information, then save it.</string>
@@ -10,7 +17,7 @@
     <string name="ynfc_log_enabled">Enabled. Collecting logs.</string>
     <string name="ynfc_log_disabled">Disabled. Logs are not collected to reduce performance impact.</string>
     <string name="ynfc_diagnostic_logs">Diagnostic logs</string>
-    <string name="ynfc_diagnostic_logs_desc">The log area keeps a high-contrast console palette while the page structure is managed by YUI.</string>
+    <string name="ynfc_diagnostic_logs_desc">Diagnostics are automatically saved under Download/YSuite/YNFC/; live logs remain available below.</string>
     <string name="ynfc_saving">Saving</string>
     <string name="ynfc_export_logs">Export logs</string>
     <string name="ynfc_clear_logs">Clear logs</string>
@@ -43,6 +50,7 @@
 
     <string name="ynfc_sim_active">Emulation active. UID=%1$s</string>
     <string name="ynfc_sim_failed">Emulation failed. %1$s</string>
+    <string name="ynfc_sim_reapply_requested_unverified">NFC restarted; UID %1$s was sent again. External NFC reader verification is pending.</string>
     <string name="ynfc_sim_stale">Emulation requested, but RF state belongs to an old NFC process.</string>
     <string name="ynfc_sim_applying">Applying. State %1$s. UID=%2$s</string>
     <string name="ynfc_sim_stopped_lifecycle">Emulation stopped. Stock RF restored through the NFC lifecycle.</string>
@@ -58,6 +66,8 @@
     <string name="ynfc_sim_command_superseded">Emulation request was replaced by a newer command</string>
     <string name="ynfc_sim_apply_failure">Emulation failed · %1$s: %2$s</string>
     <string name="ynfc_sim_waiting_rf">Emulation request sent · waiting for RF UID confirmation</string>
+    <string name="ynfc_wallet_payment_warning">While YNFC UID emulation is active, contactless wallet and secure-element NFC payments may be affected. Stop emulation and allow stock NFC to recover before paying.</string>
+    <string name="ynfc_own_nci_unverified">Custom NFC-A UID requested directly via native NCI 0x33. This interface provides no success acknowledgement. Verify the actual UID with an external reader; STOP restores the NFC service.</string>
     <string name="ynfc_sim_stop_lifecycle_restored">Emulation stopped · stock RF restored by the NFC process</string>
     <string name="ynfc_sim_stop_superseded">Stop request was replaced by a newer command</string>
     <string name="ynfc_sim_stop_restored">Emulation stopped · stock RF restored</string>
@@ -86,7 +96,65 @@
     <string name="ynfc_card_uid_subtitle">UID %1$s</string>
     <string name="ynfc_collapse_details">Tap to collapse details</string>
     <string name="ynfc_view_details">Tap to view details</string>
+    <string name="ynfc_quick_controls">Simulation controls</string>
+    <string name="ynfc_quick_controls_desc">Tap another saved card to switch UID without stopping first. Stop restores stock NFC; an NFC service reload may be required.</string>
+    <string name="ynfc_selected_uid">Selected UID</string>
+    <string name="ynfc_stop_restore_default">Stop and restore stock NFC</string>
+    <string name="ynfc_switch_uid">Switch UID</string>
+    <string name="ynfc_hook_problem_implementation">NFC is still using older YNFC Hook code. Stop emulation, then reload the NFC service Hook once. You do not need to reboot the phone.</string>
     <string name="ynfc_stop">Stop</string>
     <string name="ynfc_simulate">Emulate</string>
     <string name="ynfc_delete">Delete</string>
+    <string name="ynfc_hook_problem_process">NFC service process not found. Check Android NFC is enabled.</string>
+    <string name="ynfc_hook_problem_injection">No NFC Hook callback. Enable the com.android.nfc scope for YSuite in LSPosed, then reload the NFC service process if necessary. Root alone does not activate the Hook; a full phone reboot is normally unnecessary.</string>
+    <string name="ynfc_hook_problem_stale">Hook belongs to an older NFC process. Wait for the new NFC service to load its Hook; no full phone reboot is needed.</string>
+    <string name="ynfc_hook_problem_scope">NFC process exists, but its LSPosed scope is not confirmed. Verify the com.android.nfc scope, then reload only the NFC service if needed.</string>
+    <string name="ynfc_hook_problem_install">YNFC scope reported, but no Hook was installed. Export focused LSPosed logs to see the installation failure.</string>
+    <string name="ynfc_hook_problem_build">Installed NFC Hook version differs from the APK. YNFC will try to reload only the NFC service; no full phone reboot is normally needed.</string>
+    <string name="ynfc_hook_problem_unknown">NFC Hook is not ready. Check the scoped process and diagnostic logs.</string>
+    <string name="ynfc_vendor_type_a_mode">Experimental ColorOS Vendor Type-A</string>
+    <string name="ynfc_vendor_type_a_desc">OFF = strict NFC-A UID replacement via Root/LSPosed RF/NCI (replaces an existing LA_NFCID1, never appends). ON = experimental ColorOS Vendor Type-A, which requires OEM signature/privileged NFC permission. An external reader must verify the actual UID.</string>
+    <string name="ynfc_vendor_type_a_stop_first">Stop the current simulation before changing the backend.</string>
+    <string name="ynfc_vendor_api_accepted">Vendor Type-A request accepted by OEM; actual card emulation has NOT been verified by an external reader.</string>
+    <string name="ynfc_vendor_permission_denied">ColorOS denied Vendor Type-A because the NFC system process lacks com.oplus.permission.safe.NFC (signature|privileged). This cannot be fixed with a normal runtime permission grant. Stop emulation to restore NFC; see diagnostics for details.</string>
+    <string name="ynfc_sim_stop_no_override">No UID was written in the current NFC process. Simulation stopped without restarting NFC; stock RF was not independently verified.</string>
+    <string name="ynfc_hook_reload_title">NFC Hook update available</string>
+    <string name="ynfc_hook_reload_desc">The currently running NFC service has an older injected Hook. APK updates do not require a phone reboot. Reload the NFC service only when you want to activate new Hook code; this briefly interrupts NFC.</string>
+    <string name="ynfc_hook_reload_button">Reload NFC service</string>
+    <string name="ynfc_hook_reload_stop_first">Stop UID emulation before reloading the NFC service.</string>
+    <string name="ynfc_hook_reload_already_current">NFC Hook is already current. No reload required.</string>
+    <string name="ynfc_hook_reload_success">NFC service reloaded with the updated Hook. Phone reboot not required.</string>
+    <string name="ynfc_hook_reload_failed">Could not confirm the new NFC Hook. Check LSPosed scope and diagnostic logs; no further restart was attempted.</string>
+    <string name="ynfc_hook_manual_reload_title">Manual NFC Hook refresh</string>
+    <string name="ynfc_hook_manual_reload_desc">Only use this after installing a test build with new in-process Hook code. Reloads the NFC service once, not the phone. No automatic restart.</string>
+    <string name="ynfc_type_a_disable_failed">ColorOS rejected native NFC-A disable. Stock RF is not confirmed; check the diagnostic log.</string>
+    <string name="ynfc_rf_uid_writer_not_observed">UID replacement not applied: NFC routing refreshed but the current process did not call a usable NCI UID writer. The RF backend only replaces an existing LA_NFCID1; it never appends another parameter. This firmware may require a separate, verified native HAL interception point.</string>
+    <string name="ynfc_file_intercept_mode">File-driven NFC-A interception (experimental)</string>
+    <string name="ynfc_file_intercept_desc">Replace UID/ATQA/SAK only when ColorOS naturally calls HceAccessCard. This mode does not request or force an OEM NFC-A write; external reader verification is required.</string>
+    <string name="ynfc_intercept_call_accepted">ColorOS HCE method used the imported parameters and returned success. The actual RF UID is still unverified; check with an external NFC reader.</string>
+    <string name="ynfc_intercept_call_waiting">No ColorOS Type-A call observed yet. File interception remains armed until you stop it; the UID has not been verified or replaced so far.</string>
+    <string name="ynfc_intercept_reload_button">Reload NFC service to test interception</string>
+    <string name="ynfc_intercept_reload_complete">NFC service reloaded. Interception remains armed; check for new HCE calls and verify with an external NFC reader.</string>
+    <string name="ynfc_intercept_reload_not_armed">File interception is not armed. Select Intercept and tap Simulate on a saved card before reloading NFC.</string>
+    <string name="ynfc_profile_auto_title">Automatic NFC-A profile</string>
+    <string name="ynfc_profile_auto_desc">No import required. Tap Simulate on a saved card. The validated JSON is created privately and exported to Download/YSuite/YNFC/; ColorOS HCE remains an experimental compatibility path.</string>
+    <string name="ynfc_profile_auto_failed">Automatic NFC-A/SN220 file preparation failed. No new simulation command was sent; inspect config-status.txt and the diagnostic log.</string>
+    <string name="ynfc_intercept_old_hook_title">NFC service is running older Hook code</string>
+    <string name="ynfc_intercept_hook_reload_required">Stop any running simulation, then manually reload only the NFC service to activate the latest file interception Hook. No phone reboot is needed.</string>
+    <string name="ynfc_rf_legacy_mode_title">Legacy RF mode selected</string>
+    <string name="ynfc_rf_legacy_mode_desc">Legacy RF does not provide an independent native UID writer. Select native NCI investigation to collect firmware evidence.</string>
+    <string name="ynfc_switch_to_intercept">Select file interception</string>
+    <string name="ynfc_native_nci_mode">Independent NFC NCI/HAL (firmware investigation)</string>
+    <string name="ynfc_native_nci_desc">Uses an automatic private NFC-A profile and the device NXP HAL diagnostic path. Native UID writing is disabled until this firmware ABI and controller support are verified. No ColorOS Wallet needed.</string>
+    <string name="ynfc_native_profile_desc">Tap Simulate to create a versioned SN220 snapshot in Download/YSuite/YNFC/snapshots/. The JSON, original and modified configurations, and SHA-256 manifest belong to one run. Only NFCID1 is changed; ATQA/SAK are audited but not written. The native HAL writer is not installed.</string>
+    <string name="ynfc_native_abi_unverified">Native NCI/HAL is not ready: exact firmware libraries and the UID writer ABI must be verified before any controller configuration. No UID was simulated or sent. Export a diagnostic report.</string>
+    <string name="ynfc_switch_to_native">Choose native NCI investigation</string>
+    <string name="ynfc_hal_probe_button">Inspect HAL config loading (read-only)</string>
+    <string name="ynfc_hal_probe_running">Inspecting NFC HAL…</string>
+    <string name="ynfc_hal_probe_saved">HAL config evidence saved: %1$s</string>
+    <string name="ynfc_hal_probe_failed">HAL inspection failed: %1$s</string>
+    <string name="ynfc_native_preview_only">SN220 snapshot saved under Download/YSuite/YNFC/snapshots/. Preview only: NFC UID emulation was NOT started.</string>
+    <string name="ynfc_native_preview_action">Generate SN220 config</string>
+    <string name="ynfc_native_preview_preparing">Generating a verified SN220 snapshot (preview only; no NFC emulation)…</string>
+    <string name="ynfc_native_preview_preparing_short">Generating…</string>
 </resources>

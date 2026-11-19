@@ -30,6 +30,12 @@ public class FloatPreferenceImpactTest {
     }
 
     @Test
+    public void iconWindowHostChangesDoNotRecreateOcrOrGestureEngine() {
+        assertEquals(FloatPreferenceImpact.Impact.ICON_WINDOW_HOST,
+                FloatPreferenceImpact.classify(FloatSettings.K_ICON_ELEVATED_OVERLAY));
+    }
+
+    @Test
     public void gestureThresholdsOnlyRefreshIconSettings() {
         assertEquals(FloatPreferenceImpact.Impact.ICON_SETTINGS,
                 FloatPreferenceImpact.classify(FloatSettings.K_LONG_PRESS));
@@ -63,11 +69,31 @@ public class FloatPreferenceImpactTest {
     }
 
     @Test
+    public void advancedSelectionPreferencesAvoidUnnecessaryIconRebuilds() {
+        assertEquals(FloatPreferenceImpact.Impact.WAKE_REGION,
+                FloatPreferenceImpact.classify(FloatSettings.K_EDGE_WAKE_WIDTH_DP));
+        assertEquals(FloatPreferenceImpact.Impact.IGNORE,
+                FloatPreferenceImpact.classify(FloatSettings.K_NODE_IMAGE_MIN_DP));
+        assertEquals(FloatPreferenceImpact.Impact.IGNORE,
+                FloatPreferenceImpact.classify(FloatSettings.K_NODE_GENERIC_MIN_DP));
+        assertEquals(FloatPreferenceImpact.Impact.IGNORE,
+                FloatPreferenceImpact.classify(FloatSettings.K_GOOGLE_FRAME_GLOW_BLUR_DP));
+    }
+
+    @Test
     public void ocrAndPrivilegeChangesAreServiceOnly() {
         assertEquals(FloatPreferenceImpact.Impact.SERVICE_SETTINGS,
                 FloatPreferenceImpact.classify(FloatSettings.K_OCR_ENGINE));
         assertEquals(FloatPreferenceImpact.Impact.SERVICE_SETTINGS,
                 FloatPreferenceImpact.classify(FloatSettings.K_ROOT_ENABLED));
+    }
+
+    @Test
+    public void hybridSelectionModeDoesNotRebuildIconOrWindow() {
+        assertEquals(FloatPreferenceImpact.Impact.SERVICE_SETTINGS,
+                FloatPreferenceImpact.classify(FloatSettings.K_CIRCLE_TEXT_GEOMETRY_MODE));
+        assertTrue(FloatPreferenceImpact.isExplicitlyClassified(
+                FloatSettings.K_CIRCLE_TEXT_GEOMETRY_MODE));
     }
 
     @Test

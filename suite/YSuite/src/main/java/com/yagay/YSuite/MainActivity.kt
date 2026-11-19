@@ -3,7 +3,7 @@ package com.yagay.YSuite
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,12 +20,14 @@ import com.yagay.suite.core.FeatureRegistry
 import com.yagay.suite.core.FeatureSpec
 import com.yagay.suite.core.FeatureStateStore
 import com.yagay.suite.core.RootManager
+import com.yagay.suite.core.SuiteCapabilityMonitor
 import com.yagay.suite.core.SuiteCapability
 import com.yagay.suite.core.SuiteCrashTracker
 import com.yagay.suite.core.SuiteLog
 import com.yagay.suite.core.SuiteXposedServiceBroker
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YComposeActivity
+import com.yagay.yui.YAppearanceStore
 import com.yagay.yui.YSection
 import com.yagay.yui.YDashboardScaffold
 import com.yagay.yui.YPageList
@@ -48,6 +50,7 @@ class MainActivity : YComposeActivity() {
     override fun onResume() {
         super.onResume()
         SuiteCrashTracker.markActiveFeature(this, null)
+        (application as? YSuiteApp)?.retryHostRegistrationOnForeground()
     }
 
     private fun exportDiagnostic(modules: Set<String>?, label: String) {
@@ -91,6 +94,8 @@ class MainActivity : YComposeActivity() {
         val fullDiagnosticLabel = stringResource(R.string.diagnostic_full_label)
         var managementMode by rememberSaveable { mutableStateOf(false) }
         var managingFeatureId by rememberSaveable { mutableStateOf<String?>(null) }
+        var settingsOpen by rememberSaveable { mutableStateOf(false) }
+        var settingsModuleId by rememberSaveable { mutableStateOf<String?>(null) }
         val managementFeatures =
             if (managingFeatureId == null) features
             else features.filter { it.id == managingFeatureId }
@@ -108,10 +113,16 @@ class MainActivity : YComposeActivity() {
             managingFeatureId = null
         }
 
+        BackHandler(enabled = settingsOpen) {
+            if (settingsModuleId != null) settingsModuleId = null else settingsOpen = false
+        }
+
         val openModule: (FeatureSpec, String) -> Unit = { feature, localizedName ->
             SuiteCrashTracker.markActiveFeature(this@MainActivity, feature.id)
             runCatching {
-                startActivity(feature.createIntent(this@MainActivity))
+                startActivity(feature.createIntent(this@MainActivity).apply {
+                    putExtra(YAppearanceStore.MODULE_EXTRA, feature.id)
+                })
             }.onFailure {
                 SuiteLog.e(this@MainActivity, feature.id, "open failed", it)
                 SuiteCrashTracker.markActiveFeature(this@MainActivity, null)
@@ -138,7 +149,11 @@ class MainActivity : YComposeActivity() {
 
         LaunchedEffect(resumeTick) {
             rootAvailable = withContext(Dispatchers.IO) {
-                RootManager.isAvailable(this@MainActivity)
+                when (SuiteCapabilityMonitor.root(this@MainActivity, refresh = true).state) {
+                    SuiteCapabilityMonitor.State.VERIFIED -> true
+                    SuiteCapabilityMonitor.State.NOT_GRANTED -> false
+                    else -> null
+                }
             }
             permissions = SuitePermissionState.snapshot(this@MainActivity)
 
@@ -160,13 +175,60 @@ class MainActivity : YComposeActivity() {
         }
 
         LaunchedEffect(Unit) {
+            var rootPoll = 0
             while (true) {
                 xposedConnected = SuiteXposedServiceBroker.isConnected()
                 permissions = SuitePermissionState.snapshot(this@MainActivity)
+                // Root sampling stays off the UI thread and never flips a
+                // temporary Shell error to a confirmed permission revocation.
+                if (++rootPoll % 15 == 0) {
+                    val evidence = withContext(Dispatchers.IO) {
+                        SuiteCapabilityMonitor.root(this@MainActivity, refresh = true)
+                    }
+                    rootAvailable = when (evidence.state) {
+                        SuiteCapabilityMonitor.State.VERIFIED -> true
+                        SuiteCapabilityMonitor.State.NOT_GRANTED -> false
+                        else -> null
+                    }
+                }
                 delay(1_000L)
             }
         }
 
+        if (settingsOpen) {
+            SuiteSettingsScreen(
+                modules = homeModules.map { it.feature.id to it.label },
+                moduleId = settingsModuleId,
+                onBack = {
+                    if (settingsModuleId != null) settingsModuleId = null else settingsOpen = false
+                },
+                onSelectModule = { settingsModuleId = it },
+                moduleStates = enabled.toMap(),
+                permissions = permissions,
+                rootAvailable = rootAvailable,
+                xposedConnected = xposedConnected,
+                onToggleModule = { featureId, next ->
+                    features.firstOrNull { it.id == featureId }?.let { feature ->
+                        runCatching { updateFeatureEnabled(feature, next) }
+                            .onFailure { error ->
+                                SuiteLog.e(this@MainActivity, featureId, "settings toggle failed", error)
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(R.string.feature_enable_failed, homeModules.firstOrNull { it.feature.id == featureId }?.label ?: featureId, error.javaClass.simpleName),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                    }
+                },
+                onExportDiagnostic = { featureId ->
+                    exportDiagnostic(
+                        featureId?.let { setOf(it) },
+                        featureId?.let { id -> homeModules.firstOrNull { it.feature.id == id }?.label ?: id }
+                            ?: fullDiagnosticLabel,
+                    )
+                },
+            )
+        } else {
         YDashboardScaffold(
             title = stringResource(R.string.app_name),
             subtitle = if (managementMode) stringResource(R.string.home_manage) else "",
@@ -182,16 +244,19 @@ class MainActivity : YComposeActivity() {
                         managingFeatureId = featureId
                         managementMode = true
                     },
-                    onAppearanceSettings = {
-                        startActivity(
-                            android.content.Intent(this@MainActivity, AppearanceSettingsActivity::class.java)
-                        )
-                    },
                     onToggleEnabled = updateFeatureEnabled,
                     onExportModule = { feature, name ->
                         exportDiagnostic(setOf(feature.id), name)
                     },
                     onExportAll = { exportDiagnostic(null, fullDiagnosticLabel) },
+                    onSettings = {
+                        settingsModuleId = null
+                        settingsOpen = true
+                    },
+                    onCustomizeModule = { id ->
+                        settingsModuleId = id
+                        settingsOpen = true
+                    },
                 )
             } else {
                 YPageList(padding = scaffoldPadding) {
@@ -201,6 +266,15 @@ class MainActivity : YComposeActivity() {
                             onClick = {
                                 managementMode = false
                                 managingFeatureId = null
+                            },
+                        )
+                    }
+                    item {
+                        YSecondaryButton(
+                            text = stringResource(R.string.settings_title),
+                            onClick = {
+                                settingsModuleId = managingFeatureId
+                                settingsOpen = true
                             },
                         )
                     }
@@ -288,6 +362,7 @@ class MainActivity : YComposeActivity() {
                     }
                 }
             }
+        }
         }
     }
 }

@@ -1,90 +1,184 @@
 package com.yagay.yui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ButtonElevation
+import androidx.compose.material3.CheckboxColors
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-
+import androidx.compose.ui.graphics.Shape
 /**
- * Single Material 3 control implementation for every Compose feature.
+ * Material 3 compatibility facade for existing product layouts.
  *
- * The visible button uses a 40dp design token; Material 3 still applies its
- * accessible touch target. Do not recreate local ButtonDefaults or paddings.
+ * Only YUI defines normal-screen control geometry. Specialized file, browser, download
+ * and diagnostics layouts can keep their structure and behavior while importing these
+ * controls instead of maintaining local padding/shape/target-size implementations.
+ * Default colors, animations and state handling remain from upstream AndroidX Material3.
  */
-enum class YButtonVariant { FILLED, TONAL, OUTLINED, TEXT, DANGER }
-
+@Suppress("UNUSED_PARAMETER")
 @Composable
-fun YMaterialButton(
+fun YUiButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    variant: YButtonVariant = YButtonVariant.FILLED,
+    shape: Shape? = null,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
+    border: BorderStroke? = null,
+    contentPadding: PaddingValues? = null,
+    interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val buttonModifier = modifier.heightIn(min = YDimens.ButtonVisualHeight)
-    val padding = PaddingValues(
-        horizontal = if (variant == YButtonVariant.TEXT) YDimens.ButtonTextPaddingHorizontal
-            else YDimens.ButtonPaddingHorizontal,
-        vertical = YDimens.ButtonPaddingVertical,
+    Button(
+        onClick = onClick,
+        // Shared intrinsic sizing: the label may wrap and increase measured height.
+        modifier = modifier.yActionButtonSize(),
+        enabled = enabled,
+        shape = RoundedCornerShape(LocalYAppearance.current.buttonGeometry().cornerRadiusDp.dp),
+        colors = colors,
+        elevation = elevation,
+        border = border,
+        contentPadding = PaddingValues(
+            horizontal = LocalYAppearance.current.buttonGeometry().horizontalPaddingDp.dp,
+            vertical = LocalYAppearance.current.buttonGeometry().verticalPaddingDp.dp,
+        ),
+        interactionSource = interactionSource,
+        content = content,
     )
-    val shape = MaterialTheme.shapes.small
-    when (variant) {
-        YButtonVariant.FILLED -> Button(
-            onClick = onClick, modifier = buttonModifier, enabled = enabled,
-            shape = shape, contentPadding = padding, content = content,
-        )
-        YButtonVariant.TONAL -> FilledTonalButton(
-            onClick = onClick, modifier = buttonModifier, enabled = enabled,
-            shape = shape, contentPadding = padding, content = content,
-        )
-        YButtonVariant.OUTLINED -> OutlinedButton(
-            onClick = onClick, modifier = buttonModifier, enabled = enabled,
-            shape = shape, contentPadding = padding, content = content,
-        )
-        YButtonVariant.TEXT -> TextButton(
-            onClick = onClick, modifier = buttonModifier, enabled = enabled,
-            shape = shape, contentPadding = padding, content = content,
-        )
-        YButtonVariant.DANGER -> Button(
-            onClick = onClick, modifier = buttonModifier, enabled = enabled,
-            shape = shape, contentPadding = padding,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-            ),
-            content = content,
-        )
-    }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
-fun YMaterialFilterChip(
-    label: String,
-    selected: Boolean,
+fun YUiOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    shape: Shape? = null,
+    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
+    elevation: ButtonElevation? = null,
+    border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
+    contentPadding: PaddingValues? = null,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable RowScope.() -> Unit,
 ) {
-    FilterChip(
-        selected = selected,
+    // The visual variant changes semantics, not the YUI measurement/rendering path.
+    YUiButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
-        shape = MaterialTheme.shapes.extraSmall,
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
-        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+        colors = colors,
+        elevation = null,
+        border = border,
+        interactionSource = interactionSource,
+        content = content,
+    )
+}
+
+@Suppress("UNUSED_PARAMETER")
+@Composable
+fun YUiTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape? = null,
+    colors: ButtonColors = ButtonDefaults.textButtonColors(),
+    elevation: ButtonElevation? = null,
+    border: BorderStroke? = null,
+    contentPadding: PaddingValues? = null,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    // The visual variant changes semantics, not the YUI measurement/rendering path.
+    YUiButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        colors = colors,
+        elevation = null,
+        border = null,
+        interactionSource = interactionSource,
+        content = content,
+    )
+}
+
+@Composable
+fun YUiIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: IconButtonColors = IconButtonDefaults.iconButtonColors(),
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable () -> Unit,
+) {
+    IconButton(
+        onClick = onClick,
+        // Icon variants follow the SAME button-height setting; touch size stays safe.
+        modifier = modifier.minimumInteractiveComponentSize()
+            .sizeIn(
+                minWidth = LocalYAppearance.current.buttonGeometry().iconTouchDp.dp,
+                minHeight = LocalYAppearance.current.buttonGeometry().iconTouchDp.dp,
+            ),
+        enabled = enabled,
+        colors = colors,
+        interactionSource = interactionSource,
+        content = content,
+    )
+}
+
+/** Compose adapter for the same Material checkbox used by legacy View screens.
+ * The deprecated per-call color/interaction parameters remain for API compatibility;
+ * the canonical appearance is resolved from YUI's current theme instead.
+ */
+@Suppress("UNUSED_PARAMETER")
+@Composable
+fun YUiCheckbox(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: CheckboxColors = CheckboxDefaults.colors(),
+    interactionSource: MutableInteractionSource? = null,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val presentation = YSelectionControlColors(
+        active = scheme.primary.toArgb(),
+        inactive = scheme.outline.toArgb(),
+        disabled = scheme.onSurfaceVariant.toArgb(),
+    )
+    val minTarget = maxOf(48, LocalYAppearance.current.iconTouchTargetDp).dp
+    AndroidView(
+        modifier = modifier.defaultMinSize(minWidth = minTarget, minHeight = minTarget),
+        factory = { context -> YUiNativeCheckBox(context) },
+        update = { box ->
+            box.bindPresentation(presentation)
+            box.setOnCheckedChangeListener(null)
+            if (box.isChecked != checked) box.isChecked = checked
+            box.isEnabled = enabled
+            box.isClickable = onCheckedChange != null
+            box.setOnCheckedChangeListener(
+                onCheckedChange?.let { callback ->
+                    android.widget.CompoundButton.OnCheckedChangeListener { _, value ->
+                        callback(value)
+                    }
+                },
+            )
+        },
     )
 }

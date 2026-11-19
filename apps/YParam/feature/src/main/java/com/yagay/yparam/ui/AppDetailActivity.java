@@ -28,6 +28,7 @@ import com.yagay.yparam.data.AppConfig;
 import com.yagay.yparam.data.ConfigRepository;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewDialogs;
 import com.yagay.yui.YViewScreen;
 import com.yagay.yui.YViewStatusTone;
 
@@ -99,7 +100,9 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         Button tablet = button(R.string.yparam_preset_tablet); tablet.setOnClickListener(v -> applyPreset("tablet"));
         Button compact = button(R.string.yparam_preset_compact); compact.setOnClickListener(v -> applyPreset("compact"));
         Button uk = button(R.string.yparam_preset_uk); uk.setOnClickListener(v -> applyPreset("uk"));
-        presets.addView(tablet, weight()); presets.addView(compact, weight()); presets.addView(uk, weight());
+        YViewLayout.addAction(presets, tablet);
+        YViewLayout.addAction(presets, compact);
+        YViewLayout.addAction(presets, uk);
         root.addView(presets);
 
         DisplayMetrics dm = getResources().getDisplayMetrics();
@@ -164,7 +167,7 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
         rawInfo.addView(text(buildRawInfo(), 13, false));
 
         Button reset = YViewLayout.secondaryButton(this, getString(R.string.yparam_reset_all));
-        reset.setOnClickListener(v -> new AlertDialog.Builder(this)
+        reset.setOnClickListener(v -> YViewDialogs.builder(this)
                 .setTitle(R.string.yparam_reset_title)
                 .setMessage(R.string.yparam_reset_message)
                 .setNegativeButton(R.string.yparam_cancel, null)
@@ -471,7 +474,6 @@ public final class AppDetailActivity extends AppCompatActivity implements YParam
     }
     private Button button(int resId) { return YViewLayout.secondaryButton(this, getString(resId)); }
     private LinearLayout horizontal() { return YViewLayout.buttonRow(this); }
-    private LinearLayout.LayoutParams weight() { return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); }
     private int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
     private void toast(int resId) { toast(getString(resId)); }
     private void toast(String s) { Toast.makeText(this, s, Toast.LENGTH_LONG).show(); }

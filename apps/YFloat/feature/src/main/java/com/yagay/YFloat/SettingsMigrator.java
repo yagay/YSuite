@@ -35,6 +35,7 @@ final class SettingsMigrator {
         }
 
         migratePositionV2(app, p);
+        YFloatVisualSettings.migrate(app, p);
     }
 
     private static void migratePositionV2(Context app, SharedPreferences p) {
@@ -50,7 +51,7 @@ final class SettingsMigrator {
         if (side < 0) side = 1;
 
         Rect bounds = ScreenGeometry.displayBounds(app);
-        int sizeDp = clamp(p.getInt(FloatSettings.K_SIZE, 48), 24, 96);
+        int sizeDp = clamp(p.getInt(FloatSettings.K_SIZE, 48), 16, 192);
         int iconPx = Math.round(sizeDp * app.getResources().getDisplayMetrics().density);
         int portraitAvailable = Math.max(0, Math.max(bounds.width(), bounds.height()) - iconPx);
         int landscapeAvailable = Math.max(0, Math.min(bounds.width(), bounds.height()) - iconPx);

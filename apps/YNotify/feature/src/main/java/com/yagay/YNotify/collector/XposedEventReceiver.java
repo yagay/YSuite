@@ -114,9 +114,7 @@ public class XposedEventReceiver extends BroadcastReceiver {
         return EventTypes.TOAST.equals(type)
                 || EventTypes.DIALOG.equals(type)
                 || EventTypes.SNACKBAR.equals(type)
-                || EventTypes.POPUP.equals(type)
-                || EventTypes.SYSTEM_UI.equals(type)
-                || EventTypes.OTHER_UI.equals(type);
+                || EventTypes.POPUP.equals(type);
     }
 
     private static boolean validPackage(String pkg) {

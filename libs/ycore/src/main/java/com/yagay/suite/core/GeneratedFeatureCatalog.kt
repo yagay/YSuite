@@ -80,9 +80,9 @@ internal object GeneratedFeatureCatalog {
             runtimeInitializerClassName = "com.yagay.YMiniGuard.GuardRuntime",
             standalonePackageName = "com.yagay.YMiniGuard",
             standaloneEnabled = true,
-            sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED, SuiteCapability.NOTIFICATIONS),
+            sharedCapabilities = setOf(SuiteCapability.ROOT, SuiteCapability.LSPOSED, SuiteCapability.NOTIFICATIONS, SuiteCapability.NOTIFICATION_LISTENER),
             accessibilityBridgeClassName = null,
-            notificationListenerBridgeClassName = null,
+            notificationListenerBridgeClassName = "com.yagay.YMiniGuard.YMiniMediaBridge",
             bootReceiverClassName = null,
             ipcRoutes = emptyMap(),
             requiresRoot = true,
@@ -152,7 +152,7 @@ internal object GeneratedFeatureCatalog {
             accessibilityBridgeClassName = null,
             notificationListenerBridgeClassName = null,
             bootReceiverClassName = "com.yagay.YFloat.FloatServiceBootReceiver",
-            ipcRoutes = mapOf("com.yagay.YFloat.action.GOOGLE_CTS_BRIDGE" to "com.yagay.YFloat.GoogleCtsBridgeReceiver", "com.yagay.YFloat.action.GOOGLE_CTS_TRACE" to "com.yagay.YFloat.GoogleCtsTraceReceiver"),
+            ipcRoutes = emptyMap(),
             requiresRoot = true,
             requiresHook = true,
             defaultEnabled = true,
@@ -195,7 +195,5 @@ internal object GeneratedFeatureCatalog {
 
     val ipcActionOwners: Map<String, Pair<String, String>> = mapOf(
         "com.yagay.YNotify.XPOSED_EVENT" to Pair("ynotify", "com.yagay.YNotify.collector.XposedEventReceiver"),
-        "com.yagay.YFloat.action.GOOGLE_CTS_BRIDGE" to Pair("yfloat", "com.yagay.YFloat.GoogleCtsBridgeReceiver"),
-        "com.yagay.YFloat.action.GOOGLE_CTS_TRACE" to Pair("yfloat", "com.yagay.YFloat.GoogleCtsTraceReceiver"),
     )
 }

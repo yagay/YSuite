@@ -1,8 +1,13 @@
 package com.yagay.yui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,15 +19,14 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
@@ -33,24 +37,35 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val YShapes = Shapes(
-    extraSmall = RoundedCornerShape(YDimens.ChipRadius),
-    small = RoundedCornerShape(YDimens.ButtonRadius),
-    medium = RoundedCornerShape(YDimens.CardRadius),
-    large = RoundedCornerShape(YDimens.DialogRadius),
-    extraLarge = RoundedCornerShape(YDimens.DialogRadius),
-)
+// AndroidX Material 3 owns component corner shapes. No second per-feature shape system.
+private val YShapes = Shapes()
 
-private val YLightColors = lightColorScheme(
+/** Compose and View activities share the same YView window appearance operation. */
+private fun yThemeHostActivity(context: Context): Activity? {
+    var current: Context? = context
+    while (current is ContextWrapper && current !is Activity) {
+        val base = current.baseContext
+        if (base === current) return null
+        current = base
+    }
+    return current as? Activity
+}
+
+internal val YLightColors = lightColorScheme(
     primary = YUiPalette.LightPrimary,
     onPrimary = YUiPalette.LightOnPrimary,
     primaryContainer = YUiPalette.LightPrimaryContainer,
@@ -66,18 +81,42 @@ private val YLightColors = lightColorScheme(
     surfaceVariant = YUiPalette.LightSurfaceVariant,
     onSurfaceVariant = YUiPalette.LightOnSurfaceVariant,
     outline = YUiPalette.LightOutline,
+    // Never fall back to Material 3's default purple/error/tertiary/surface roles.
     tertiary = YUiPalette.LightTertiary,
     onTertiary = YUiPalette.LightOnTertiary,
     tertiaryContainer = YUiPalette.LightTertiaryContainer,
     onTertiaryContainer = YUiPalette.LightOnTertiaryContainer,
-    outlineVariant = YUiPalette.LightOutlineVariant,
     error = YUiPalette.LightError,
     onError = YUiPalette.LightOnError,
     errorContainer = YUiPalette.LightErrorContainer,
     onErrorContainer = YUiPalette.LightOnErrorContainer,
+    outlineVariant = YUiPalette.LightOutlineVariant,
+    surfaceTint = YUiPalette.LightPrimary,
+    inverseSurface = YUiPalette.DarkSurface,
+    inverseOnSurface = YUiPalette.DarkOnSurface,
+    inversePrimary = YUiPalette.DarkPrimary,
+    surfaceDim = YUiPalette.LightSurfaceDim,
+    surfaceBright = YUiPalette.LightSurfaceBright,
+    surfaceContainerLowest = YUiPalette.LightSurfaceContainerLowest,
+    surfaceContainerLow = YUiPalette.LightSurfaceContainerLow,
+    surfaceContainer = YUiPalette.LightSurfaceContainer,
+    surfaceContainerHigh = YUiPalette.LightSurfaceContainerHigh,
+    surfaceContainerHighest = YUiPalette.LightSurfaceContainerHighest,
+    primaryFixed = YUiPalette.LightPrimaryContainer,
+    primaryFixedDim = YUiPalette.DarkPrimary,
+    onPrimaryFixed = YUiPalette.LightOnPrimaryContainer,
+    onPrimaryFixedVariant = YUiPalette.LightPrimary,
+    secondaryFixed = YUiPalette.LightSecondaryContainer,
+    secondaryFixedDim = YUiPalette.DarkSecondary,
+    onSecondaryFixed = YUiPalette.LightOnSecondaryContainer,
+    onSecondaryFixedVariant = YUiPalette.LightSecondary,
+    tertiaryFixed = YUiPalette.LightTertiaryContainer,
+    tertiaryFixedDim = YUiPalette.DarkTertiary,
+    onTertiaryFixed = YUiPalette.LightOnTertiaryContainer,
+    onTertiaryFixedVariant = YUiPalette.LightTertiary,
 )
 
-private val YDarkColors = darkColorScheme(
+internal val YDarkColors = darkColorScheme(
     primary = YUiPalette.DarkPrimary,
     onPrimary = YUiPalette.DarkOnPrimary,
     primaryContainer = YUiPalette.DarkPrimaryContainer,
@@ -93,48 +132,105 @@ private val YDarkColors = darkColorScheme(
     surfaceVariant = YUiPalette.DarkSurfaceVariant,
     onSurfaceVariant = YUiPalette.DarkOnSurfaceVariant,
     outline = YUiPalette.DarkOutline,
+    // Never fall back to Material 3's default purple/error/tertiary/surface roles.
     tertiary = YUiPalette.DarkTertiary,
     onTertiary = YUiPalette.DarkOnTertiary,
     tertiaryContainer = YUiPalette.DarkTertiaryContainer,
     onTertiaryContainer = YUiPalette.DarkOnTertiaryContainer,
-    outlineVariant = YUiPalette.DarkOutlineVariant,
     error = YUiPalette.DarkError,
     onError = YUiPalette.DarkOnError,
     errorContainer = YUiPalette.DarkErrorContainer,
     onErrorContainer = YUiPalette.DarkOnErrorContainer,
+    outlineVariant = YUiPalette.DarkOutlineVariant,
+    surfaceTint = YUiPalette.DarkPrimary,
+    inverseSurface = YUiPalette.LightSurface,
+    inverseOnSurface = YUiPalette.LightOnSurface,
+    inversePrimary = YUiPalette.LightPrimary,
+    surfaceDim = YUiPalette.DarkSurfaceDim,
+    surfaceBright = YUiPalette.DarkSurfaceBright,
+    surfaceContainerLowest = YUiPalette.DarkSurfaceContainerLowest,
+    surfaceContainerLow = YUiPalette.DarkSurfaceContainerLow,
+    surfaceContainer = YUiPalette.DarkSurfaceContainer,
+    surfaceContainerHigh = YUiPalette.DarkSurfaceContainerHigh,
+    surfaceContainerHighest = YUiPalette.DarkSurfaceContainerHighest,
+    primaryFixed = YUiPalette.LightPrimaryContainer,
+    primaryFixedDim = YUiPalette.DarkPrimary,
+    onPrimaryFixed = YUiPalette.LightOnPrimaryContainer,
+    onPrimaryFixedVariant = YUiPalette.LightPrimary,
+    secondaryFixed = YUiPalette.LightSecondaryContainer,
+    secondaryFixedDim = YUiPalette.DarkSecondary,
+    onSecondaryFixed = YUiPalette.LightOnSecondaryContainer,
+    onSecondaryFixedVariant = YUiPalette.LightSecondary,
+    tertiaryFixed = YUiPalette.LightTertiaryContainer,
+    tertiaryFixedDim = YUiPalette.DarkTertiary,
+    onTertiaryFixed = YUiPalette.LightOnTertiaryContainer,
+    onTertiaryFixedVariant = YUiPalette.LightTertiary,
 )
 
-private val YTypography = Typography(
-    headlineSmall = Typography().headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
-    titleLarge = Typography().titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 21.sp),
-    titleMedium = Typography().titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
-    bodyLarge = Typography().bodyLarge.copy(fontSize = 16.sp),
-    bodyMedium = Typography().bodyMedium.copy(fontSize = 14.sp),
-    bodySmall = Typography().bodySmall.copy(fontSize = 12.sp),
-    labelLarge = Typography().labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
-)
+// Keep upstream Material 3 typography unmodified so every feature has matching text metrics.
+private val YTypography = Typography()
 
 @Composable
 fun YTheme(
     dynamicColor: Boolean = false,
-    darkTheme: Boolean? = null,
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    appearanceOverride: YAppearance? = null,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val resolvedDarkTheme = darkTheme ?: YAppearanceSettings.isDark(context, isSystemInDarkTheme())
+    val storedAppearance = rememberYAppearance(YAppearanceStore.moduleIdFor(context))
+    val configuredAppearance = appearanceOverride ?: storedAppearance
+    // Compose and Java/View consume the same centrally fitted display rules.
+    val windowWidth = LocalConfiguration.current.screenWidthDp.coerceAtLeast(1)
+    val rules = configuredAppearance.displayRules(windowWidth)
+    val appearance = rules.appearance
+    val actualDark = when (appearance.theme) {
+        "light" -> false
+        "dark" -> true
+        else -> darkTheme
+    }
+    // Only the outer theme updates bars. Nested preview themes must not alter the Activity.
+    val hostView = LocalView.current
+    if (appearanceOverride == null) {
+        SideEffect {
+            if (!hostView.isInEditMode) {
+                yThemeHostActivity(hostView.context)?.let { YView.applyBarAppearance(it, actualDark) }
+            }
+        }
+    }
+    val actualDynamic = appearance.dynamicColor
+    val systemDensity = LocalDensity.current
+    // Remove a parent YTheme scale before applying a nested preview's scale.
+    val inheritedScale = LocalYAppearance.current.fontPercent / 100f
+    val scaledDensity = Density(
+        systemDensity.density,
+        systemDensity.fontScale / inheritedScale * (appearance.fontPercent / 100f),
+    )
+    // Global Material3 defaults follow their own domain settings; button radii stay separate.
+    val shapes = Shapes(
+        extraSmall = RoundedCornerShape((appearance.fieldRadiusDp / 2).dp),
+        small = RoundedCornerShape(appearance.fieldRadiusDp.dp),
+        medium = RoundedCornerShape(appearance.cardRadiusDp.dp),
+        large = RoundedCornerShape(appearance.dialogRadiusDp.dp),
+        extraLarge = RoundedCornerShape(appearance.dialogRadiusDp.dp),
+    )
+    // A deterministic shared palette is essential for matching Compose and legacy View screens.
+    // Android dynamic colors remain available only via an explicit opt-in.
     val scheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= 31 && resolvedDarkTheme -> dynamicDarkColorScheme(context)
-        dynamicColor && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
-        resolvedDarkTheme -> YDarkColors
+        actualDynamic && Build.VERSION.SDK_INT >= 31 && actualDark -> dynamicDarkColorScheme(context)
+        actualDynamic && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
+        actualDark -> YDarkColors
         else -> YLightColors
     }
     MaterialTheme(
-        colorScheme = scheme,
+        colorScheme = yAccentColorScheme(scheme, appearance.accent, actualDark),
         typography = YTypography,
-        shapes = YShapes,
+        shapes = shapes,
     ) {
         CompositionLocalProvider(
-            LocalYSemanticColors provides if (resolvedDarkTheme) YSemanticPalette.Dark else YSemanticPalette.Light,
+            LocalDensity provides scaledDensity,
+            LocalYAppearance provides appearance,
+            LocalYSemanticColors provides if (actualDark) YSemanticPalette.Dark else YSemanticPalette.Light,
             content = content,
         )
     }
@@ -152,10 +248,12 @@ fun YTopBar(
         YTopBarStyle.PROMINENT -> MediumTopAppBar(
             title = { YTopBarCopy(title, subtitle) },
             actions = actions,
+            colors = yTopBarColors(),
         )
         YTopBarStyle.COMPACT -> TopAppBar(
             title = { YTopBarCopy(title, subtitle) },
             actions = actions,
+            colors = yTopBarColors(),
         )
     }
 }
@@ -171,12 +269,20 @@ fun YCustomTopBar(
         title = title,
         navigationIcon = navigationIcon,
         actions = actions,
+        colors = yTopBarColors(),
     )
 }
 
+/** Single color policy for the suite host and all product workspaces. */
+@Composable
+private fun yTopBarColors() = TopAppBarDefaults.topAppBarColors(
+    containerColor = MaterialTheme.colorScheme.background,
+    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+)
+
 @Composable
 private fun YTopBarCopy(title: String, subtitle: String?) {
-    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap())) {
         Text(
             title,
             style = MaterialTheme.typography.titleMedium,
@@ -195,6 +301,34 @@ private fun YTopBarCopy(title: String, subtitle: String?) {
     }
 }
 
+/**
+ * Universal normal-screen container used by YUI pages and product-specific workspaces.
+ * Insets, background and edge-to-edge behavior must not be reimplemented in features.
+ */
+@Composable
+fun YUiScaffold(
+    modifier: Modifier = Modifier,
+    topBar: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    contentWindowInsets: WindowInsets = WindowInsets.safeDrawing.only(
+        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+    ),
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = topBar,
+        bottomBar = bottomBar,
+        snackbarHost = snackbarHost,
+        floatingActionButton = floatingActionButton,
+        contentWindowInsets = contentWindowInsets,
+        containerColor = MaterialTheme.colorScheme.background,
+        content = content,
+    )
+}
+
 @Composable
 fun YScaffold(
     title: String,
@@ -206,16 +340,12 @@ fun YScaffold(
     floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
+    YUiScaffold(
         modifier = modifier,
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-        ),
         topBar = { YTopBar(title = title, subtitle = subtitle, actions = actions) },
         bottomBar = bottomBar,
         snackbarHost = snackbarHost,
         floatingActionButton = floatingActionButton,
-        containerColor = MaterialTheme.colorScheme.background,
         content = content,
     )
 }
@@ -227,15 +357,24 @@ fun YCard(
 ) {
     Card(
         modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(LocalYAppearance.current.cardRadiusDp.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
+        border = LocalYAppearance.current.cardOutlineWidthDp.takeIf { it > 0 }?.let {
+            BorderStroke(it.dp, MaterialTheme.colorScheme.outlineVariant)
+        },
     ) {
-        Column(
-            modifier = Modifier.padding(YDimens.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(YDimens.ControlGap),
-        ) { content() }
+        BoxWithConstraints {
+            val fittedInset = minOf(
+                LocalYAppearance.current.cardPaddingDp.dp,
+                ((maxWidth - (YDimens.TouchTarget * 3)).coerceAtLeast(0.dp) / 2),
+            )
+            Column(
+                modifier = Modifier.padding(fittedInset),
+                verticalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+            ) { content() }
+        }
     }
 }
 
@@ -246,8 +385,13 @@ fun YPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    YMaterialButton(onClick = onClick, modifier = modifier, enabled = enabled) {
-        Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    YUiButton(onClick = onClick, modifier = modifier, enabled = enabled) {
+        Text(
+            text,
+            softWrap = true,
+            maxLines = LocalYAppearance.current.buttonLabelMaxLines.takeIf { it > 0 } ?: Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -258,17 +402,19 @@ fun YSecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    YMaterialButton(
-        onClick = onClick, modifier = modifier, enabled = enabled,
-        variant = YButtonVariant.OUTLINED,
-    ) {
-        Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    YUiOutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled) {
+        Text(
+            text,
+            softWrap = true,
+            maxLines = LocalYAppearance.current.buttonLabelMaxLines.takeIf { it > 0 } ?: Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
 @Composable
 fun YSectionTitle(title: String, subtitle: String? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(YUiGeometry.compactGap())) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         if (!subtitle.isNullOrBlank()) {
             Text(
@@ -284,8 +430,40 @@ fun YSectionTitle(title: String, subtitle: String? = null) {
 fun YEmptyState(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        modifier = modifier.padding(vertical = YDimens.ScreenVertical),
+        modifier = modifier.padding(vertical = LocalYAppearance.current.pageVerticalPaddingDp.dp),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+
+/** Preset primary palettes; normal state/status colors retain their semantic meanings. */
+internal fun yAccentColorScheme(base: ColorScheme, accent: String, dark: Boolean): ColorScheme {
+    if (accent == "default") return base
+    val light = when (accent) {
+        "blue" -> intArrayOf(0x315FA8, 0xDCE5FF, 0x071B4D)
+        "teal" -> intArrayOf(0x006A64, 0xA7F2E7, 0x00201D)
+        "green" -> intArrayOf(0x386A20, 0xCBF6AD, 0x0E2001)
+        "purple" -> intArrayOf(0x6D4EA0, 0xEDDDFF, 0x251043)
+        "orange" -> intArrayOf(0x984B00, 0xFFDBC3, 0x321300)
+        else -> return base
+    }
+    val darkPrimary = when (accent) {
+        "blue" -> 0xAAC7FF
+        "teal" -> 0x82D5C8
+        "green" -> 0xA8D58C
+        "purple" -> 0xD3BCFF
+        else -> 0xFFB77A
+    }
+    val primary = Color((0xFF000000L or (if (dark) darkPrimary else light[0]).toLong()).toInt())
+    val onPrimary = if (dark) Color(0xFF162B49) else Color.White
+    val container = if (dark) Color(0xFF354765) else Color((0xFF000000L or light[1].toLong()).toInt())
+    val onContainer = if (dark) Color.White else Color((0xFF000000L or light[2].toLong()).toInt())
+    return base.copy(
+        primary = primary, onPrimary = onPrimary,
+        primaryContainer = container, onPrimaryContainer = onContainer,
+        secondary = primary, onSecondary = onPrimary,
+        secondaryContainer = container, onSecondaryContainer = onContainer,
+        surfaceTint = primary, inversePrimary = primary,
     )
 }

@@ -12,7 +12,6 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 object SuiteLog {
-    private const val MAX_LOG_BYTES = 1024L * 1024L
     private val lock = Any()
 
     fun i(context: Context, module: String, message: String) = write(context, module, "I", message, null)
@@ -20,13 +19,17 @@ object SuiteLog {
 
     fun write(context: Context, module: String, level: String, message: String, error: Throwable? = null) {
         val safeModule = module.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9_.-]"), "_")
+        val settingScope = safeModule.takeIf { it.matches(Regex("[a-z][a-z0-9_-]{0,63}")) }
+        val options = SuiteCommonSettings(context).logging(settingScope)
+        if (!options.accepts(level)) return
         val dir = File(context.filesDir, "suite-logs/$safeModule").apply { mkdirs() }
         val current = File(dir, "current.log")
         synchronized(lock) {
-            if (current.length() >= MAX_LOG_BYTES) {
+            if (current.length() >= options.maxFileBytes) {
                 val previous = File(dir, "previous.log")
                 if (previous.exists()) previous.delete()
-                current.renameTo(previous)
+                if (options.keepPrevious) current.renameTo(previous)
+                else current.delete()
             }
             val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
             current.appendText(buildString {

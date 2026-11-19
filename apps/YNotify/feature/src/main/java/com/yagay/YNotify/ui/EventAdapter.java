@@ -10,8 +10,11 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.yagay.YNotify.R;
+import com.yagay.yui.YView;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventTypes;
+import com.yagay.YNotify.data.EventFilters;
+import com.yagay.YNotify.data.NotificationFilterCatalog;
 import com.yagay.YNotify.databinding.ItemEventBinding;
 import com.yagay.YNotify.util.AppInfoUtil;
 
@@ -36,11 +39,39 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
     @Override public void onBindViewHolder(@NonNull Holder h, int position) {
         EventRecord r = items.get(position);
         Context c = h.itemView.getContext();
+        // Bind XML templates to runtime YUI preferences; don't freeze rows at resource dp.
+        h.b.getRoot().setRadius(YView.cardRadius(c));
+        h.b.getRoot().setStrokeWidth(YView.cardOutlineWidth(c));
+        h.b.getRoot().setCardBackgroundColor(YView.cardSurface(c));
+        if (h.b.getRoot().getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams lp =
+                    (ViewGroup.MarginLayoutParams) h.b.getRoot().getLayoutParams();
+            lp.leftMargin = YView.screenHorizontal(c);
+            lp.rightMargin = YView.screenHorizontal(c);
+            lp.topMargin = YView.rowVerticalPadding(c);
+            lp.bottomMargin = YView.rowVerticalPadding(c);
+            h.b.getRoot().setLayoutParams(lp);
+        }
+        if (h.b.getRoot().getChildCount() > 0) {
+            View body = h.b.getRoot().getChildAt(0);
+            int gap = YView.controlGap(c);
+            body.setPadding(gap, gap, gap, gap);
+        }
+        YView.styleItemTitle(h.b.appName);
+        h.b.appName.setSingleLine(false);
+        h.b.appName.setMaxLines(Integer.MAX_VALUE);
+        h.b.appName.setEllipsize(null);
+        YView.styleCaption(h.b.type);
+        YView.styleStrongBody(h.b.title);
+        YView.styleBody(h.b.text);
+        YView.styleCaption(h.b.details);
+        YView.styleCaption(h.b.time);
+        YView.styleListIcon(h.b.appIcon);
         h.b.appIcon.setImageDrawable(AppInfoUtil.icon(c, r.packageName));
         h.b.appName.setText(first(r.appLabel, r.packageName, c.getString(R.string.ynotify_unknown_app)));
         h.b.type.setText(typeLabel(c, r));
 
-        String title = first(r.title, EventTypes.NOTIFICATION.equals(r.eventType) ? "" : r.className, "");
+        String title = first(r.title, EventFilters.isNotificationRecord(r) ? "" : r.className, "");
         h.b.title.setText(title);
         h.b.title.setVisibility(title.isEmpty() ? View.GONE : View.VISIBLE);
 
@@ -105,7 +136,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
 
     private static String details(Context c, EventRecord r) {
         List<String> parts = new ArrayList<>();
-        if (EventTypes.NOTIFICATION.equals(r.eventType)) {
+        if (EventFilters.isNotificationRecord(r)) {
             parts.add(c.getString(
                     R.string.ynotify_detail_surfaces,
                     String.join(", ", surfaces(c, r))));
@@ -145,21 +176,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.Holder> {
     }
 
     private static String typeLabel(Context c, EventRecord r) {
-        if (EventTypes.NOTIFICATION.equals(r.eventType)) {
-            String kind = r.notificationKind == null ? "standard" : r.notificationKind;
-            String base;
-            switch (kind) {
-                case "call": base = c.getString(R.string.ynotify_kind_call); break;
-                case "alarm": base = c.getString(R.string.ynotify_kind_alarm); break;
-                case "media": base = c.getString(R.string.ynotify_kind_media); break;
-                case "progress": base = c.getString(R.string.ynotify_kind_progress); break;
-                case "foreground_service": base = c.getString(R.string.ynotify_kind_foreground_service); break;
-                case "message": base = c.getString(R.string.ynotify_kind_message); break;
-                case "system": base = c.getString(R.string.ynotify_kind_system); break;
-                case "ongoing": base = c.getString(R.string.ynotify_kind_ongoing); break;
-                case "silent": base = c.getString(R.string.ynotify_kind_silent); break;
-                default: base = c.getString(R.string.ynotify_class_notification); break;
-            }
+        if (EventFilters.isNotificationRecord(r)) {
+            String base = c.getString(NotificationFilterCatalog.classify(r).labelRes);
             return c.getString(
                     R.string.ynotify_type_with_surfaces,
                     base,

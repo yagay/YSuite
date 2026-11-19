@@ -6,9 +6,7 @@ ynotify	receiver	com.yagay.YNotify.collector.XposedEventReceiver
 ypower	receiver	com.yagay.ypower.root.BootReceiver
 ypower	service	com.yagay.ypower.root.YPowerRootService
 yminiguard	provider	com.yagay.YMiniGuard.EngineStatusProvider
+yminiguard	service	com.yagay.YMiniGuard.YMiniMediaListenerService
 ynfc	provider	com.yagay.YNFC.ConfigProvider
 yfloat	service	com.yagay.YFloat.LensAccessibilityService
 yfloat	receiver	com.yagay.YFloat.FloatServiceBootReceiver
-yfloat	receiver	com.yagay.YFloat.GoogleCtsBridgeReceiver
-yfloat	receiver	com.yagay.YFloat.GoogleCtsTraceReceiver
-yfloat	provider	com.yagay.YFloat.GoogleCtsBridgeProvider

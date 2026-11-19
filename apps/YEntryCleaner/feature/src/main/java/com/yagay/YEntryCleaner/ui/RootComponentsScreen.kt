@@ -1,5 +1,6 @@
 package com.yagay.YEntryCleaner.ui
 
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,18 +16,18 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiIconButton as IconButton
+import com.yagay.yui.YUiLinearProgressIndicator as LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TriStateCheckbox
+import com.yagay.yui.YUiSurface as Surface
+import com.yagay.yui.YUiText as Text
+import com.yagay.yui.YUiTextButton as TextButton
+import com.yagay.yui.YUiTriStateCheckbox as TriStateCheckbox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -123,18 +124,18 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
     }
     val visible = groups.flatMap { it.value }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalYAppearance.current.sectionSpacingDp.dp)) {
         item(key = "title") {
             YSectionHeader(
                 title = stringResource(R.string.root_screen_title),
                 subtitle = stringResource(R.string.root_filter_help),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
             )
         }
         stickyHeader(key = "controls") {
-            Surface(tonalElevation = 2.dp) {
+            Surface(tonalElevation = (LocalYAppearance.current.rowVerticalPaddingDp / 3f).dp) {
                 Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-                    LazyRow(contentPadding = PaddingValues(horizontal = 12.dp)) {
+                    LazyRow(contentPadding = PaddingValues(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp)) {
                         items(listOf<CleanupKind?>(null) + CleanupKind.entries) { entry ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 TextButton(onClick = { kind = entry }) {
@@ -145,7 +146,8 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                     )
                                 }
                                 Box(
-                                    Modifier.height(2.dp).width(24.dp).background(
+                                    Modifier.height((LocalYAppearance.current.rowVerticalPaddingDp / 3f).dp)
+                                        .width(LocalYAppearance.current.iconVisualSizeDp.dp).background(
                                         if (kind == entry) MaterialTheme.colorScheme.primary else Color.Transparent
                                     )
                                 )
@@ -153,13 +155,13 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         }
                     }
                     Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                            .padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box {
                             TextButton(
-                                onClick = { appTypeMenu = true },
-                                contentPadding = PaddingValues(horizontal = 6.dp)
+                                onClick = { appTypeMenu = true }
                             ) {
                                 Text(
                                     stringResource(
@@ -168,7 +170,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                         stringResource(appTypeFilter.titleRes())
                                     )
                                 )
-                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 0.75f).dp))
                             }
                             DropdownMenu(expanded = appTypeMenu, onDismissRequest = { appTypeMenu = false }) {
                                 AppTypeFilter.entries.forEach { filter ->
@@ -182,8 +184,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         }
                         Box {
                             TextButton(
-                                onClick = { filterMenu = true },
-                                contentPadding = PaddingValues(horizontal = 6.dp)
+                                onClick = { filterMenu = true }
                             ) {
                                 Text(
                                     stringResource(
@@ -192,7 +193,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                         stringResource(viewFilter.titleRes())
                                     )
                                 )
-                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                                Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 0.75f).dp))
                             }
                             DropdownMenu(expanded = filterMenu, onDismissRequest = { filterMenu = false }) {
                                 UiFilter.entries.forEach { filter ->
@@ -206,13 +207,11 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         }
                         TextButton(
                             onClick = { vm.changeComponentsBulk(kind, visible, enable = false) },
-                            enabled = !busy && visible.any { it.blocked == null && it.enabled == true },
-                            contentPadding = PaddingValues(horizontal = 6.dp)
+                            enabled = !busy && visible.any { it.blocked == null && it.enabled == true }
                         ) { Text(stringResource(R.string.select_all)) }
                         TextButton(
                             onClick = { vm.invertComponentsBulk(kind, visible) },
-                            enabled = !busy && visible.any { it.blocked == null && it.enabled != null },
-                            contentPadding = PaddingValues(horizontal = 6.dp)
+                            enabled = !busy && visible.any { it.blocked == null && it.enabled != null }
                         ) { Text(stringResource(R.string.invert_selection)) }
                     }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -225,7 +224,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                 title = stringResource(R.string.root_summary, groups.size, visible.size),
                 subtitle = stringResource(R.string.root_selection_semantics),
                 detail = stringResource(R.string.root_change_semantics),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp),
             ) {
                 YStatusLine(
                     label = stringResource(R.string.view_filter),
@@ -285,7 +284,9 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                             }
                         )
                         .clickable(onClickLabel = expandLabel, onClick = onExpand)
-                        .heightIn(min = 64.dp).padding(horizontal = 8.dp, vertical = 4.dp),
+                        .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                        .padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp,
+                            vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TriStateCheckbox(
@@ -294,7 +295,7 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         onClick = { vm.changeComponents(editableComponents, selectionState == ToggleableState.On) }
                     )
                     AppIcon(first.icon, first.owner)
-                    Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                    Column(Modifier.weight(1f).padding(start = LocalYAppearance.current.effectiveGapDp.dp)) {
                         Text(first.owner, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
                         Text(
                             stringResource(
@@ -326,7 +327,8 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                                 if (lockState == BulkLockState.PARTIAL) R.string.bulk_lock_partial
                                 else R.string.bulk_lock_full
                             ),
-                            modifier = Modifier.padding(horizontal = 8.dp).size(20.dp),
+                            modifier = Modifier.padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp)
+                                .size(LocalYAppearance.current.iconVisualSizeDp.dp),
                             tint = if (lockState == BulkLockState.PARTIAL) MaterialTheme.colorScheme.tertiary
                             else LocalContentColor.current
                         )
@@ -354,14 +356,18 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                             role = Role.Checkbox,
                             onValueChange = { checked -> vm.changeComponent(item, !checked) }
                         )
-                        .heightIn(min = 48.dp).padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                        .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                        .padding(start = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                            end = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp,
+                            top = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+                            bottom = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     YCheckboxControl(
                         checked = item.enabled == false,
                         enabled = editable,
                         onCheckedChange = null,
-                        modifier = Modifier.padding(12.dp)
+                        modifier = Modifier.padding(LocalYAppearance.current.effectiveGapDp.dp)
                     )
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -391,7 +397,8 @@ fun RootComponentsScreen(state: MainState, vm: MainViewModel) {
                         Icon(
                             Icons.Rounded.Lock,
                             contentDescription = stringResource(R.string.bulk_lock_full),
-                            modifier = Modifier.padding(horizontal = 8.dp).size(18.dp)
+                            modifier = Modifier.padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp / 2f).dp)
+                                .size((LocalYAppearance.current.iconVisualSizeDp * 0.75f).dp)
                         )
                     }
                 }

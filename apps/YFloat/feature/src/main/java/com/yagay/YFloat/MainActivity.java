@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
-import android.view.Gravity;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,11 +18,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 /** Compact YFloat control center. Detailed configuration lives in short category pages. */
 public class MainActivity extends AppCompatActivity {
-    private SwitchMaterial overlaySwitch;
+    private MaterialSwitch overlaySwitch;
     private TextView serviceStatus;
     private boolean syncingOverlaySwitch;
     private boolean awaitingAccessibilityGrant;
@@ -62,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         YViewLayout.addRow(service.body, YViewLayout.switchContainer(overlaySwitch));
 
         LinearLayout statusRow = YViewLayout.baseRow(this);
-        statusRow.addView(YViewLayout.text(this, getString(R.string.yfloat_current_status), 15, false),
+        statusRow.addView(YViewLayout.rowTitle(this, getString(R.string.yfloat_current_status)),
                 new LinearLayout.LayoutParams(0, -2, 1f));
         serviceStatus = YViewLayout.statusPill(this, getString(R.string.yfloat_status_loading), false);
         statusRow.addView(serviceStatus, new LinearLayout.LayoutParams(-2, -2));
@@ -119,8 +118,8 @@ public class MainActivity extends AppCompatActivity {
                 getString(R.string.yfloat_environment_settings_desc),
                 () -> startActivity(SettingsActivity.intent(this, SettingsActivity.SECTION_ENVIRONMENT))));
         YViewLayout.addRow(settings.body, YViewLayout.navRow(this,
-                getString(R.string.yfloat_text_menu_title),
-                getString(R.string.yfloat_text_menu_desc),
+                getString(R.string.yfloat_interface_settings),
+                getString(R.string.yfloat_interface_settings_desc),
                 () -> startActivity(new Intent(this, AppearanceSettingsActivity.class))));
         YViewLayout.addSection(root, settings);
 
@@ -133,14 +132,9 @@ public class MainActivity extends AppCompatActivity {
                 getString(R.string.yfloat_diagnostics),
                 getString(R.string.yfloat_diagnostics_desc),
                 () -> startActivity(new Intent(this, DiagnosticsActivity.class))));
+        YViewLayout.addRow(advanced.body, YViewLayout.sectionNote(this,
+                getString(R.string.yfloat_version, BuildConfig.VERSION_NAME)));
         YViewLayout.addSection(root, advanced);
-
-        TextView footer = YViewLayout.caption(this,
-                getString(R.string.yfloat_version, BuildConfig.VERSION_NAME),
-                12);
-        footer.setGravity(Gravity.CENTER_HORIZONTAL);
-        footer.setPadding(0, 2, 0, YViewLayout.dp(this, 4));
-        root.addView(footer);
 
         setContentView(YViewLayout.scrollPage(this, root));
     }
@@ -293,13 +287,12 @@ public class MainActivity extends AppCompatActivity {
 
         LinearLayout copy = new LinearLayout(this);
         copy.setOrientation(LinearLayout.VERTICAL);
-        TextView titleView = YViewLayout.text(this, title, 15, false);
+        TextView titleView = YViewLayout.rowTitle(this, title);
         copy.addView(titleView);
-        TextView sub = YViewLayout.caption(this, subtitle, 12);
-        sub.setPadding(0, YViewLayout.dp(this, 2), YViewLayout.dp(this, 8), 0);
+        TextView sub = YViewLayout.rowSubtitle(this, subtitle);
         copy.addView(sub);
-        TextView status = YViewLayout.caption(this, getString(R.string.yfloat_permission_not_authorized), 12);
-        status.setPadding(0, YViewLayout.dp(this, 2), 0, 0);
+        TextView status = YViewLayout.rowSubtitle(this,
+                getString(R.string.yfloat_permission_not_authorized));
         copy.addView(status);
         row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1f));
 

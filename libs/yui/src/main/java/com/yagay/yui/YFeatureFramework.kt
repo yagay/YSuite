@@ -5,17 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -69,14 +64,12 @@ fun YCustomScaffold(
     content: @Composable (PaddingValues) -> Unit,
 ) {
     CompositionLocalProvider(LocalYPageRole provides role) {
-        Scaffold(
+        YUiScaffold(
             modifier = modifier,
-            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
             topBar = topBar,
             bottomBar = bottomBar,
             snackbarHost = snackbarHost,
             floatingActionButton = floatingActionButton,
-            containerColor = MaterialTheme.colorScheme.background,
         ) { padding -> YFeatureStateContent(padding, state, content) }
     }
 }
@@ -112,17 +105,17 @@ private fun YFeatureStateContent(
     when (state) {
         YPageState.Ready -> content(padding)
         is YPageState.Loading -> Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) { YLoadingState(state.message) }
         is YPageState.Empty -> Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) { YEmptyState(state.message) }
         is YPageState.Error -> Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = YDimens.ScreenHorizontal),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) { YErrorState(state.message) }
@@ -203,7 +196,8 @@ fun YStatusPill(
         val text = if (label.isBlank()) value else stringResource(R.string.yui_status_pair, label, value)
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = (LocalYAppearance.current.rowHorizontalPaddingDp * 0.7f).dp,
+                vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
             style = MaterialTheme.typography.labelLarge,
             color = foreground,
             maxLines = 1,
@@ -252,7 +246,6 @@ fun YSearchField(
         placeholder = { Text(resolvedHint) },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        shape = MaterialTheme.shapes.extraLarge,
     )
 }
 

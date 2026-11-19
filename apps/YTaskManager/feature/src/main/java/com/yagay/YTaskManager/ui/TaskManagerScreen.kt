@@ -5,6 +5,8 @@ import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,10 +30,10 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
+import com.yagay.yui.YUiIcon as Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,8 +45,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import com.yagay.suite.api.InstalledAppCatalog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -61,15 +67,19 @@ import com.yagay.YTaskManager.model.ProcessEntry
 import com.yagay.YTaskManager.model.ProcessKind
 import com.yagay.YTaskManager.model.ProcessSort
 import com.yagay.YTaskManager.model.TaskManagerUiState
-import com.yagay.yui.YDimens
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YSection
-import com.yagay.yui.YToggleFilterBar
+import com.yagay.yui.YBottomSheet
+import com.yagay.yui.YChoiceSpec
+import com.yagay.yui.YRadioGroup
+import com.yagay.yui.YSectionHeader
+import com.yagay.yui.YPrimaryActionButton
+import com.yagay.yui.YMetricCard
+import com.yagay.yui.YResponsiveFieldPair
 import com.yagay.yui.YStatusStrip
 import com.yagay.yui.YStatusSpec
 import com.yagay.yui.YPageList
 import com.yagay.yui.YListItem
-import com.yagay.yui.YFilterSpec
-import com.yagay.yui.YFilterBar
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YIcons
@@ -87,6 +97,9 @@ import com.yagay.yui.YFormDialog
 import com.yagay.yui.YIconAction
 import com.yagay.yui.YListSkeleton
 import com.yagay.yui.YMessageHost
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
+import com.yagay.yui.YUiTextButton as TextButton
 import com.yagay.yui.YNotice
 import java.text.DateFormat
 import java.util.Date
@@ -163,7 +176,13 @@ fun TaskManagerApp(viewModel: MainViewModel) {
                         state = state,
                         viewModel = viewModel,
                         onSelect = { process ->
-                            viewModel.loadProcessDetails(process) { selected = it }
+                            // Show cached details immediately; Root enrichment is optional.
+                            selected = process
+                            viewModel.loadProcessDetails(process) { enriched ->
+                                if (selected?.pid == enriched.pid && selected?.uid == enriched.uid) {
+                                    selected = enriched
+                                }
+                            }
                         },
                     )
                     HomePage.RESOURCES -> ResourcePage(state)
@@ -173,13 +192,36 @@ fun TaskManagerApp(viewModel: MainViewModel) {
         }
     }
 
-    selected?.let { process ->
+    selected?.let { selectedProcess ->
+        // Process details should follow the same live telemetry as the list.
+        // Root detail enrichment is stored separately and must not freeze the
+        // CPU or network values at the moment the dialog was opened.
+        val recent = state.processes.firstOrNull {
+            it.pid == selectedProcess.pid && it.uid == selectedProcess.uid &&
+                (it.cpuStartTicks == 0L || selectedProcess.cpuStartTicks == 0L ||
+                    it.cpuStartTicks == selectedProcess.cpuStartTicks)
+        }
+        val process = if (recent == null) selectedProcess else selectedProcess.copy(
+            cpuPercent = recent.cpuPercent,
+            cpuSampled = recent.cpuSampled,
+            cpuStartTicks = recent.cpuStartTicks,
+            rssKb = recent.rssKb,
+            rxBytesPerSecond = recent.rxBytesPerSecond,
+            txBytesPerSecond = recent.txBytesPerSecond,
+            networkSampled = recent.networkSampled,
+            isPinned = recent.isPinned,
+        )
         ProcessDialog(
             process = process,
             parent = state.processes.firstOrNull { it.pid == process.ppid },
             onDismiss = { selected = null },
             onOpenParent = { parent ->
-                viewModel.loadProcessDetails(parent) { selected = it }
+                selected = parent
+                viewModel.loadProcessDetails(parent) { enriched ->
+                    if (selected?.pid == enriched.pid && selected?.uid == enriched.uid) {
+                        selected = enriched
+                    }
+                }
             },
             onPin = { viewModel.togglePin(process) },
             onKill = {
@@ -234,18 +276,18 @@ private fun ProcessPage(
 ) {
     Column(Modifier.fillMaxSize()) {
         StatusSection(state)
-        FilterSection(
+        ProcessControls(
             state = state,
             onQuery = viewModel::setQuery,
-            onSort = viewModel::setSort,
             onUser = viewModel::setShowUserApps,
             onSystem = viewModel::setShowSystemApps,
             onLinux = viewModel::setShowLinuxProcesses,
+            onSort = viewModel::setSort,
         )
         if (state.loading) {
             YListSkeleton(
                 rows = 7,
-                modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
             )
         } else {
             ProcessList(state, onSelect)
@@ -255,12 +297,21 @@ private fun ProcessPage(
 
 @Composable
 private fun StatusSection(state: TaskManagerUiState) {
+    Column {
     YStatusStrip(
         statuses = listOf(
             YStatusSpec(
                 label = "Root",
-                value = if (state.root.granted) stringResource(R.string.ytm_ok) else stringResource(R.string.ytm_root_unavailable),
-                tone = if (state.root.granted) YStatusTone.Good else YStatusTone.Error,
+                value = when {
+                    !state.root.checked -> stringResource(R.string.ytm_root_connecting)
+                    state.root.granted -> stringResource(R.string.ytm_ok)
+                    else -> stringResource(R.string.ytm_root_unavailable)
+                },
+                tone = when {
+                    !state.root.checked -> YStatusTone.Warning
+                    state.root.granted -> YStatusTone.Good
+                    else -> YStatusTone.Error
+                },
             ),
             YStatusSpec(
                 label = "LSPosed",
@@ -268,29 +319,44 @@ private fun StatusSection(state: TaskManagerUiState) {
                 tone = if (state.framework.detected) YStatusTone.Good else YStatusTone.Warning,
             ),
         ),
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 4.dp),
+        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = (LocalYAppearance.current.effectiveGapDp / 3f).dp),
     )
+    if (!state.root.granted && state.root.message != "Not checked") {
+        YNotice(
+            text = state.root.message,
+            modifier = Modifier.padding(
+                horizontal = LocalYAppearance.current.screenPaddingDp.dp,
+                vertical = (LocalYAppearance.current.effectiveGapDp / 3f).dp,
+            ),
+        )
+    }
+    }
 }
 
+/** Keep search visible and expose filter and sort as two independent YUI dropdowns. */
 @Composable
-private fun FilterSection(
+private fun ProcessControls(
     state: TaskManagerUiState,
     onQuery: (String) -> Unit,
-    onSort: (ProcessSort) -> Unit,
     onUser: (Boolean) -> Unit,
     onSystem: (Boolean) -> Unit,
     onLinux: (Boolean) -> Unit,
+    onSort: (ProcessSort) -> Unit,
 ) {
-    YSection(
-        title = stringResource(R.string.ytm_process_filter),
-        subtitle = stringResource(R.string.ytm_process_filter_desc),
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 6.dp),
+    var filterExpanded by remember { mutableStateOf(false) }
+    var sortExpanded by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.padding(
+            horizontal = LocalYAppearance.current.screenPaddingDp.dp,
+            vertical = (LocalYAppearance.current.effectiveGapDp / 2f).dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 2f).dp),
     ) {
         YSearchField(
             value = state.query,
             onValueChange = onQuery,
             hint = stringResource(R.string.ytm_search_hint),
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            leadingIcon = { Icon(YIcons.Search, contentDescription = null) },
             trailingIcon = if (state.query.isNotEmpty()) {
                 {
                     YIconAction(
@@ -301,18 +367,69 @@ private fun FilterSection(
                 }
             } else null,
         )
-        YToggleFilterBar(
-            filters = listOf(
-                YFilterSpec(stringResource(R.string.ytm_user), state.showUserApps) { onUser(!state.showUserApps) },
-                YFilterSpec(stringResource(R.string.ytm_system), state.showSystemApps) { onSystem(!state.showSystemApps) },
-                YFilterSpec(stringResource(R.string.ytm_linux), state.showLinuxProcesses) { onLinux(!state.showLinuxProcesses) },
-            ),
-        )
-        YFilterBar(
-            options = ProcessSort.entries.map { sortLabel(it) },
-            selectedIndex = ProcessSort.entries.indexOf(state.sort).coerceAtLeast(0),
-            onSelected = { index -> ProcessSort.entries.getOrNull(index)?.let(onSort) },
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.effectiveGapDp.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                TextButton(onClick = {
+                    sortExpanded = false
+                    filterExpanded = true
+                }) {
+                    Text(
+                        stringResource(R.string.ytm_process_filter) + " (" +
+                            listOf(state.showUserApps, state.showSystemApps, state.showLinuxProcesses)
+                                .count { it } + ") ▾",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                DropdownMenu(
+                    expanded = filterExpanded,
+                    onDismissRequest = { filterExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text((if (state.showUserApps) "✓  " else "     ") + stringResource(R.string.ytm_user)) },
+                        onClick = { onUser(!state.showUserApps) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text((if (state.showSystemApps) "✓  " else "     ") + stringResource(R.string.ytm_system)) },
+                        onClick = { onSystem(!state.showSystemApps) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text((if (state.showLinuxProcesses) "✓  " else "     ") + stringResource(R.string.ytm_linux)) },
+                        onClick = { onLinux(!state.showLinuxProcesses) },
+                    )
+                }
+            }
+            Box(Modifier.weight(1f)) {
+                TextButton(onClick = {
+                    filterExpanded = false
+                    sortExpanded = true
+                }) {
+                    Text(
+                        stringResource(R.string.ytm_sort_by) + ": " + sortLabel(state.sort) + " ▾",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                DropdownMenu(
+                    expanded = sortExpanded,
+                    onDismissRequest = { sortExpanded = false },
+                ) {
+                    ProcessSort.entries.forEach { sort ->
+                        DropdownMenuItem(
+                            text = { Text((if (state.sort == sort) "✓  " else "     ") + sortLabel(sort)) },
+                            onClick = {
+                                onSort(sort)
+                                sortExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -362,7 +479,7 @@ private fun ProcessList(state: TaskManagerUiState, onClick: (ProcessEntry) -> Un
     if (filtered.isEmpty()) {
         YEmptyMessage(
             message = stringResource(R.string.ytm_no_processes),
-            modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.effectiveGapDp.dp),
         )
         return
     }
@@ -385,20 +502,24 @@ private fun ProcessRow(process: ProcessEntry, onClick: (ProcessEntry) -> Unit) {
     YListItem(
         title = title,
         subtitle = stringResource(R.string.ytm_process_row, process.pid, process.userName, kindLabel(process.kind), process.threads),
-        detail = stringResource(R.string.ytm_download_upload, formatSpeed(process.rxBytesPerSecond), formatSpeed(process.txBytesPerSecond)),
-        leading = { AppIcon(process.icon) },
+        detail = stringResource(
+            R.string.ytm_download_upload,
+            formatSpeed(process.rxBytesPerSecond),
+            formatSpeed(process.txBytesPerSecond),
+        ),
+        leading = { AppIcon(process.icon, process.packageName) },
         trailing = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (process.isPinned) {
                     Icon(
                         Icons.Default.PushPin,
                         contentDescription = stringResource(R.string.ytm_pinned),
-                        modifier = Modifier.size(15.dp),
+                        modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 0.625f).dp),
                     )
-                    Spacer(Modifier.size(6.dp))
+                    Spacer(Modifier.size((LocalYAppearance.current.effectiveGapDp / 2f).dp))
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent))
+                    Text(formatProcessCpu(process.cpuPercent))
                     Text(formatBytes(process.rssKb * 1024L), style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -414,8 +535,30 @@ private fun ResourcePage(state: TaskManagerUiState) {
     val unknown = stringResource(R.string.ytm_unknown)
     val noData = stringResource(R.string.ytm_no_data)
     YPageList(
-        padding = PaddingValues(0.dp),
+        padding = PaddingValues(),
     ) {
+        item {
+            YResponsiveFieldPair(
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
+                first = { slot ->
+                    YMetricCard(
+                        label = "CPU",
+                        value = String.format(Locale.getDefault(), "%.1f%%", s.cpuPercent),
+                        modifier = slot,
+                    )
+                },
+                second = { slot ->
+                    val ramPercentage = if (s.ramTotalBytes > 0L)
+                        (s.ramUsedBytes.toDouble() * 100.0 / s.ramTotalBytes).toFloat()
+                    else 0f
+                    YMetricCard(
+                        label = "RAM",
+                        value = String.format(Locale.getDefault(), "%.1f%%", ramPercentage),
+                        modifier = slot,
+                    )
+                },
+            )
+        }
         item {
             SectionCard("CPU") {
                 MetricLine(stringResource(R.string.ytm_usage), String.format(Locale.getDefault(), "%.1f%%", s.cpuPercent))
@@ -472,7 +615,7 @@ private fun ResourcePage(state: TaskManagerUiState) {
                 MetricLine(stringResource(R.string.ytm_gpu_max), formatHz(g.maxHz))
             }
         }
-        item { Spacer(Modifier.height(12.dp)) }
+        item { Spacer(Modifier.height(LocalYAppearance.current.effectiveGapDp.dp)) }
     }
 }
 
@@ -480,7 +623,7 @@ private fun ResourcePage(state: TaskManagerUiState) {
 private fun NetworkPage(state: TaskManagerUiState) {
     val network = state.network
     YPageList(
-        padding = PaddingValues(0.dp),
+        padding = PaddingValues(),
         compact = true,
     ) {
         item {
@@ -502,40 +645,33 @@ private fun NetworkPage(state: TaskManagerUiState) {
 
 @Composable
 private fun NetworkRow(entry: NetworkEntry) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = YDimens.ScreenHorizontal, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppIcon(entry.icon)
-        Spacer(Modifier.size(10.dp))
-        Column(Modifier.weight(1f)) {
-            Text(entry.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                stringResource(
-                    R.string.ytm_network_identity,
-                    entry.uid,
-                    if (entry.system) stringResource(R.string.ytm_system_suffix) else "",
-                    if (entry.packageNames.isNotEmpty()) stringResource(R.string.ytm_package_suffix, entry.packageNames.joinToString(", ")) else "",
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(stringResource(R.string.ytm_download_value, formatSpeed(entry.rxBytesPerSecond)), fontWeight = FontWeight.Medium)
-            Text(stringResource(R.string.ytm_upload_value, formatSpeed(entry.txBytesPerSecond)), style = MaterialTheme.typography.bodySmall)
-        }
-    }
+    YListItem(
+        title = entry.label,
+        subtitle = stringResource(
+            R.string.ytm_network_identity,
+            entry.uid,
+            if (entry.system) stringResource(R.string.ytm_system_suffix) else "",
+            if (entry.packageNames.isNotEmpty())
+                stringResource(R.string.ytm_package_suffix, entry.packageNames.joinToString(", "))
+            else "",
+        ),
+        leading = { AppIcon(entry.icon, entry.packageNames.firstOrNull()) },
+        trailing = {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(stringResource(R.string.ytm_download_value, formatSpeed(entry.rxBytesPerSecond)),
+                    style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.ytm_upload_value, formatSpeed(entry.txBytesPerSecond)),
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        },
+    )
 }
 
 @Composable
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
     YSection(
         title = title,
-        modifier = Modifier.padding(horizontal = YDimens.ScreenHorizontal),
+        modifier = Modifier.padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp),
         content = content,
     )
 }
@@ -560,12 +696,13 @@ private fun CpuCoreRow(core: CpuCoreInfo) {
 private fun HistoryChart(values: List<Float>) {
     val lineColor = MaterialTheme.colorScheme.primary
     val guideColor = MaterialTheme.colorScheme.outlineVariant
+    val guideWidth = LocalYAppearance.current.cardOutlineWidthDp.dp
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp),
+            .height((LocalYAppearance.current.rowHeightDp * 1.25f).dp),
     ) {
-        drawRect(guideColor, style = Stroke(width = 1f))
+        drawRect(guideColor, style = Stroke(width = guideWidth.toPx()))
         if (values.size < 2) return@Canvas
         val step = size.width / (values.size - 1).coerceAtLeast(1)
         var previousX = 0f
@@ -586,30 +723,42 @@ private fun HistoryChart(values: List<Float>) {
 }
 
 @Composable
-private fun AppIcon(drawable: Drawable?) {
-    if (drawable == null) {
+private fun AppIcon(drawable: Drawable?, packageName: String? = null) {
+    val iconSize = LocalYAppearance.current.listIconSizeDp.dp
+    val density = LocalDensity.current
+    val px = with(density) { max(1, iconSize.roundToPx()) }
+    val context = LocalContext.current.applicationContext
+    // LazyColumn only composes visible rows. Decode through the shared app cache
+    // off the UI thread, rather than decoding every process during /proc enumeration.
+    var bitmap by remember(drawable, packageName, px) {
+        mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
+    }
+    LaunchedEffect(drawable, packageName, px) {
+        bitmap = withContext(Dispatchers.IO) {
+            when {
+                packageName != null -> InstalledAppCatalog.iconBitmap(
+                    context, packageName, px
+                )?.asImageBitmap()
+                drawable != null -> drawable.toBitmap(px, px).asImageBitmap()
+                else -> null
+            }
+        }
+    }
+    val loaded = bitmap
+    if (loaded == null) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp)),
+            modifier = Modifier.size(iconSize).clip(MaterialTheme.shapes.small),
             contentAlignment = Alignment.Center,
         ) {
             Icon(Icons.Default.Memory, contentDescription = null)
         }
-        return
+    } else {
+        Image(
+            bitmap = loaded,
+            contentDescription = null,
+            modifier = Modifier.size(iconSize).clip(MaterialTheme.shapes.small),
+        )
     }
-    val density = LocalDensity.current
-    val px = with(density) { 40.dp.roundToPx() }
-    val bitmap = remember(drawable, px) {
-        drawable.toBitmap(max(1, px), max(1, px)).asImageBitmap()
-    }
-    Image(
-        bitmap = bitmap,
-        contentDescription = null,
-        modifier = Modifier
-            .size(40.dp)
-            .clip(RoundedCornerShape(10.dp)),
-    )
 }
 
 @Composable
@@ -622,6 +771,28 @@ private fun ProcessDialog(
     onKill: () -> Unit,
     onForceStop: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    var moreActionsExpanded by remember(process.pid, process.uid) { mutableStateOf(false) }
+    val appPackage = (listOfNotNull(process.packageName) + process.packageNames)
+        .firstOrNull { it.matches(Regex("[a-zA-Z0-9_]+(?:\\.[a-zA-Z0-9_]+)+")) }
+    val canOpenApp = remember(appPackage) {
+        appPackage != null && ProcessExternalActions.canLaunch(context, appPackage)
+    }
+    val actionFailed = stringResource(R.string.ytm_action_unavailable)
+    val copiedPackage = stringResource(R.string.ytm_copied, stringResource(R.string.ytm_package))
+    val copiedPid = stringResource(R.string.ytm_copied, "PID")
+    val copiedUid = stringResource(R.string.ytm_copied, "UID")
+    val copiedCommand = stringResource(R.string.ytm_copied, stringResource(R.string.ytm_command))
+    fun copyValue(value: String, message: String) {
+        clipboard.setText(AnnotatedString(value))
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+    fun externalAction(success: Boolean) {
+        if (success) onDismiss()
+        else Toast.makeText(context, actionFailed, Toast.LENGTH_SHORT).show()
+    }
+
     val actions = buildList {
         add(
             YActionSpec(
@@ -654,20 +825,93 @@ private fun ProcessDialog(
         actions = actions,
     ) {
         LazyColumn(
-            modifier = Modifier.heightIn(max = 480.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.58f).dp),
+            verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 3f).dp),
         ) {
+            item { YNotice(stringResource(R.string.ytm_long_press_copy)) }
+            item { YSectionHeader(stringResource(R.string.ytm_more_actions)) }
+            item {
+                // Keep additional actions in the same YUI dropdown as process
+                // filters, rather than adding another row of oversized dialog
+                // footer buttons.
+                Box {
+                    TextButton(onClick = { moreActionsExpanded = true }) {
+                        Text(stringResource(R.string.ytm_more_actions) + " ▾")
+                    }
+                    DropdownMenu(
+                        expanded = moreActionsExpanded,
+                        onDismissRequest = { moreActionsExpanded = false },
+                    ) {
+                        if (appPackage != null) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ytm_system_app_info)) },
+                                onClick = {
+                                    moreActionsExpanded = false
+                                    externalAction(ProcessExternalActions.openSystemAppInfo(context, appPackage))
+                                },
+                            )
+                            if (canOpenApp) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.ytm_launch_app)) },
+                                    onClick = {
+                                        moreActionsExpanded = false
+                                        externalAction(ProcessExternalActions.launch(context, appPackage))
+                                    },
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ytm_app_notification_settings)) },
+                                onClick = {
+                                    moreActionsExpanded = false
+                                    externalAction(ProcessExternalActions.openNotificationSettings(context, appPackage))
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ytm_copy_package)) },
+                                onClick = {
+                                    moreActionsExpanded = false
+                                    copyValue(appPackage, copiedPackage)
+                                },
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.ytm_copy_pid)) },
+                            onClick = {
+                                moreActionsExpanded = false
+                                copyValue(process.pid.toString(), copiedPid)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.ytm_copy_uid)) },
+                            onClick = {
+                                moreActionsExpanded = false
+                                copyValue(process.uid.toString(), copiedUid)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.ytm_copy_process_command)) },
+                            onClick = {
+                                moreActionsExpanded = false
+                                copyValue(process.command, copiedCommand)
+                            },
+                        )
+                    }
+                }
+            }
+            item { YSectionHeader(stringResource(R.string.ytm_process_identity)) }
             item { CopyDetail("PID", process.pid.toString()) }
             if (process.ppid != 0) item { ParentDetail(process.ppid, parent, onOpenParent) }
             item { CopyDetail("UID", process.uid.toString()) }
             item { CopyDetail(stringResource(R.string.ytm_user), process.userName) }
-            item { CopyDetail(stringResource(R.string.ytm_cpu_usage), String.format(Locale.getDefault(), "%.1f%%", process.cpuPercent)) }
+            item { YSectionHeader(stringResource(R.string.ytm_process_performance)) }
+            item { CopyDetail(stringResource(R.string.ytm_cpu_usage), formatProcessCpu(process.cpuPercent)) }
             item { CopyDetail(stringResource(R.string.ytm_ram_usage), formatBytes(process.rssKb * 1024L)) }
             item { CopyDetail(stringResource(R.string.ytm_realtime_download), formatSpeed(process.rxBytesPerSecond)) }
             item { CopyDetail(stringResource(R.string.ytm_realtime_upload), formatSpeed(process.txBytesPerSecond)) }
             if (process.virtualMemoryKb > 0L) item { CopyDetail(stringResource(R.string.ytm_virtual_memory), formatBytes(process.virtualMemoryKb * 1024L)) }
             item { CopyDetail(stringResource(R.string.ytm_foreground), if (process.isForeground) stringResource(R.string.ytm_yes) else stringResource(R.string.ytm_no)) }
             item { CopyDetail(stringResource(R.string.ytm_threads), process.threads.toString()) }
+            item { YSectionHeader(stringResource(R.string.ytm_process_advanced)) }
             item { CopyDetail(stringResource(R.string.ytm_nice_value), process.nice.toString()) }
             item { CopyDetail(stringResource(R.string.ytm_status), process.state) }
             item { CopyDetail(stringResource(R.string.ytm_start_time), formatStartTime(process.startTimeMillis, stringResource(R.string.ytm_unknown))) }
@@ -687,7 +931,7 @@ private fun CopyDetail(label: String, value: String) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val copied = stringResource(R.string.ytm_copied, label)
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -697,11 +941,12 @@ private fun CopyDetail(label: String, value: String) {
                     Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
                 },
             )
-            .padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(vertical = (LocalYAppearance.current.effectiveGapDp / 4f).dp),
+        verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 4f).dp),
     ) {
-        Text(label, style = MaterialTheme.typography.bodySmall)
-        Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -721,7 +966,7 @@ private fun ParentDetail(ppid: Int, parent: ProcessEntry?, onOpenParent: (Proces
                     Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
                 },
             )
-            .padding(vertical = 3.dp),
+            .padding(vertical = (LocalYAppearance.current.effectiveGapDp / 4f).dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(stringResource(R.string.ytm_parent_pid), style = MaterialTheme.typography.bodySmall)
@@ -737,34 +982,41 @@ private fun SettingsDialog(
     onRefreshInterval: (Long) -> Unit,
     onConfirmKill: (Boolean) -> Unit,
 ) {
-    val intervals = listOf(500L, 800L, 1000L, 2000L)
-    YFormDialog(
-        title = stringResource(R.string.ytm_process_settings),
-        onDismissRequest = onDismiss,
-        actions = listOf(
-            YActionSpec(
-                label = stringResource(R.string.ytm_done),
-                style = YActionStyle.PRIMARY,
-                onClick = onDismiss,
+    val intervals = listOf(1000L, 2500L, 5000L, 10000L)
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
+    YBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().heightIn(max = maxHeight)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy((LocalYAppearance.current.effectiveGapDp / 2f).dp),
+        ) {
+            YSectionHeader(stringResource(R.string.ytm_process_settings))
+            YSwitchItem(
+                title = stringResource(R.string.ytm_auto_refresh),
+                subtitle = stringResource(R.string.ytm_auto_refresh_desc),
+                checked = state.autoRefresh,
+                onCheckedChange = onAutoRefresh,
             )
-        ),
-    ) {
-        YSwitchItem(
-            title = stringResource(R.string.ytm_auto_refresh),
-            checked = state.autoRefresh,
-            onCheckedChange = onAutoRefresh,
-        )
-        YSwitchItem(
-            title = stringResource(R.string.ytm_confirm_before_kill),
-            checked = state.confirmKill,
-            onCheckedChange = onConfirmKill,
-        )
-        YFilterBar(
-            options = intervals.map { stringResource(R.string.ytm_milliseconds, it) },
-            selectedIndex = intervals.indexOf(state.refreshIntervalMs).coerceAtLeast(0),
-            onSelected = { index -> intervals.getOrNull(index)?.let(onRefreshInterval) },
-        )
-        YNotice(stringResource(R.string.ytm_network_sampling))
+            YSwitchItem(
+                title = stringResource(R.string.ytm_confirm_before_kill),
+                subtitle = stringResource(R.string.ytm_confirm_kill_desc),
+                checked = state.confirmKill,
+                onCheckedChange = onConfirmKill,
+            )
+            YSectionHeader(stringResource(R.string.ytm_refresh_interval))
+            YRadioGroup(
+                value = state.refreshIntervalMs,
+                options = intervals.map { interval ->
+                    YChoiceSpec(interval, stringResource(R.string.ytm_milliseconds, interval))
+                },
+                onSelected = onRefreshInterval,
+                enabled = state.autoRefresh,
+            )
+            YNotice(stringResource(R.string.ytm_network_sampling))
+            YPrimaryActionButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.ytm_done))
+            }
+        }
     }
 }
 
@@ -819,6 +1071,9 @@ private fun formatBytes(bytes: Long): String {
 }
 
 private fun formatSpeed(bytesPerSecond: Long): String = "${formatBytes(bytesPerSecond)}/s"
+
+private fun formatProcessCpu(value: Float): String =
+    String.format(Locale.getDefault(), "%.1f%%", value.takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f)
 
 private fun formatKHz(khz: Long?): String =
     if (khz == null || khz <= 0L) "-" else String.format(Locale.US, "%.2f GHz", khz / 1_000_000.0)

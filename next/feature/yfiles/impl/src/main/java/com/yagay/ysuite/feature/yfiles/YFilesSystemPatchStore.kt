@@ -13,6 +13,7 @@ data class YFilesSystemPatchSettings(
     val localOnly: Boolean = false,
     val allowMultiple: Boolean = false,
     val defaultSort: String = SORT_SYSTEM,
+    val defaultDirection: String = DIRECTION_SYSTEM,
 ) {
     companion object {
         const val SORT_SYSTEM = "system"
@@ -20,6 +21,9 @@ data class YFilesSystemPatchSettings(
         const val SORT_DATE = "date"
         const val SORT_SIZE = "size"
         const val SORT_TYPE = "type"
+        const val DIRECTION_SYSTEM = "system"
+        const val DIRECTION_ASCENDING = "ascending"
+        const val DIRECTION_DESCENDING = "descending"
 
         val validSorts =
             listOf(
@@ -28,6 +32,13 @@ data class YFilesSystemPatchSettings(
                 SORT_DATE,
                 SORT_SIZE,
                 SORT_TYPE,
+            )
+
+        val validDirections =
+            listOf(
+                DIRECTION_SYSTEM,
+                DIRECTION_ASCENDING,
+                DIRECTION_DESCENDING,
             )
     }
 }
@@ -77,6 +88,13 @@ class YFilesSystemPatchStore(
                             .validSorts
                 } ?: YFilesSystemPatchSettings
                     .SORT_SYSTEM,
+            defaultDirection =
+                prefs.getString(
+                    "default_direction",
+                    YFilesSystemPatchSettings.DIRECTION_SYSTEM,
+                )?.takeIf {
+                    it in YFilesSystemPatchSettings.validDirections
+                } ?: YFilesSystemPatchSettings.DIRECTION_SYSTEM,
         )
 
     suspend fun save(
@@ -94,6 +112,10 @@ class YFilesSystemPatchStore(
                                     .validSorts
                         } ?: YFilesSystemPatchSettings
                         .SORT_SYSTEM,
+                defaultDirection =
+                    settings.defaultDirection.takeIf {
+                        it in YFilesSystemPatchSettings.validDirections
+                    } ?: YFilesSystemPatchSettings.DIRECTION_SYSTEM,
             )
         prefs.edit()
             .putBoolean(
@@ -115,6 +137,10 @@ class YFilesSystemPatchStore(
             .putString(
                 "default_sort",
                 normalized.defaultSort,
+            )
+            .putString(
+                "default_direction",
+                normalized.defaultDirection,
             )
             .apply()
         return sync(normalized)
@@ -149,6 +175,10 @@ class YFilesSystemPatchStore(
                     .put(
                         "defaultSort",
                         settings.defaultSort,
+                    )
+                    .put(
+                        "defaultDirection",
+                        settings.defaultDirection,
                     )
                     .toString(),
         )

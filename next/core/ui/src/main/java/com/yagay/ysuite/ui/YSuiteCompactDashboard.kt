@@ -1,5 +1,8 @@
 package com.yagay.ysuite.ui
 
+import com.yagay.yui.LocalYAppearance
+import com.yagay.yui.YHomePresentation
+import com.yagay.yui.YHomeModuleRow
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -28,15 +31,15 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
+import com.yagay.yui.YUiSurface as Surface
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,8 +57,6 @@ import androidx.compose.ui.unit.dp
 import com.yagay.ysuite.productui.dashboard.NiaDashboardSurface
 import com.yagay.ysuite.resources.R
 
-private const val HOME_PREFERENCES = "ysuite_compact_home"
-private const val PINNED_MODULES_KEY = "pinned_modules"
 
 private data class HomeModule(
     val id: String,
@@ -64,7 +65,7 @@ private data class HomeModule(
 
 /** Keep the registry's existing order inside each group; only pinned modules move to the top. */
 internal fun compactModuleOrder(ids: List<String>, pinned: Set<String>): List<String> =
-    ids.filter { it in pinned } + ids.filterNot { it in pinned }
+    YHomePresentation.orderedIds(ids, pinned)
 
 @Composable
 internal fun YSuiteCompactDashboard(
@@ -73,10 +74,10 @@ internal fun YSuiteCompactDashboard(
 ) {
     val context = LocalContext.current
     val preferences = remember(context) {
-        context.getSharedPreferences(HOME_PREFERENCES, Context.MODE_PRIVATE)
+        context.getSharedPreferences(YHomePresentation.PREFERENCES, Context.MODE_PRIVATE)
     }
     var pinnedIds by remember(preferences) {
-        mutableStateOf(preferences.getStringSet(PINNED_MODULES_KEY, emptySet())?.toSet().orEmpty())
+        mutableStateOf(YHomePresentation.readPinned(preferences))
     }
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -103,7 +104,7 @@ internal fun YSuiteCompactDashboard(
     fun togglePin(id: String) {
         val next = if (id in pinnedIds) pinnedIds - id else pinnedIds + id
         pinnedIds = next
-        preferences.edit().putStringSet(PINNED_MODULES_KEY, next.toSet()).apply()
+        YHomePresentation.savePinned(preferences, next)
     }
 
     NiaDashboardSurface(
@@ -144,21 +145,21 @@ internal fun YSuiteCompactDashboard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)
                         .background(
                             MaterialTheme.colorScheme.surfaceContainerLow,
-                            RoundedCornerShape(12.dp),
+                            MaterialTheme.shapes.medium,
                         )
                         .clickable { onSelect(systemId) }
-                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                        .padding(horizontal = LocalYAppearance.current.screenPaddingDp.dp, vertical = LocalYAppearance.current.effectiveGapDp.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(LocalYAppearance.current.sectionSpacingDp.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -169,13 +170,13 @@ internal fun YSuiteCompactDashboard(
                             text = stringResource(R.string.home_system_status_detail),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            maxLines = Int.MAX_VALUE,
                         )
                     }
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                 }
             }
@@ -184,7 +185,7 @@ internal fun YSuiteCompactDashboard(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = LocalYAppearance.current.effectiveGapDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                     singleLine = true,
                     label = { Text(stringResource(R.string.home_search_modules)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
@@ -192,7 +193,7 @@ internal fun YSuiteCompactDashboard(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = LocalYAppearance.current.screenPaddingDp.dp, end = LocalYAppearance.current.effectiveGapDp.dp, top = LocalYAppearance.current.effectiveGapDp.dp, bottom = LocalYAppearance.current.rowVerticalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -230,7 +231,7 @@ internal fun YSuiteCompactDashboard(
                             onTogglePin = { togglePin(module.id) },
                         )
                         HorizontalDivider(
-                            thickness = 0.5.dp,
+                            thickness = (LocalYAppearance.current.cardOutlineWidthDp / 2f).dp,
                             color = MaterialTheme.colorScheme.outlineVariant,
                         )
                     }
@@ -240,7 +241,6 @@ internal fun YSuiteCompactDashboard(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CompactModuleRow(
     label: String,
@@ -249,101 +249,54 @@ private fun CompactModuleRow(
     onTogglePin: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 54.dp)
-            // Horizontal gestures do not intercept the LazyColumn's vertical scrolling.
-            // Swipe right to pin, left to unpin; the menu remains the accessible fallback.
-            .pointerInput(pinned) {
-                var horizontalDrag = 0f
-                detectHorizontalDragGestures(
-                    onDragStart = { horizontalDrag = 0f },
-                    onDragEnd = {
-                        if ((horizontalDrag > 100f && !pinned) ||
-                            (horizontalDrag < -100f && pinned)
-                        ) {
-                            onTogglePin()
-                        }
-                    },
-                    onHorizontalDrag = { change, dragAmount ->
-                        horizontalDrag += dragAmount
-                        change.consume()
-                    },
-                )
-            }
-            .combinedClickable(
-                onClick = onOpen,
-                onLongClick = { menuExpanded = true },
-            )
-            .padding(start = 12.dp, end = 4.dp, top = 5.dp, bottom = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.size(34.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = label.take(1).uppercase(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (pinned) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = stringResource(R.string.home_pinned),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-        Box {
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.common_menu),
-                )
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
+    val appearance = LocalYAppearance.current
+    YHomeModuleRow(
+        title = label,
+        subtitle = null,
+        pinned = pinned,
+        swipePinEnabled = appearance.homeSwipePin,
+        onOpen = onOpen,
+        onLongClick = { menuExpanded = true },
+        onTogglePin = onTogglePin,
+        pinnedDescription = stringResource(R.string.home_pinned),
+        leading = {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.size(appearance.listIconSizeDp.dp),
             ) {
-                DropdownMenuItem(
-                    text = {
-                        Text(stringResource(if (pinned) R.string.home_unpin else R.string.home_pin))
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = if (pinned) Icons.Default.Star else Icons.Default.StarBorder,
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onTogglePin()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.home_open_module)) },
-                    onClick = {
-                        menuExpanded = false
-                        onOpen()
-                    },
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = label.take(1).uppercase(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
-        }
-    }
+        },
+        trailing = {
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_menu))
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(if (pinned) R.string.home_unpin else R.string.home_pin)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (pinned) Icons.Default.Star else Icons.Default.StarBorder,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = { menuExpanded = false; onTogglePin() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.home_open_module)) },
+                        onClick = { menuExpanded = false; onOpen() },
+                    )
+                }
+            }
+        },
+    )
 }

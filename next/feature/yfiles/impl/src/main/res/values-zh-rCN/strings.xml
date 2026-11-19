@@ -304,7 +304,12 @@
     <string name="yfiles_patch_enabled_subtitle">增强系统 SAF/DocumentsUI，不替换系统选择器；补丁失败时保持系统原始行为。</string>
     <string name="yfiles_patch_local_only">优先仅显示本地来源</string>
     <string name="yfiles_patch_allow_multiple">允许多选</string>
-    <string name="yfiles_patch_default_sort">DocumentsUI 默认排序</string>
+    <string name="yfiles_patch_default_sort">DocumentsUI 默认排序（点击切换）</string>
+    <string name="yfiles_patch_sort_direction">默认排序方向（点击切换）</string>
+    <string name="yfiles_patch_direction_ascending">升序</string>
+    <string name="yfiles_patch_direction_descending">降序</string>
+    <string name="yfiles_patch_choose_folder">选择默认打开的文件夹</string>
+    <string name="yfiles_patch_clear_folder">恢复系统默认打开位置</string>
     <string name="yfiles_patch_initial_uri">选择器初始位置</string>
     <string name="yfiles_patch_initial_uri_label">文档 URI（留空使用系统默认）</string>
     <string name="yfiles_patch_system_default">系统默认</string>

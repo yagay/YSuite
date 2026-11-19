@@ -54,6 +54,7 @@ dependencies {
         }
     }
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    testImplementation(libs.junit)
 
     compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)

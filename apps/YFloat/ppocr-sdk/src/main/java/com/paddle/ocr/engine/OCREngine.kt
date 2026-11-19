@@ -16,6 +16,8 @@ package com.paddle.ocr.engine
 
 import android.content.Context
 import android.graphics.PointF
+import android.graphics.Rect
+import org.opencv.core.Rect as CvRect
 import com.paddle.ocr.EngineConfig
 import com.paddle.ocr.PaddleOCRConfig
 import com.paddle.ocr.model.ModelConfig
@@ -26,6 +28,9 @@ import com.paddle.ocr.model.OCRResult
 import com.paddle.ocr.postprocess.BoxSorter
 import com.paddle.ocr.postprocess.CTCDecoder
 import com.paddle.ocr.postprocess.QuadTextCrop
+import com.paddle.ocr.structure.PPTextLineOrientationV3
+import org.opencv.core.Core
+import java.io.File
 import com.paddle.ocr.util.BitmapUtils
 import kotlin.math.hypot
 import kotlin.math.max
@@ -38,10 +43,14 @@ class OCREngine(
     detModelAsset: String = "models/det/inference.onnx",
     recModelAsset: String = "models/rec/inference.onnx",
     recConfigAsset: String = "models/rec/inference.yml",
+    textLineOrientationModelPath: String? = null,
 ) {
     private val ortManager = ORTSessionManager(context, engineConfig)
     private val detectionEngine: DetectionEngine
     private val recognitionEngine: RecognitionEngine
+    private val lineOrientation= textLineOrientationModelPath?.let{
+        PPTextLineOrientationV3(File(it))
+    }
     val coldLoadTimeMs: Long get() = ortManager.coldLoadTimeMs
 
     init {
@@ -61,6 +70,46 @@ class OCREngine(
         return runWithOwnedMat(srcMat)
     }
 
+    /** Fast frozen-screen OCR: small detector tensor, ORIGINAL image recognition crops. */
+    fun runFast(bitmap: android.graphics.Bitmap,maxDetectionSide:Int): OCREngineResult {
+        require(maxDetectionSide in 960..3072)
+        val source=BitmapUtils.bitmapToBGRMat(bitmap)
+        return runWithOwnedMat(source,maxDetectionSide)
+    }
+
+    /**
+     * A direct CTC pass over the selected full-resolution source pixels.
+     * ML Kit provides only the rectangle, NOT recognition text.
+     * This avoids a second DB detection which may truncate leading glyphs.
+     * No text postprocessing or application-name dictionaries are involved.
+     */
+    fun recognizeRegion(bitmap: android.graphics.Bitmap, region: Rect): OCRResult? {
+        val left=region.left.coerceIn(0,bitmap.width)
+        val top=region.top.coerceIn(0,bitmap.height)
+        val right=region.right.coerceIn(left,bitmap.width)
+        val bottom=region.bottom.coerceIn(top,bitmap.height)
+        if(right-left<2||bottom-top<2)return null
+        val src=BitmapUtils.bitmapToBGRMat(bitmap)
+        try {
+            val crop=src.submat(CvRect(left,top,right-left,bottom-top))
+            try {
+                val decoded=recognitionEngine.recognize(listOf(crop)).texts.firstOrNull()
+                    ?:return null
+                if(decoded.text.isBlank()||decoded.confidence<config.recScoreThresh)return null
+                val box=OCRBox(listOf(
+                    PointF(left.toFloat(),top.toFloat()),
+                    PointF(right.toFloat(),top.toFloat()),
+                    PointF(right.toFloat(),bottom.toFloat()),
+                    PointF(left.toFloat(),bottom.toFloat())
+                ))
+                // Targeted text is treated as one original Paddle source line;
+                // we never fabricate per-character bounding boxes.
+                return OCRResult(box=box,text=decoded.text,
+                    confidence=decoded.confidence,characters=emptyList())
+            } finally { crop.release() }
+        } finally { src.release() }
+    }
+
     /** Run only the PP-OCR detector. Recognition is deliberately skipped. */
     fun detect(bitmap: android.graphics.Bitmap): DetectionEngine.DetectionResult {
         if (bitmap.width <= 0 || bitmap.height <= 0) throw OCRError.InvalidImage()
@@ -76,13 +125,15 @@ class OCREngine(
         return runWithOwnedMat(srcMat)
     }
 
-    private fun runWithOwnedMat(srcMat: org.opencv.core.Mat): OCREngineResult {
-        return try { run(srcMat) } finally { srcMat.release() }
+    private fun runWithOwnedMat(srcMat: org.opencv.core.Mat,
+                                maxDetectionSide:Int?=null): OCREngineResult {
+        return try { run(srcMat,maxDetectionSide) } finally { srcMat.release() }
     }
 
-    private fun run(srcMat: org.opencv.core.Mat): OCREngineResult {
+    private fun run(srcMat: org.opencv.core.Mat,
+                    maxDetectionSide:Int?=null): OCREngineResult {
         val totalStart = System.currentTimeMillis()
-        val detResult = detectionEngine.detect(srcMat)
+        val detResult = detectionEngine.detect(srcMat,maxDetectionSide)
         val boxes = detResult.boxes
 
         if (boxes.isEmpty()) {
@@ -110,13 +161,23 @@ class OCREngine(
         while (i < sortedBoxes.size) {
             val batchCrops = mutableListOf<org.opencv.core.Mat>()
             val batchBoxIndices = mutableListOf<Int>()
+            val rotatedFlags = mutableListOf<Boolean>()
             var next = i
             while (next < sortedBoxes.size && batchCrops.size < batchSize) {
                 val crop = QuadTextCrop.crop(srcMat, sortedBoxes[next])
-                if (crop.rows() > 0 && crop.cols() > 0) {
-                    batchCrops.add(crop)
+                if(crop.rows()>0&&crop.cols()>0) {
+                    val inverted=try{lineOrientation?.shouldRotate180(crop) ?: false}
+                        catch(_:Throwable){false}
+                    val adjusted=if(inverted){
+                        val rotated=org.opencv.core.Mat()
+                        Core.rotate(crop,rotated,Core.ROTATE_180)
+                        crop.release()
+                        rotated
+                    }else crop
+                    batchCrops.add(adjusted)
                     batchBoxIndices.add(next)
-                } else crop.release()
+                    rotatedFlags.add(inverted)
+                }else crop.release()
                 next++
             }
 
@@ -135,7 +196,7 @@ class OCREngine(
                         val decoded = batchResult.texts[j]
                         if (decoded.confidence >= config.recScoreThresh) {
                             val lineBox = sortedBoxes[boxIdx]
-                            val characters = buildCharacters(lineBox, decoded)
+                            val characters = buildCharacters(lineBox, decoded, rotatedFlags[j])
                             allResults.add(
                                 OCRResult(
                                     box = lineBox,
@@ -187,7 +248,7 @@ class OCREngine(
      * only toward neighbouring character centres, and tightens both axes. CJK/full-width characters
      * are additionally constrained to a near-square cell, matching their visual glyph geometry.
      */
-    private fun buildCharacters(box: OCRBox, decoded: CTCDecoder.DecodedText): List<OCRCharacter> {
+    private fun buildCharacters(box: OCRBox, decoded: CTCDecoder.DecodedText, rotated180:Boolean=false): List<OCRCharacter> {
         val decodedChars = decoded.chars.filter { it.text.isNotEmpty() }
         if (decodedChars.isEmpty() || box.points.size != 4) return emptyList()
 
@@ -250,6 +311,13 @@ class OCREngine(
                 }
             }
 
+            // Rotate CTC time fractions back to the detector quad's original
+            // orientation. Text remains in recognized (upright) logical order.
+            if(rotated180){
+                val before=start
+                start=1f-end
+                end=1f-before
+            }
             val majorSpanPx = max(1f, majorLength * (end - start))
             val targetCrossPx = if (wideGlyph) {
                 min(crossLength * 0.86f, max(crossLength * 0.42f, majorSpanPx * 0.96f))
@@ -315,5 +383,7 @@ class OCREngine(
         return false
     }
 
-    fun release() { ortManager.release() }
+    fun release() {
+        try{lineOrientation?.close()}finally{ortManager.release()}
+    }
 }

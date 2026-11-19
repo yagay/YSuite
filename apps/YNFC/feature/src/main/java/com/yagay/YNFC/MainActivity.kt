@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import com.yagay.yui.YUiSurface as Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +16,7 @@ import com.yagay.YNFC.system.NfcSystemService
 import com.yagay.YNFC.system.RootShell
 import com.yagay.YNFC.ui.NfcAppScreen
 import com.yagay.yui.YComposeActivity
+import java.util.concurrent.Executors
 
 class MainActivity : YComposeActivity() {
     companion object { private const val EXPECTED_HOOK_BUILD = BuildConfig.HOOK_BUILD }
@@ -28,10 +29,12 @@ class MainActivity : YComposeActivity() {
     private lateinit var diagnosticsCollector: DiagnosticsCollector
     private lateinit var diagnosticExporter: DiagnosticExporter
     private lateinit var simulationCoordinator: SimulationCoordinator
+    private val nciTraceCaptureExecutor = Executors.newSingleThreadExecutor()
+    @Volatile private var lastLifecycleCaptureScheduledAt = 0L
     private var scannedCardState by mutableStateOf<CardModel?>(null)
     private var savedCardsState by mutableStateOf<List<CardModel>>(emptyList())
     private var readModeEnabled by mutableStateOf(false)
-
+    private var pollingDisabled by mutableStateOf(false)
     override fun onBeforeYContent(savedInstanceState: Bundle?) {
         nfcReader = NfcReaderController(this)
         cardRepository = CardRepository(this)
@@ -41,8 +44,12 @@ class MainActivity : YComposeActivity() {
         configClient = ConfigClient(contentResolver)
         diagnosticsCollector = DiagnosticsCollector(this, rootShell, nfcSystemService, runtimeRepository, cardRepository)
         diagnosticExporter = DiagnosticExporter(this, diagnosticsCollector)
-        simulationCoordinator = SimulationCoordinator(configClient, runtimeRepository, nfcSystemService, EXPECTED_HOOK_BUILD)
+        simulationCoordinator = SimulationCoordinator(
+            configClient, runtimeRepository, nfcSystemService, EXPECTED_HOOK_BUILD
+        )
         savedCardsState = cardRepository.load()
+        val provider = readProviderMap()
+        pollingDisabled = provider[ConfigProvider.KEY_POLLING_DISABLED]?.toBoolean() ?: false
         AppLogger.i("NFC controller started; LSPosed in-process command engine enabled")
     }
 
@@ -61,6 +68,7 @@ class MainActivity : YComposeActivity() {
     override fun onDestroy() {
         disableReadDispatch()
         simulationCoordinator.close()
+        nciTraceCaptureExecutor.shutdownNow()
         diagnosticExporter.close()
         super.onDestroy()
     }
@@ -80,8 +88,14 @@ class MainActivity : YComposeActivity() {
     private fun disableReadDispatch() { nfcReader.disable() }
 
     private fun startReadMode() {
-        if (getSimulationEnabled()) {
-            Toast.makeText(this, R.string.ynfc_stop_sim_before_read, Toast.LENGTH_SHORT).show()
+        val simulationEnabled = getSimulationEnabled()
+        if (!NfcControlPolicy.canRead(NfcControlPolicy.mode(pollingDisabled), simulationEnabled)) {
+            Toast.makeText(
+                this,
+                if (pollingDisabled) R.string.ynfc_polling_blocked_read
+                else R.string.ynfc_stop_sim_before_read,
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         scannedCardState = null
@@ -114,11 +128,23 @@ class MainActivity : YComposeActivity() {
             cards = savedCardsState,
             scannedCard = scannedCardState,
             readModeEnabled = readModeEnabled,
+            pollingDisabled = pollingDisabled,
             initialLogsEnabled = initialLogsEnabled,
             diagnosticsCollector = diagnosticsCollector,
             readRuntimeStatus = { readRuntimeStatus(includeRootPid = false) },
             buildStatusSummary = ::buildStatusSummary,
             onLoggingChanged = configClient::setDiagnosticLogging,
+            onPollingDisabledChange = { disabled ->
+                val saved = configClient.setPollingDisabled(disabled)
+                if (saved) {
+                    if (disabled) stopReadMode("persistent_polling_guard")
+                    pollingDisabled = disabled
+                    AppLogger.i("POLLING_GUARD desired=$disabled; runtime confirmation pending")
+                } else {
+                    Toast.makeText(this, R.string.ynfc_polling_save_failed, Toast.LENGTH_SHORT).show()
+                }
+                saved
+            },
             onStartRead = ::startReadMode,
             onStopRead = { stopReadMode() },
             onSaveCard = ::saveScannedCard,
@@ -134,13 +160,41 @@ class MainActivity : YComposeActivity() {
                 savedCardsState = savedCardsState.filterNot { it.uid.equals(card.uid, true) }
                 cardRepository.save(savedCardsState)
             },
+            onReloadNfcHook = { onMessage ->
+                simulationCoordinator.reloadNfcHook { _, message ->
+                    runOnUiThread { onMessage(message) }
+                }
+            },
             onExportLogs = ::saveDiagnosticWithoutSharing,
         )
     }
 
     private fun simulateCard(card: CardModel, onDone: (RuntimeStatus, String) -> Unit) {
         stopReadMode("simulation_start")
-        simulationCoordinator.simulate(card, onDone)
+        simulationCoordinator.simulate(card) { state, message ->
+            if (state.commandGeneration > 0L && state.commandAction == "APPLY") {
+                // Native NCI packets can disappear from small Android logcat
+                // buffers before the user exports diagnostics. Capture a
+                // read-only, payload-free summary on a separate worker so UI
+                // feedback is not delayed by a Root shell command.
+                runCatching {
+                    nciTraceCaptureExecutor.execute {
+                        runCatching {
+                            val generation = state.commandGeneration
+                            diagnosticsCollector.captureNativeNciAfterApply(generation)
+                            // Immediate capture shows the config write, but a
+                            // ~60ms snapshot cannot reveal later RF routing.
+                            // Continue passively on this worker, never on UI.
+                            Thread.sleep(1_800L)
+                            diagnosticsCollector.captureNativeNciDelayedAfterApply(generation)
+                        }.onFailure {
+                            AppLogger.e("NCI_TRACE_SNAPSHOT failed", it)
+                        }
+                    }
+                }.onFailure { AppLogger.e("NCI_TRACE_SNAPSHOT unavailable", it) }
+            }
+            onDone(state, message)
+        }
     }
 
     private fun stopSimulation(onDone: (RuntimeStatus, String) -> Unit) {
@@ -155,11 +209,57 @@ class MainActivity : YComposeActivity() {
 
     private fun readProviderMap(): Map<String, String> = runtimeRepository.readProviderMap()
 
-    private fun readRuntimeStatus(includeRootPid: Boolean = false): RuntimeStatus =
-        runtimeRepository.read(includeRootPid)
+    private fun readRuntimeStatus(includeRootPid: Boolean = false): RuntimeStatus {
+        val status = runtimeRepository.read(includeRootPid)
+        scheduleLifecycleTraceIfNew()
+        return status
+    }
+
+    /**
+     * UI diagnostic refresh observes the Provider's read-only lifecycle
+     * request. Capture NXP NCI frames while logcat still retains them.
+     * Never invokes the NFC service, changes routing, or retries the write.
+     */
+    private fun scheduleLifecycleTraceIfNew() {
+        val values = runtimeRepository.readProviderMap()
+        val eventAt = values["own_nci_lifecycle_at"]?.toLongOrNull() ?: 0L
+        val generation = values["own_nci_lifecycle_generation"]?.toLongOrNull() ?: 0L
+        val stage = values["own_nci_lifecycle_stage"].orEmpty()
+        if (stage != "WRITE_REQUESTED_RF_UNVERIFIED" ||
+            eventAt <= 0L || generation <= 0L ||
+            System.currentTimeMillis() - eventAt !in 0L..20_000L) return
+        synchronized(this) {
+            if (eventAt <= lastLifecycleCaptureScheduledAt) return
+            lastLifecycleCaptureScheduledAt = eventAt
+        }
+        runCatching {
+            nciTraceCaptureExecutor.execute {
+                runCatching {
+                    diagnosticsCollector.captureNativeNciAfterLifecycle(generation, eventAt, false)
+                    Thread.sleep(1_200L)
+                    diagnosticsCollector.captureNativeNciAfterLifecycle(generation, eventAt, true)
+                }.onFailure { AppLogger.e("NCI_LIFECYCLE_TRACE failed", it) }
+            }
+        }.onFailure { AppLogger.e("NCI_LIFECYCLE_TRACE unavailable", it) }
+    }
 
     private fun buildStatusSummary(s: RuntimeStatus): String =
         RuntimeText.statusSummary(s, EXPECTED_HOOK_BUILD, readModeEnabled)
+
+    private fun saveHalConfigProbe(onDone: (String) -> Unit) {
+        diagnosticExporter.exportHalConfigReadProbe { result ->
+            runOnUiThread {
+                val message = result.fold(
+                    onSuccess = { file -> getString(R.string.ynfc_hal_probe_saved, file) },
+                    onFailure = { error ->
+                        getString(R.string.ynfc_hal_probe_failed,
+                            error.message ?: error.javaClass.simpleName)
+                    },
+                )
+                onDone(message)
+            }
+        }
+    }
 
     private fun saveDiagnosticWithoutSharing(onDone: () -> Unit) {
         stopReadMode("diagnostic_save")

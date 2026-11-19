@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
+import androidx.core.graphics.ColorUtils
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
@@ -35,7 +36,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.slider.Slider
@@ -83,6 +83,77 @@ class YViewFilterBar(
 }
 
 /** Java/View compatibility renderer backed by the generated YUI geometry resources. */
+/** Shared View button group: size each action by its text plus YUI padding when labels fit,
+ * and stack to available width when content requires wrapping (large fonts, translations).
+ * It preserves the public LinearLayout API of YViewLayout.actionRow/buttonRow.
+ */
+internal class YAdaptiveActionLayout(context: Context) : LinearLayout(context) {
+    // Keep non-button form controls flexible while every action button sizes to its label.
+    private val flexibleWeights = mutableMapOf<View, Float>()
+    private val appearanceStore = YAppearanceStore(context)
+    private val appearanceListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        post { if (isAttachedToWindow) requestLayout() }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        appearanceStore.registerPreferenceListener(appearanceListener)
+        requestLayout()
+    }
+
+    override fun onDetachedFromWindow() {
+        appearanceStore.unregisterPreferenceListener(appearanceListener)
+        super.onDetachedFromWindow()
+    }
+
+    init {
+        orientation = HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val mode = View.MeasureSpec.getMode(widthMeasureSpec)
+        if (mode == View.MeasureSpec.UNSPECIFIED || childCount == 0) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            return
+        }
+        val gap = YView.controlGap(context)
+        val width = View.MeasureSpec.getSize(widthMeasureSpec)
+        val available = (width - paddingLeft - paddingRight).coerceAtLeast(0)
+        var required = 0
+        for (index in 0 until childCount) {
+            val child = getChildAt(index)
+            if (child.visibility == View.GONE) continue
+            val params = child.layoutParams as LinearLayout.LayoutParams
+            if (child !is Button && child !in flexibleWeights) {
+                flexibleWeights[child] = params.weight
+            }
+            child.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            )
+            required += child.measuredWidth + if (index == 0) 0 else gap
+        }
+        val stack = YView.displayRules(context).appearance.actionRowMode == "stacked" ||
+            required > available
+        orientation = if (stack) VERTICAL else HORIZONTAL
+        for (index in 0 until childCount) {
+            val child = getChildAt(index)
+            val params = child.layoutParams as LinearLayout.LayoutParams
+            // Buttons are intrinsic; text inputs/spinners keep their original flexible
+            // width in horizontal forms instead of being shrunk to a label-sized view.
+            val fieldWeight = if (child is Button) 0f else flexibleWeights[child] ?: 0f
+            params.width = if (stack) ViewGroup.LayoutParams.MATCH_PARENT
+                else if (fieldWeight > 0f) 0
+                else ViewGroup.LayoutParams.WRAP_CONTENT
+            params.weight = if (stack) 0f else fieldWeight
+            params.marginStart = if (!stack && index > 0) gap else 0
+            params.topMargin = if (stack && index > 0) gap else 0
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+    }
+}
+
 object YViewLayout {
 
     /** Canonical View-system page shell for all normal Java/XML-era feature screens. */
@@ -111,7 +182,7 @@ object YViewLayout {
                 YView.screenHorizontal(context),
                 YView.screenHorizontal(context),
             )
-            minimumHeight = YView.dimen(context, R.dimen.yui_toolbar_height)
+            minimumHeight = YView.toolbarHeight(context)
             elevation = 0f
         }
         root.addView(
@@ -198,7 +269,7 @@ object YViewLayout {
     fun fixedScreen(context: Context, title: String, subtitle: String? = null): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(screenH(context), screenV(context), screenH(context), 0)
+            setPadding(screenH(context), screenV(context), screenH(context), sectionGap(context))
             YView.applyRoot(this)
             header(this, title, subtitle)
         }
@@ -217,7 +288,7 @@ object YViewLayout {
             setTitleTextColor(YView.onSurface(context))
             setSubtitleTextColor(YView.onSurfaceVariant(context))
             setContentInsetsRelative(screenH(context), screenH(context))
-            minimumHeight = YView.dimen(context, R.dimen.yui_toolbar_height)
+            minimumHeight = YView.toolbarHeight(context)
         }
         shell.addView(
             toolbar,
@@ -233,7 +304,7 @@ object YViewLayout {
         }
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(screenH(context), screenV(context), screenH(context), dp(context, 28))
+            setPadding(screenH(context), screenV(context), screenH(context), YView.sectionGap(context) * 2)
         }
         scroll.addView(
             root,
@@ -279,7 +350,7 @@ object YViewLayout {
             View(parent.context).apply { setBackgroundColor(YView.outline(context)) },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(parent.context, 1),
+                YView.cardOutlineWidth(parent.context),
             ).apply {
                 bottomMargin = sectionGap(parent.context)
             },
@@ -292,7 +363,7 @@ object YViewLayout {
         val heading = TextView(parent.context).apply {
             text = title
             YView.styleSectionTitle(this)
-            setPadding(0, sectionGap(context), 0, dp(context, 4))
+            setPadding(0, sectionGap(context), 0, maxOf(0, YView.controlGap(context) / 3))
         }
         parent.addView(heading, matchWrap())
         if (!subtitle.isNullOrBlank()) {
@@ -308,47 +379,23 @@ object YViewLayout {
         return heading
     }
 
+    /**
+     * Legacy Java facade backed by the exact same MaterialCardView used by
+     * section().  Returned LinearLayout stays source/binary compatible with the
+     * old callers, but backgrounds, radius, headers and dividers are not separate.
+     */
     @JvmStatic
     @JvmOverloads
     fun card(parent: LinearLayout, title: String, subtitle: String? = null): LinearLayout {
-        val section = LinearLayout(parent.context).apply {
+        val unified = section(parent.context, title, subtitle)
+        addSection(parent, unified)
+        // section().body already owns the YUI card inset. A second inset here
+        // doubled the spacing on pages using this legacy card() facade.
+        val content = LinearLayout(parent.context).apply {
             orientation = LinearLayout.VERTICAL
         }
-        parent.addView(
-            section,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-        section.addView(
-            TextView(parent.context).apply {
-                text = title
-                YView.styleSectionTitle(this)
-            },
-            matchWrap(),
-        )
-        if (!subtitle.isNullOrBlank()) {
-            section.addView(
-                TextView(parent.context).apply {
-                    text = subtitle
-                    YView.styleCaption(this)
-                    setPadding(0, Math.max(1, controlGap(context) / 4), 0, controlGap(context))
-                },
-                matchWrap(),
-            )
-        }
-        parent.addView(
-            View(parent.context).apply { setBackgroundColor(YView.outline(context)) },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(parent.context, 1),
-            ).apply {
-                topMargin = controlGap(parent.context)
-                bottomMargin = sectionGap(parent.context)
-            },
-        )
-        return section
+        unified.body.addView(content, matchWrap())
+        return content
     }
 
     @JvmStatic
@@ -357,7 +404,7 @@ object YViewLayout {
         TextView(context).apply {
             this.text = text
             YView.styleBody(this)
-            setPadding(0, dp(context, 5), 0, dp(context, 5))
+            setPadding(0, maxOf(0, YView.rowVerticalPadding(context)), 0, maxOf(0, YView.rowVerticalPadding(context)))
             setStatusTone(this, tone)
         }
 
@@ -373,14 +420,14 @@ object YViewLayout {
         text = message
         YView.styleBody(this)
         gravity = Gravity.CENTER
-        setPadding(0, dp(context, 22), 0, dp(context, 22))
+        setPadding(0, YView.sectionGap(context), 0, YView.sectionGap(context))
     }
 
     @JvmStatic
     fun keyValueRow(context: Context, label: String, value: String): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.TOP
-        setPadding(0, dp(context, 5), 0, dp(context, 5))
+        setPadding(0, maxOf(0, YView.rowVerticalPadding(context)), 0, maxOf(0, YView.rowVerticalPadding(context)))
         addView(
             TextView(context).apply {
                 text = label
@@ -401,7 +448,7 @@ object YViewLayout {
     @JvmStatic
     fun detailBlock(context: Context, title: String, description: String): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(0, dp(context, 7), 0, dp(context, 7))
+        setPadding(0, YView.rowVerticalPadding(context), 0, YView.rowVerticalPadding(context))
         addView(TextView(context).apply {
             text = title
             YView.styleStrongBody(this)
@@ -409,7 +456,7 @@ object YViewLayout {
         addView(TextView(context).apply {
             text = description
             YView.styleCaption(this)
-            setPadding(0, dp(context, 3), 0, 0)
+            setPadding(0, maxOf(0, YView.controlGap(context) / 4), 0, 0)
         })
     }
 
@@ -418,29 +465,54 @@ object YViewLayout {
     fun listRow(context: Context, insetHorizontal: Boolean = false): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        minimumHeight = YView.dimen(context, R.dimen.yui_touch_target)
-        val horizontal = if (insetHorizontal) screenH(context) else 0
-        val vertical = (controlGap(context) / 2).coerceAtLeast(1)
+        minimumHeight = YView.rowHeight(context)
+        val horizontal = if (insetHorizontal) YView.rowHorizontalPadding(context) else 0
+        val vertical = YView.rowVerticalPadding(context)
         setPadding(horizontal, vertical, horizontal, vertical)
     }
 
     @JvmStatic
     fun listTitle(context: Context): TextView = TextView(context).apply {
         YView.styleItemTitle(this)
-        maxLines = 1
+        // Shared titles must survive accessibility font scaling and localization.
+        isSingleLine = false
+        maxLines = Int.MAX_VALUE
+        ellipsize = null
     }
 
+    /** Canonical title for a selectable row in all Java/View feature screens. */
     @JvmStatic
-    fun listSubtitle(context: Context): TextView = TextView(context).apply {
-        YView.styleCaption(this)
-        maxLines = 2
+    fun rowTitle(context: Context, value: String?): TextView = TextView(context).apply {
+        text = value.orEmpty()
+        YView.styleItemTitle(this)
+        isSingleLine = false
+        maxLines = Int.MAX_VALUE
+        ellipsize = null
     }
+
+    /**
+     * Canonical description beneath a row title. Typography, line height and
+     * spacing come from YUI, including module-specific appearance settings.
+     */
+    @JvmStatic
+    fun rowSubtitle(context: Context, value: String?): TextView =
+        caption(context, value, 12.5f).apply {
+            gravity = Gravity.START
+            isSingleLine = false
+            maxLines = Int.MAX_VALUE
+            ellipsize = null
+            setPadding(0, maxOf(1, YView.controlGap(context) / 4),
+                YView.controlGap(context), 0)
+        }
+
+    @JvmStatic
+    fun listSubtitle(context: Context): TextView = rowSubtitle(context, null)
 
     @JvmStatic
     fun listGap(context: Context): Int = controlGap(context)
 
     @JvmStatic
-    fun listIconSize(context: Context): Int = dp(context, 32)
+    fun listIconSize(context: Context): Int = YView.listIconSize(context)
 
     @JvmStatic
     @JvmOverloads
@@ -484,8 +556,7 @@ object YViewLayout {
         context: Context,
         checked: Boolean,
         listener: CompoundButton.OnCheckedChangeListener?,
-    ): MaterialCheckBox = MaterialCheckBox(context).apply {
-        isUseMaterialThemeColors = true
+    ): MaterialCheckBox = YUiNativeCheckBox(context).apply {
         isChecked = checked
         minimumHeight = YView.touchTarget(context)
         if (listener != null) setOnCheckedChangeListener(listener)
@@ -498,7 +569,7 @@ object YViewLayout {
 
     @JvmStatic
     fun listView(context: Context): ListView = ListView(context).apply {
-        dividerHeight = maxOf(1, dp(context, 1))
+        dividerHeight = maxOf(1, YView.cardOutlineWidth(context))
         setBackgroundColor(Color.TRANSPARENT)
     }
 
@@ -522,7 +593,7 @@ object YViewLayout {
             orientation = RadioGroup.VERTICAL
         }
         val buttons = labels.map { label ->
-            RadioButton(context).apply {
+            YUiNativeRadioButton(context).apply {
                 id = View.generateViewId()
                 text = label
                 minimumHeight = YView.touchTarget(context)
@@ -547,7 +618,9 @@ object YViewLayout {
         description: String? = null,
         listener: View.OnClickListener,
     ): LinearLayout {
-        val row = listRow(context).apply {
+        // Navigation and permission/switch rows inhabit the same card.
+        // The old zero-inset listRow placed navigation labels against its edge.
+        val row = baseRow(context).apply {
             isClickable = true
             isFocusable = true
             setOnClickListener(listener)
@@ -555,9 +628,9 @@ object YViewLayout {
         val copy = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
         }
-        copy.addView(listTitle(context).apply { text = title })
+        copy.addView(rowTitle(context, title))
         if (!description.isNullOrBlank()) {
-            copy.addView(listSubtitle(context).apply { text = description })
+            copy.addView(rowSubtitle(context, description))
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(
@@ -566,7 +639,7 @@ object YViewLayout {
                 YView.styleSectionTitle(this)
                 setTextColor(YView.onSurfaceVariant(context))
                 gravity = Gravity.CENTER
-                minimumWidth = dp(context, 28)
+                minimumWidth = YView.navigationAccessoryWidth(context)
             },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
@@ -588,8 +661,9 @@ object YViewLayout {
     fun searchField(context: Context, hint: String): AppCompatEditText = AppCompatEditText(context).apply {
         this.hint = hint
         isSingleLine = true
-        minHeight = YView.dimen(context, R.dimen.yui_touch_target)
-        setPadding(dp(context, 14), 0, dp(context, 14), 0)
+        YView.styleBody(this)
+        minHeight = YView.inputHeight(context)
+        setPadding(YView.rowHorizontalPadding(context), 0, YView.rowHorizontalPadding(context), 0)
         setTextColor(YView.onSurface(context))
         setHintTextColor(YView.onSurfaceVariant(context))
         background = YView.fieldBackground(context)
@@ -606,7 +680,7 @@ object YViewLayout {
         this.hint = hint
         setText(value.orEmpty())
         isSingleLine = singleLine
-        minHeight = YView.dimen(context, R.dimen.yui_touch_target)
+        minHeight = YView.inputHeight(context)
         styleInput(context, this)
     }
 
@@ -622,6 +696,12 @@ object YViewLayout {
             YView.styleSecondaryButton(this)
         }
 
+    /** Every action button uses the same configurable height, padding, radius and color.
+     * Row-specific alignment is the container's responsibility.
+     */
+    @JvmStatic fun listActionButton(context: Context, label: String): MaterialButton =
+        secondaryButton(context, label)
+
     /** Unified normal-screen View helpers. Feature modules must not own another UI utility layer. */
     @JvmStatic
     @JvmOverloads
@@ -630,6 +710,12 @@ object YViewLayout {
 
     @JvmStatic
     fun scrollPage(context: Context, content: View): ScrollView = ScrollView(context).apply {
+        if (content is LinearLayout) {
+            content.setPadding(
+                content.paddingLeft, content.paddingTop, content.paddingRight,
+                maxOf(content.paddingBottom, sectionGap(context) + YView.controlGap(context)),
+            )
+        }
         isFillViewport = true
         clipToPadding = false
         setBackgroundColor(YView.background(context))
@@ -640,9 +726,11 @@ object YViewLayout {
     @JvmOverloads
     fun section(context: Context, title: String? = null, subtitle: String? = null): YViewSection {
         val card = MaterialCardView(context).apply {
-            setCardBackgroundColor(Color.TRANSPARENT)
-            radius = 0f
-            strokeWidth = 0
+            // Use the same Material 3 card surface, radius and elevation as Compose pages.
+            setCardBackgroundColor(YView.cardSurface(context))
+            radius = YView.cardRadius(context).toFloat()
+            strokeWidth = YView.cardOutlineWidth(context)
+            setStrokeColor(ColorStateList.valueOf(YView.outline(context)))
             cardElevation = 0f
             useCompatPadding = false
         }
@@ -669,7 +757,9 @@ object YViewLayout {
         }
         val body = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, maxOf(1, YView.controlGap(context) / 3))
+            val horizontal = YView.cardPadding(context)
+            setPadding(horizontal, 0, horizontal,
+                maxOf(YView.cardPadding(context), YView.controlGap(context)))
         }
         holder.addView(body, matchWrap())
         return YViewSection(card, body)
@@ -682,7 +772,7 @@ object YViewLayout {
             divider(root.context),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                maxOf(1, dp(root.context, 1)),
+                maxOf(1, YView.cardOutlineWidth(root.context)),
             ).apply {
                 topMargin = maxOf(2, YView.controlGap(root.context) / 2)
                 bottomMargin = maxOf(2, YView.controlGap(root.context) / 2)
@@ -699,26 +789,24 @@ object YViewLayout {
     fun navRow(context: Context, title: String, subtitle: String?, action: Runnable?): View =
         navigationRow(context, title, subtitle) { action?.run() }
 
-    /** Sized from YUI tokens; scaled appearance does not reserve the default tall switch row. */
-    private fun compactToggle(toggle: SwitchCompat) {
-        val context = toggle.context
-        val slotWidth = YView.dimen(context, R.dimen.yui_switch_slot_width)
-        val trackWidth = YView.dimen(context, R.dimen.yui_switch_track_width)
-        val scale = trackWidth.toFloat() / slotWidth.coerceAtLeast(1)
-        toggle.showText = false
-        toggle.minWidth = 0
-        toggle.minimumWidth = 0
-        toggle.minHeight = 0
-        toggle.minimumHeight = 0
-        toggle.scaleX = scale
-        toggle.scaleY = scale
-    }
+    /**
+     * One shared renderer for both Java/View switch-row overloads.
+     * Track, thumb and scaling pixels are drawn by YSwitchPainter in both UI systems.
+     */
 
+    /** The appearance setting reserves width beside the label; it must not constrain
+     * MaterialSwitch's intrinsic track. A fixed-width slot clips the left rounded edge.
+     */
     private fun switchSlot(context: Context): LinearLayout.LayoutParams =
         LinearLayout.LayoutParams(
-            YView.dimen(context, R.dimen.yui_switch_slot_width),
-            YView.dimen(context, R.dimen.yui_switch_slot_height),
-        )
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            marginStart = YView.dp(context,
+                YAppearanceStore(context).appearance(YAppearanceStore.moduleIdFor(context))
+                    .switchLabelGapDp)
+        }
 
     @JvmStatic
     fun switchRow(
@@ -727,23 +815,20 @@ object YViewLayout {
         subtitle: String?,
         checked: Boolean,
         listener: CompoundButton.OnCheckedChangeListener?,
-    ): SwitchMaterial {
+    ): MaterialSwitch {
         val row = baseRow(context, subtitle.isNullOrBlank()).apply { background = rowBackground(context) }
         val copy = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(text(context, title, 15f, false), matchWrap())
+            addView(rowTitle(context, title), matchWrap())
             if (!subtitle.isNullOrBlank()) {
-                addView(caption(context, subtitle, 12.5f).apply {
-                    setPadding(0, dp(context, 3), dp(context, 10), 0)
-                }, matchWrap())
+                addView(rowSubtitle(context, subtitle), matchWrap())
             }
         }
         row.addView(copy, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        return SwitchMaterial(context).apply {
-            isUseMaterialThemeColors = true
+        return YUiMaterialSwitch(context).apply {
+            // YUiMaterialSwitch owns the safe hit target, shared visuals and live updates.
             isChecked = checked
-            compactToggle(this)
             if (listener != null) setOnCheckedChangeListener(listener)
             row.addView(this, switchSlot(context))
             row.setOnClickListener { performClick() }
@@ -751,7 +836,7 @@ object YViewLayout {
     }
 
     @JvmStatic
-    fun switchContainer(toggle: SwitchMaterial): LinearLayout = toggle.parent as LinearLayout
+    fun switchContainer(toggle: MaterialSwitch): LinearLayout = toggle.parent as LinearLayout
 
     @JvmStatic
     fun baseRow(context: Context): LinearLayout = baseRow(context, false)
@@ -760,9 +845,9 @@ object YViewLayout {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         val horizontal = YView.cardPadding(context)
-        val vertical = if (compact) 0 else maxOf(1, YView.controlGap(context) / 2)
+        val vertical = maxOf(1, YView.controlGap(context) / 2)
         setPadding(horizontal, vertical, horizontal, vertical)
-        minimumHeight = YView.touchTarget(context)
+        minimumHeight = YView.rowHeight(context)
     }
 
     @JvmStatic
@@ -780,29 +865,59 @@ object YViewLayout {
     }
 
     @JvmStatic
-    fun buttonRow(context: Context): LinearLayout = LinearLayout(context).apply {
+    fun buttonRow(context: Context): LinearLayout = YAdaptiveActionLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         val p = YView.cardPadding(context)
         setPadding(p, maxOf(1, YView.controlGap(context) / 2), p, maxOf(1, YView.controlGap(context) / 2))
     }
 
+    /** Standard typography is selected by YUI, not feature-supplied font sizes. */
+    @JvmStatic
+    fun text(context: Context, value: String?): TextView =
+        text(context, value, 14f, false)
+
+    @JvmStatic
+    fun caption(context: Context, value: String?): TextView =
+        caption(context, value, 13f)
+
     @JvmStatic
     fun text(context: Context, value: String?, sp: Float, bold: Boolean): TextView = TextView(context).apply {
         text = value.orEmpty()
         if (bold) YView.styleStrongBody(this) else YView.styleBody(this)
+        // Compatibility argument 'sp' is intentionally ignored for standard UI.
+        // TextAppearance_YUI_Body[_Strong] provides one consistent, scalable text role.
     }
 
     @JvmStatic
     fun caption(context: Context, value: String?, sp: Float): TextView = TextView(context).apply {
         text = value.orEmpty()
         YView.styleCaption(this)
+        // Caption sizing is owned by the shared YUI TextAppearance, not each module.
         setLineSpacing(0f, 1.08f)
     }
+
+    /**
+     * Canonical explanation row inside a YUI section card. The card header and
+     * its footnote share one horizontal inset, font role and dynamic text height.
+     * Keep module screens from hand-placing captions flush against card borders.
+     */
+    @JvmStatic
+    fun sectionNote(context: Context, value: String?): TextView =
+        caption(context, value, 12.5f).apply {
+            gravity = Gravity.START
+            isSingleLine = false
+            maxLines = Int.MAX_VALUE
+            ellipsize = null
+            val horizontal = YView.cardPadding(context)
+            val vertical = maxOf(1, YView.rowVerticalPadding(context))
+            setPadding(horizontal, vertical, horizontal, vertical)
+        }
 
     @JvmStatic
     fun statusPill(context: Context, value: String?, positive: Boolean): TextView =
         text(context, value, 12f, true).apply {
+            YView.styleLabel(this)
             setTextColor(if (positive) success(context) else warning(context))
             gravity = Gravity.CENTER
             setPadding(
@@ -811,16 +926,13 @@ object YViewLayout {
                 YView.controlGap(context),
                 maxOf(1, YView.controlGap(context) / 2),
             )
-            background = rounded(context, if (positive) successSurface(context) else warningSurface(context), 999)
+            background = rounded(context, if (positive) successSurface(context) else warningSurface(context), YView.buttonRadiusDp(context))
         }
 
+    /** Kept for Java call sites: this now uses the same standard size as secondaryButton. */
+    @Deprecated("Use secondaryButton; compact button density has been removed.")
     @JvmStatic
-    fun compactButton(context: Context, value: String): MaterialButton = secondaryButton(context, value).apply {
-        minHeight = YView.buttonHeight(context)
-        minimumHeight = YView.buttonHeight(context)
-        minimumWidth = 0
-        setPadding(YView.controlGap(context), 0, YView.controlGap(context), 0)
-    }
+    fun compactButton(context: Context, value: String): MaterialButton = secondaryButton(context, value)
 
     @JvmStatic
     @JvmOverloads
@@ -834,13 +946,16 @@ object YViewLayout {
     ): View {
         val spinner = spinnerControl(context, labels, selected, onSelected)
         val block = settingBlock(context)
-        if (vertical) {
+        val needsVertical = vertical ||
+            context.resources.configuration.screenWidthDp in 1..559 ||
+            YView.fontPercent(context) > 125
+        if (needsVertical) {
             block.addView(text(context, title, 14f, false))
             block.addView(
                 spinner,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    YView.touchTarget(context),
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply { topMargin = maxOf(1, YView.controlGap(context) / 4) },
             )
         } else {
@@ -854,7 +969,7 @@ object YViewLayout {
             )
             row.addView(
                 spinner,
-                LinearLayout.LayoutParams(0, YView.touchTarget(context), 1.18f),
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.18f),
             )
             block.addView(row, matchWrap())
         }
@@ -871,6 +986,7 @@ object YViewLayout {
     ): Spinner {
         val safe = labels.ifEmpty { arrayOf("") }
         return Spinner(context).apply {
+            minimumHeight = YView.touchTarget(context)
             adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, safe)
             setSelection(selected.coerceIn(0, safe.lastIndex), false)
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -906,6 +1022,19 @@ object YViewLayout {
         top.addView(value, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         block.addView(top, matchWrap())
 
+        val precise = AppCompatEditText(context).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or
+                android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+            setSingleLine(true)
+            setText(initial.toString())
+            hint = context.getString(R.string.yui_allowed_range, min, max)
+            setTextColor(YView.onSurface(context))
+            background = YView.fieldBackground(context)
+            setPadding(YView.controlGap(context), YView.rowVerticalPadding(context),
+                YView.controlGap(context), YView.rowVerticalPadding(context))
+            setSelectAllOnFocus(true)
+        }
         val slider = Slider(context).apply {
             valueFrom = min.toFloat()
             valueTo = max.toFloat()
@@ -917,6 +1046,7 @@ object YViewLayout {
                 if (!fromUser) return@addOnChangeListener
                 val intValue = next.toInt().coerceIn(min, max)
                 value.text = valueLabel?.apply(intValue) ?: intValue.toString()
+                precise.setText(intValue.toString())
                 onChanged?.accept(intValue)
             }
         }
@@ -924,9 +1054,24 @@ object YViewLayout {
             slider,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(context, 34),
-            ).apply { topMargin = dp(context, -1) },
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
         )
+        precise.setOnEditorActionListener { _, _, _ ->
+            val entered = precise.text?.toString()?.toIntOrNull()
+            if (entered != null && entered in min..max) {
+                slider.value = entered.toFloat()
+                value.text = valueLabel?.apply(entered) ?: entered.toString()
+                onChanged?.accept(entered)
+                precise.error = null
+            } else {
+                precise.error = context.getString(R.string.yui_allowed_range, min, max)
+            }
+            true
+        }
+        block.addView(precise, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ))
         return block
     }
 
@@ -936,11 +1081,10 @@ object YViewLayout {
         title: String,
         checked: Boolean,
         listener: CompoundButton.OnCheckedChangeListener?,
-    ): MaterialCheckBox = MaterialCheckBox(context).apply {
-        isUseMaterialThemeColors = true
+    ): MaterialCheckBox = YUiNativeCheckBox(context).apply {
         text = title
         setTextColor(textPrimary(context))
-        textSize = 14f
+        YView.styleBody(this)
         val horizontal = YView.controlGap(context)
         val vertical = maxOf(1, YView.controlGap(context) / 2)
         setPadding(horizontal, vertical, horizontal, vertical)
@@ -954,6 +1098,7 @@ object YViewLayout {
         YView.styleBody(input)
         input.setTextColor(textPrimary(context))
         input.setHintTextColor(textSecondary(context))
+        input.minHeight = YView.inputHeight(context)
         val p = YView.controlGap(context)
         input.setPadding(p, p, p, p)
         input.background = YView.fieldBackground(context)
@@ -985,10 +1130,9 @@ object YViewLayout {
 
     @JvmStatic
     fun actionRow(parent: LinearLayout): LinearLayout {
-        val row = LinearLayout(parent.context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(context, 4), 0, dp(context, 4))
+        val row = YAdaptiveActionLayout(parent.context).apply {
+            setPadding(0, maxOf(0, YView.controlGap(context) / 3),
+                0, maxOf(0, YView.controlGap(context) / 3))
         }
         parent.addView(row, matchWrap())
         return row
@@ -996,10 +1140,13 @@ object YViewLayout {
 
     @JvmStatic
     @JvmOverloads
+    @Suppress("UNUSED_PARAMETER")
     fun addAction(row: LinearLayout, button: View, weight: Float = 1f) {
-        val lp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, weight)
-        if (row.childCount > 0) lp.marginStart = controlGap(row.context)
-        row.addView(button, lp)
+        // Keep the old parameter for source/binary compatibility, but no caller can
+        // impose equal-weight action sizes. YAdaptiveActionLayout owns flow and gaps.
+        row.addView(button, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ))
     }
 
     @JvmStatic
@@ -1010,32 +1157,13 @@ object YViewLayout {
         checked: Boolean,
         listener: CompoundButton.OnCheckedChangeListener,
     ): SwitchCompat {
-        val row = LinearLayout(parent.context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = YView.dimen(context, R.dimen.yui_touch_target)
-            setPadding(0, dp(context, 2), 0, dp(context, 2))
-        }
-        val texts = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
-        texts.addView(TextView(parent.context).apply {
-            text = title
-            YView.styleItemTitle(this)
-        })
-        if (!description.isNullOrBlank()) {
-            texts.addView(TextView(parent.context).apply {
-                text = description
-                YView.styleCaption(this)
-                setPadding(0, dp(context, 3), controlGap(context), 0)
-            })
-        }
-        row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        val toggle = MaterialSwitch(parent.context).apply {
-            isChecked = checked
-            compactToggle(this)
-            setOnCheckedChangeListener(listener)
-        }
-        row.addView(toggle, switchSlot(parent.context))
-        row.setOnClickListener { toggle.performClick() }
+        // No separate parent-based renderer: identical shape, typography, spacing,
+        // colors, and click behavior to switchRow(Context, ...).
+        val toggle = switchRow(parent.context, title, description, checked, listener)
+        val row = switchContainer(toggle)
+        // Parent-based rows inherit the parent's existing content inset. The
+        // context-based overload provides its own inset within section.body.
+        row.setPadding(0, row.paddingTop, 0, row.paddingBottom)
         parent.addView(row, matchWrap())
         return toggle
     }
@@ -1050,7 +1178,7 @@ object YViewLayout {
             when (tone) {
                 YViewStatusTone.Neutral -> YView.onSurfaceVariant(view.context)
                 YViewStatusTone.Good -> YView.color(view.context, androidx.appcompat.R.attr.colorPrimary, 0xFF16794A.toInt())
-                YViewStatusTone.Warning -> YView.color(view.context, com.google.android.material.R.attr.colorTertiary, 0xFF9A6700.toInt())
+                YViewStatusTone.Warning -> YView.warning(view.context)
                 YViewStatusTone.Error -> YView.color(view.context, android.R.attr.colorError, 0xFFB3261E.toInt())
             },
         )
@@ -1061,9 +1189,9 @@ object YViewLayout {
         ViewGroup.LayoutParams.WRAP_CONTENT,
     )
 
-    private fun screenH(context: Context): Int = YView.dimen(context, R.dimen.yui_screen_horizontal)
+    private fun screenH(context: Context): Int = YView.screenHorizontal(context)
     private fun screenV(context: Context): Int = YView.dimen(context, R.dimen.yui_screen_vertical)
-    private fun sectionGap(context: Context): Int = YView.dimen(context, R.dimen.yui_section_gap)
-    private fun controlGap(context: Context): Int = YView.dimen(context, R.dimen.yui_control_gap)
+    private fun sectionGap(context: Context): Int = YView.sectionGap(context)
+    private fun controlGap(context: Context): Int = YView.controlGap(context)
     @JvmStatic fun dp(context: Context, value: Int): Int = YView.dp(context, value)
 }

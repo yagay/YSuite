@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,8 +35,11 @@ import com.yagay.YNFC.R
 import com.yagay.YNFC.RuntimeStatus
 import com.yagay.YNFC.RuntimeStatusViewModel
 import com.yagay.YNFC.RuntimeText
+import com.yagay.yui.LocalYAppearance
 import com.yagay.yui.YHorizontalActions
 import com.yagay.yui.YSection
+import com.yagay.yui.YStatusLine
+import com.yagay.yui.YStatusTone
 import com.yagay.yui.YEmptyMessage
 import com.yagay.yui.YManagerScaffold
 import com.yagay.yui.YPageList
@@ -46,6 +49,8 @@ import com.yagay.yui.YSecondaryButton
 import com.yagay.yui.YSwitchItem
 import com.yagay.yui.YTabBar
 import com.yagay.yui.YTabSpec
+import com.yagay.yui.YUiLogSurface
+import com.yagay.yui.YUiLogLine
 
 /** Stateless Activity boundary for the complete NFC screen; operation state stays screen-local. */
 @Composable
@@ -53,11 +58,13 @@ fun NfcAppScreen(
     cards: List<CardModel>,
     scannedCard: CardModel?,
     readModeEnabled: Boolean,
+    pollingDisabled: Boolean,
     initialLogsEnabled: Boolean,
     diagnosticsCollector: DiagnosticsCollector,
     readRuntimeStatus: () -> RuntimeStatus,
     buildStatusSummary: (RuntimeStatus) -> String,
     onLoggingChanged: (Boolean) -> Unit,
+    onPollingDisabledChange: (Boolean) -> Boolean,
     onStartRead: () -> Unit,
     onStopRead: () -> Unit,
     onSaveCard: (CardModel) -> Unit,
@@ -65,6 +72,7 @@ fun NfcAppScreen(
     onSimulate: (CardModel, (String) -> Unit) -> Unit,
     onStopSimulation: ((String) -> Unit) -> Unit,
     onDeleteCard: (CardModel, Boolean) -> Unit,
+    onReloadNfcHook: ((String) -> Unit) -> Unit,
     onExportLogs: (() -> Unit) -> Unit,
 ) {
     val runtimeViewModel: RuntimeStatusViewModel = viewModel()
@@ -75,9 +83,12 @@ fun NfcAppScreen(
     var logsEnabled by remember { mutableStateOf(initialLogsEnabled) }
     var expandedUid by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
+    // One UI action at a time; backend serialization remains the authority.
+    var commandPending by remember { mutableStateOf(false) }
     val logListState = rememberLazyListState()
     val applyUidText = stringResource(R.string.ynfc_apply_uid, "%s")
     val restoreRfText = stringResource(R.string.ynfc_restore_stock_rf)
+    val walletWarningText = stringResource(R.string.ynfc_wallet_payment_warning)
 
     LaunchedEffect(selectedSource, logsEnabled) {
         logLines.clear()
@@ -102,6 +113,64 @@ fun NfcAppScreen(
     ) { padding ->
         YPageList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
+            if (status.simulationEnabled) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_quick_controls),
+                        subtitle = stringResource(R.string.ynfc_quick_controls_desc),
+                    ) {
+                        YStatusLine(
+                            label = stringResource(R.string.ynfc_selected_uid),
+                            value = status.selectedUid ?: "-",
+                            tone = YStatusTone.Neutral,
+                        )
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_stop_restore_default),
+                            onClick = {
+                                if (!commandPending) {
+                                    commandPending = true
+                                    operationMessage = restoreRfText
+                                    onStopSimulation {
+                                        operationMessage = it
+                                        commandPending = false
+                                    }
+                                }
+                            },
+                            enabled = !commandPending,
+                        )
+                    }
+                }
+            }
+            if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
+                status.hookPid == status.currentPid && status.hookBuild > 0 &&
+                (status.hookBuild != BuildConfig.HOOK_BUILD ||
+                 status.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ||
+                 status.hookImplementationPid != status.currentPid)
+            ) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_hook_reload_title),
+                        subtitle = stringResource(R.string.ynfc_hook_reload_desc),
+                    ) {
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_hook_reload_button),
+                            onClick = {
+                                operationMessage = null
+                                onReloadNfcHook { operationMessage = it }
+                            },
+                            enabled = !status.simulationEnabled,
+                        )
+                    }
+                }
+            }
+            item {
+                YSwitchItem(
+                    title = stringResource(R.string.ynfc_polling_guard),
+                    subtitle = stringResource(R.string.ynfc_polling_guard_desc),
+                    checked = pollingDisabled,
+                    onCheckedChange = { onPollingDisabledChange(it) },
+                )
+            }
             item {
                 ReadCardPanel(
                     scannedCard,
@@ -134,13 +203,31 @@ fun NfcAppScreen(
                             expandedUid = if (expandedUid?.equals(card.uid, true) == true) null else card.uid
                         },
                         onSimulate = {
-                            operationMessage = applyUidText.replace("%s", card.uid)
-                            onSimulate(card) { operationMessage = it }
+                            if (!commandPending) {
+                                commandPending = true
+                                operationMessage = applyUidText.replace("%s", card.uid) +
+                                    "\n" + walletWarningText
+                                onSimulate(card) {
+                                    operationMessage = it + "\n" + walletWarningText
+                                    commandPending = false
+                                }
+                            }
                         },
                         onStop = {
-                            operationMessage = restoreRfText
-                            onStopSimulation { operationMessage = it }
+                            if (!commandPending) {
+                                commandPending = true
+                                operationMessage = restoreRfText
+                                onStopSimulation {
+                                    operationMessage = it
+                                    commandPending = false
+                                }
+                            }
                         },
+                        simulateLabel = if (status.simulationEnabled && !active) {
+                            stringResource(R.string.ynfc_switch_uid)
+                        } else null,
+                        simulateBusy = commandPending,
+                        stopBusy = commandPending,
                         onDelete = {
                             onDeleteCard(card, active)
                             if (expandedUid?.equals(card.uid, true) == true) expandedUid = null
@@ -164,6 +251,54 @@ fun NfcAppScreen(
                     },
                 )
             }
+            // Export must remain available when live log display is disabled.
+            item {
+                YSection(
+                    title = stringResource(R.string.ynfc_export_logs),
+                    subtitle = stringResource(R.string.ynfc_diagnostic_logs_desc),
+                ) {
+                    YPrimaryButton(
+                        text = if (diagnosticRunning) {
+                            stringResource(R.string.ynfc_saving)
+                        } else {
+                            stringResource(R.string.ynfc_export_logs)
+                        },
+                        onClick = {
+                            if (!diagnosticRunning) {
+                                diagnosticRunning = true
+                                onExportLogs { diagnosticRunning = false }
+                            }
+                        },
+                        enabled = !diagnosticRunning,
+                    )
+                }
+            }
+            // When an APK updates Hook internals but retains the same
+            // stable protocol version, LSPosed cannot replace already-loaded
+            // classes until com.android.nfc itself is reloaded. This remains
+            // optional, explicit, and never reboots the whole phone.
+            if (status.currentPid > 0 && status.scopeOk && status.hookInstalled &&
+                status.hookPid == status.currentPid &&
+                status.hookBuild == BuildConfig.HOOK_BUILD &&
+                status.hookImplementationRevision == BuildConfig.INTERCEPT_IMPL_REVISION &&
+                status.hookImplementationPid == status.currentPid
+            ) {
+                item {
+                    YSection(
+                        title = stringResource(R.string.ynfc_hook_manual_reload_title),
+                        subtitle = stringResource(R.string.ynfc_hook_manual_reload_desc),
+                    ) {
+                        YSecondaryButton(
+                            text = stringResource(R.string.ynfc_hook_reload_button),
+                            onClick = {
+                                operationMessage = null
+                                onReloadNfcHook { operationMessage = it }
+                            },
+                            enabled = !status.simulationEnabled,
+                        )
+                    }
+                }
+            }
             if (logsEnabled) {
                 item {
                     YSection(
@@ -181,23 +316,13 @@ fun NfcAppScreen(
                                 }
                             },
                         )
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(340.dp)
-                                .background(Color(0xFF050505), RoundedCornerShape(4.dp))
-                                .padding(6.dp),
+                        YUiLogSurface(
+                            modifier = Modifier.fillMaxWidth()
+                                .height((LocalYAppearance.current.rowHeightDp * 6f).dp),
                         ) {
                             LazyColumn(state = logListState, modifier = Modifier.fillMaxSize()) {
                                 items(logLines.size) { index ->
-                                    val line = logLines[index]
-                                    Text(
-                                        line,
-                                        color = logLineColor(line),
-                                        fontSize = 9.sp,
-                                        lineHeight = 11.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                    )
+                                    YUiLogLine(logLines[index])
                                 }
                             }
                             LaunchedEffect(selectedSource, logLines.size) {
@@ -207,25 +332,9 @@ fun NfcAppScreen(
                             }
                         }
                         YHorizontalActions {
-                            YPrimaryButton(
-                                text = if (diagnosticRunning) {
-                                    stringResource(R.string.ynfc_saving)
-                                } else {
-                                    stringResource(R.string.ynfc_export_logs)
-                                },
-                                onClick = {
-                                    if (!diagnosticRunning) {
-                                        diagnosticRunning = true
-                                        onExportLogs { diagnosticRunning = false }
-                                    }
-                                },
-                                enabled = !diagnosticRunning,
-                                modifier = Modifier.weight(1f),
-                            )
                             YSecondaryButton(
                                 text = stringResource(R.string.ynfc_clear_logs),
                                 onClick = { AppLogger.clear(); logLines.clear() },
-                                modifier = Modifier.weight(1f),
                             )
                         }
                     }
@@ -235,14 +344,3 @@ fun NfcAppScreen(
     }
 }
 
-private fun logLineColor(line: String): Color = when {
-    line.contains("SUCCESS") || line.contains("APPLIED") || line.contains("ACCEPTED") ||
-        line.contains("READY") -> Color.Cyan
-    line.contains("FAILED") || line.contains("ERROR") || line.contains("STALE") ||
-        line.contains("FATAL") -> Color.Red
-    line.contains("WAITING") || line.contains("IDLE") || line.contains("RUNNING") ||
-        line.contains("TRIGGERED") -> Color.Yellow
-    line.contains("RF") || line.contains("NFCID1") || line.contains("NfcUIDSim") ||
-        line.contains("COMMAND") -> Color.Green
-    else -> Color(0xFFD4D4D4)
-}

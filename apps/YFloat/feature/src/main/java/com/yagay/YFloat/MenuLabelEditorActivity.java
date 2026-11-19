@@ -1,6 +1,7 @@
 package com.yagay.YFloat;
 
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewDialogs;
 import com.yagay.yui.YViewSection;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -159,15 +160,10 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setGravity(Gravity.CENTER_VERTICAL);
-        TextView name = YViewLayout.text(this, title, 14, false);
-        name.setSingleLine(true);
-        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        TextView name = YViewLayout.rowTitle(this, title);
         texts.addView(name);
         if (subtitle != null && !subtitle.isBlank()) {
-            TextView sub = YViewLayout.caption(this, subtitle, 11);
-            sub.setSingleLine(true);
-            sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            sub.setPadding(0, YViewLayout.dp(this, 2), YViewLayout.dp(this, 8), 0);
+            TextView sub = YViewLayout.rowSubtitle(this, subtitle);
             texts.addView(sub);
         }
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -183,7 +179,7 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
 
     private void addEmpty(LinearLayout parent, String message) {
         LinearLayout row = YViewLayout.baseRow(this);
-        TextView empty = YViewLayout.caption(this, message, 13);
+        TextView empty = YViewLayout.rowSubtitle(this, message);
         row.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         YViewLayout.addRow(parent, row);
     }
@@ -200,18 +196,18 @@ public final class MenuLabelEditorActivity extends AppCompatActivity {
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(YViewLayout.dp(this, 20), YViewLayout.dp(this, 4),
-                YViewLayout.dp(this, 20), 0);
+        box.setPadding(com.yagay.yui.YView.cardPadding(this), com.yagay.yui.YView.controlGap(this) / 3,
+                com.yagay.yui.YView.cardPadding(this), 0);
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
         if (systemLabel != null && !systemLabel.isBlank()) {
-            TextView system = YViewLayout.caption(this,
-                    getString(R.string.yfloat_menu_system_name, systemLabel), 11);
+            TextView system = YViewLayout.rowSubtitle(this,
+                    getString(R.string.yfloat_menu_system_name, systemLabel));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-            lp.topMargin = YViewLayout.dp(this, 6);
+            lp.topMargin = com.yagay.yui.YView.controlGap(this) / 2;
             box.addView(system, lp);
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+        AlertDialog.Builder builder = YViewDialogs.builder(this)
                 .setTitle(R.string.yfloat_menu_edit_name)
                 .setView(box)
                 .setNegativeButton(R.string.yfloat_menu_cancel, null)

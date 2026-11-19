@@ -1,5 +1,9 @@
 package com.yagay.YEntryCleaner.ui
 
+import com.yagay.yui.YDimens
+import com.yagay.yui.YFilterBar
+import com.yagay.yui.YUiOutlinedTextField as OutlinedTextField
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,7 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -20,14 +23,14 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiLinearProgressIndicator as LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.yagay.yui.YUiText as Text
+import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,8 +41,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -57,45 +58,26 @@ import com.yagay.yui.YOverflowMenu
 
 @Composable
 internal fun CompactSearchField(query: String, onQueryChange: (String) -> Unit) {
-    val colors = MaterialTheme.colorScheme
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
-    BasicTextField(
+    OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
         singleLine = true,
+        placeholder = {
+            Text(
+                stringResource(R.string.search_apps_components_packages),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-        textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.onSurface),
-        cursorBrush = SolidColor(colors.primary),
-        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
-            .heightIn(min = 48.dp)
-            .border(1.dp, colors.outlineVariant, RoundedCornerShape(12.dp)),
-        decorationBox = { innerTextField ->
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(20.dp), tint = colors.onSurfaceVariant)
-                Box(Modifier.weight(1f)) {
-                    if (query.isEmpty()) {
-                        Text(
-                            stringResource(R.string.search_apps_components_packages),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    innerTextField()
-                }
-            }
-        }
     )
 }
-
 @Composable
 internal fun MainToolbar(
     query: String,
@@ -110,7 +92,7 @@ internal fun MainToolbar(
     YCustomTopBar(
         title = {
             if (expanded) CompactSearchField(query, onQuery)
-            else Text(stringResource(R.string.yentrycleaner_app_name), fontWeight = FontWeight.Bold, maxLines = 1)
+            else Text(stringResource(R.string.yentrycleaner_app_name), fontWeight = FontWeight.Bold)
         },
         navigationIcon = {
             if (expanded) {
@@ -176,32 +158,24 @@ internal fun ListControls(
     var appTypeMenu by remember { mutableStateOf(false) }
     var selectionMenu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-        LazyRow(contentPadding = PaddingValues(horizontal = 12.dp)) {
-            items((if (includeAllKinds) listOf<IntentKind?>(null) else emptyList()) + IntentKind.entries) { kind ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    TextButton(onClick = { onFilter(kind) }) {
-                        Text(
-                            kind?.let { stringResource(it.titleRes()) } ?: stringResource(R.string.common_all),
-                            fontWeight = if (state.filter == kind) FontWeight.Bold else FontWeight.Normal,
-                            color = if (state.filter == kind) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Box(
-                        Modifier.height(2.dp).width(24.dp).background(
-                            if (state.filter == kind) MaterialTheme.colorScheme.primary else Color.Transparent
-                        )
-                    )
-                }
-            }
+        val kinds: List<IntentKind?> =
+            (if (includeAllKinds) listOf<IntentKind?>(null) else emptyList()) + IntentKind.entries
+        val kindLabels = kinds.map { kind ->
+            kind?.let { stringResource(it.titleRes()) } ?: stringResource(R.string.common_all)
         }
+        YFilterBar(
+            options = kindLabels,
+            selectedIndex = kinds.indexOf(state.filter),
+            onSelected = { index -> onFilter(kinds[index]) },
+            modifier = Modifier.padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
+        )
         Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box {
                 TextButton(
-                    onClick = { appTypeMenu = true },
-                    contentPadding = PaddingValues(horizontal = 6.dp)
+                    onClick = { appTypeMenu = true }
                 ) {
                     Text(
                         stringResource(
@@ -210,7 +184,7 @@ internal fun ListControls(
                             stringResource(appTypeFilter.titleRes())
                         )
                     )
-                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp))
                 }
                 DropdownMenu(expanded = appTypeMenu, onDismissRequest = { appTypeMenu = false }) {
                     AppTypeFilter.entries.forEach { mode ->
@@ -224,8 +198,7 @@ internal fun ListControls(
             }
             Box {
                 TextButton(
-                    onClick = { menu = true },
-                    contentPadding = PaddingValues(horizontal = 6.dp)
+                    onClick = { menu = true }
                 ) {
                     Text(
                         stringResource(
@@ -234,7 +207,7 @@ internal fun ListControls(
                             viewTitle(state.uiFilter)
                         )
                     )
-                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     UiFilter.entries.forEach { mode ->
@@ -250,11 +223,10 @@ internal fun ListControls(
             if (onSelectAll != null || onSelectNone != null || onInvert != null) {
                 Box {
                     TextButton(
-                        onClick = { selectionMenu = true },
-                        contentPadding = PaddingValues(horizontal = 6.dp)
+                        onClick = { selectionMenu = true }
                     ) {
                         Text(stringResource(R.string.selection_actions))
-                        Icon(Icons.Rounded.ExpandMore, null, Modifier.size(16.dp))
+                        Icon(Icons.Rounded.ExpandMore, null, Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp))
                     }
                     DropdownMenu(
                         expanded = selectionMenu,
@@ -307,7 +279,7 @@ internal fun ModuleStatusRow(state: MainState, compact: Boolean = false, onClick
         else -> R.string.module_lsposed_connected
     }
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp, vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {

@@ -9,13 +9,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.yagay.yui.YUiText as Text
+import com.yagay.yui.YUiTextButton as TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +35,9 @@ import com.yagay.yui.YFormDialog
 import com.yagay.yui.YPrimaryButton
 import com.yagay.yui.YSearchField
 import com.yagay.yui.YTextField
+import com.yagay.yui.LocalYAppearance
+import com.yagay.yui.YDimens
+import androidx.compose.ui.platform.LocalConfiguration
 import com.yagay.yui.YSettingRow
 
 /** Compact BROWSER-domain selector shown inside the shared top filter row. */
@@ -50,7 +53,9 @@ fun BrowserHostFilterMenu(
     var hostQuery by remember { mutableStateOf("") }
     var anchorWidthPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
-    val menuWidth = 296.dp
+    val menuWidth = minOf(LocalYAppearance.current.rowHeightDp * 6f,
+        LocalConfiguration.current.screenWidthDp.toFloat() - 2f * LocalYAppearance.current.screenPaddingDp)
+        .coerceAtLeast(LocalYAppearance.current.rowHeightDp * 3f).dp
     val menuHorizontalOffset = with(density) {
         ((anchorWidthPx.toDp() - menuWidth) / 2)
     }
@@ -67,8 +72,7 @@ fun BrowserHostFilterMenu(
     Box {
         TextButton(
             onClick = { expanded = true },
-            modifier = Modifier.onSizeChanged { anchorWidthPx = it.width },
-            contentPadding = PaddingValues(horizontal = 6.dp)
+            modifier = Modifier.onSizeChanged { anchorWidthPx = it.width }
         ) {
             Text(
                 stringResource(
@@ -76,9 +80,12 @@ fun BrowserHostFilterMenu(
                     stringResource(R.string.browser_domain_filter),
                     selectedTitle
                 ),
-                modifier = Modifier.widthIn(max = 170.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier.widthIn(
+                    max = (LocalConfiguration.current.screenWidthDp -
+                        2 * LocalYAppearance.current.screenPaddingDp -
+                        2 * LocalYAppearance.current.buttonPaddingHorizontalDp).coerceAtLeast(48).dp
+                ),
+                softWrap = true
             )
             Icon(Icons.Rounded.ExpandMore, null)
         }
@@ -87,31 +94,31 @@ fun BrowserHostFilterMenu(
             onDismissRequest = { hostQuery = ""; expanded = false },
             modifier = Modifier
                 .width(menuWidth)
-                .heightIn(max = 420.dp),
+                .heightIn(max = (LocalYAppearance.current.rowHeightDp * 8f).dp),
             offset = DpOffset(menuHorizontalOffset, 0.dp),
             scrollState = menuScroll
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp)
+                    .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                     .clickable {
                         hostQuery = ""
                         expanded = false
                         onSelected(null)
                     }
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier.width(24.dp),
+                    modifier = Modifier.width(LocalYAppearance.current.iconVisualSizeDp.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     if (selected == null) {
                         Icon(
                             Icons.Rounded.Check,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp)
                         )
                     }
                 }
@@ -120,16 +127,16 @@ fun BrowserHostFilterMenu(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp)
+                    .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                     .clickable {
                         hostQuery = ""
                         expanded = false
                         onManage()
                     }
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(Modifier.width(24.dp))
+                Spacer(Modifier.width(LocalYAppearance.current.iconVisualSizeDp.dp))
                 Text(stringResource(R.string.browser_hosts_manage))
             }
             HorizontalDivider()
@@ -137,42 +144,44 @@ fun BrowserHostFilterMenu(
                 value = hostQuery,
                 onValueChange = { hostQuery = it },
                 hint = stringResource(R.string.browser_domain_search),
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                    vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)
             )
             if (visibleHosts.isEmpty()) {
                 YEmptyMessage(
                     message = stringResource(R.string.browser_domain_search_empty),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                    vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp)
                 )
             } else {
                 visibleHosts.forEach { host ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(36.dp)
+                            .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
                             .clickable {
                                 hostQuery = ""
                                 expanded = false
                                 onSelected(host)
                             }
-                            .padding(horizontal = 12.dp),
+                            .padding(horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
-                            modifier = Modifier.width(24.dp),
+                            modifier = Modifier.width(LocalYAppearance.current.iconVisualSizeDp.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (selected == host) {
                                 Icon(
                                     Icons.Rounded.Check,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size((LocalYAppearance.current.iconVisualSizeDp * 2f / 3f).dp)
                                 )
                             }
                         }
                         Text(
                             host,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
@@ -224,7 +233,7 @@ fun BrowserHostDialog(
                     stringResource(R.string.browser_host_invalid)
                 } else null,
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(LocalYAppearance.current.effectiveGapDp.dp))
             YPrimaryButton(
                 text = stringResource(R.string.common_add),
                 enabled = canAdd,
@@ -238,7 +247,7 @@ fun BrowserHostDialog(
         if (hosts.isEmpty()) {
             YEmptyMessage(message = stringResource(R.string.browser_hosts_empty))
         } else {
-            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = (LocalYAppearance.current.rowHeightDp * 6f).dp)) {
                 items(hosts, key = { it }) { host ->
                     YSettingRow(title = host) {
                         IconButton(onClick = { hosts = hosts - host }) {

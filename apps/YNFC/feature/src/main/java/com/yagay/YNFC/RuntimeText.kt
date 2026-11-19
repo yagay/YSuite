@@ -5,15 +5,60 @@ internal object RuntimeText {
     fun statusSummary(status: RuntimeStatus, expectedHookBuild: Int, readModeEnabled: Boolean): String = buildString {
         appendLine("=== CURRENT STATUS ===")
         appendLine("BUILD: app=${status.appBuild} hook=${status.hookBuild} expectedHook=$expectedHookBuild")
+        appendLine("HOOK_IMPLEMENTATION: loaded=${status.hookImplementationRevision} expected=${BuildConfig.INTERCEPT_IMPL_REVISION} loadedPid=${status.hookImplementationPid} currentPid=${status.currentPid}")
         appendLine("PID: current=${status.currentPid} runtime=${status.runtimePid} scope=${status.scopePid} hook=${status.hookPid} command=${status.commandPid} rf=${status.rfPid}")
         appendLine("SCOPE: ${if (status.scopeOk) "SUCCESS" else "NOT DETECTED/STALE"}")
         appendLine("HOOK: ${if (status.hookInstalled) "SUCCESS" else "NOT INSTALLED/STALE"}")
-        appendLine("CONFIG: ${if (status.simulationEnabled) "ENABLED" else "IDLE"} uid=${status.selectedUid}")
+        appendLine("DIAGNOSIS: ${hookDiagnosis(status, expectedHookBuild)}")
+        val configState = when {
+            status.simulationEnabled &&
+                status.commandAction == "APPLY" &&
+                status.commandGeneration == status.handledGeneration &&
+                status.commandStatus in setOf("FAILED", "TRIGGER_FAILED") -> "REQUESTED_BUT_FAILED"
+            status.simulationEnabled -> "REQUESTED"
+            else -> "IDLE"
+        }
+        appendLine("CONFIG: $configState uid=${status.selectedUid}")
         appendLine("SEMANTIC: operation=${status.operationState} effective=${status.effectiveState} confidence=${status.verificationConfidence} accepted=${status.rfAccepted}")
+        appendLine("UID_EVIDENCE: ${when {
+            status.rfAccepted && status.verificationConfidence == "VERIFIED" -> "PROVIDER_VERIFIED"
+            status.operationState == "NCI_ACCEPTED_RF_UNVERIFIED" &&
+                status.commandStatus == "UNVERIFIED" &&
+                status.commandGeneration == status.handledGeneration &&
+                status.currentPid == status.commandPid -> "NCI_ACCEPTED_RF_UNVERIFIED"
+            status.commandAction == "APPLY" && status.commandStatus == "UNVERIFIED" -> "NCI_REQUESTED_RF_UNVERIFIED"
+            else -> "NO_CURRENT_RF_PROOF"
+        }}; external reader verification is required")
         appendLine("COMMAND: generation=${status.commandGeneration} consumed=${status.consumedGeneration} completed=${status.handledGeneration} action=${status.commandAction} status=${status.commandStatus} detail=${status.commandDetail}")
         appendLine("READ_MODE: ${if (readModeEnabled) "ENABLED" else "IDLE"}")
+        appendLine("NFC_POLICY: desired=${if (status.pollingDisabled) "HCE_ONLY" else "NORMAL"} status=${status.pollingGuardStatus} pid=${status.pollingGuardPid} detail=${status.pollingGuardDetail}")
+        appendLine("NFC_CAPABILITIES: ${status.pollingCapabilitySummary ?: "UNKNOWN"}")
+        appendLine("OWN_NCI_RECOVERY: requested=${status.ownNciRecoveryRequested} (not RF verified)")
         appendLine("RF: generation=${status.rfGeneration} ${status.rfStatus} uid=${status.rfUid} source=${status.rfSource} result=${status.rfResult} raw=${status.rfNativeResult}/${status.rfNativeResultType} verification=${status.rfVerification} error=${status.rfError}")
         append("FINAL: stage=${status.fullDiagStage} summary=${status.fullDiagSummary}")
+    }
+
+    /**
+     * Distinguishes an absent module callback from an old NFC process and a
+     * discovered-but-not-installed hook. Root access alone cannot inject LSPosed.
+     */
+    fun hookDiagnosis(status: RuntimeStatus, expectedHookBuild: Int): String = when {
+        status.currentPid <= 0 -> "NFC_PROCESS_NOT_FOUND: verify com.android.nfc is running."
+        status.scopePid <= 0 && status.hookPid <= 0 ->
+            "HOOK_REPORT_MISSING: no current NFC Hook callback was observed. Check LSPosed target loading, process-specific Hook logs and status-provider delivery; Root access does not confirm Hook installation."
+        (status.scopePid > 0 && status.scopePid != status.currentPid) ||
+            (status.hookPid > 0 && status.hookPid != status.currentPid) ->
+            "STALE_PROCESS: NFC service changed PID; wait for Hook injection or check LSPosed scope. Do not reboot the entire phone."
+        !status.scopeOk ->
+            "SCOPE_NOT_CONFIRMED: check YSuite's com.android.nfc scope and current-process callback."
+        !status.hookInstalled ->
+            "HOOK_NOT_INSTALLED: module reached the NFC process but did not install its hooks; inspect focused YSuite/YNFC logs."
+        status.hookBuild != expectedHookBuild ->
+            "HOOK_BUILD_MISMATCH: loaded NFC Hook code does not match the APK. Use the explicit 'Reload NFC service' action when you need the new Hook; no phone reboot is required."
+        status.hookImplementationPid != status.currentPid ||
+            status.hookImplementationRevision != BuildConfig.INTERCEPT_IMPL_REVISION ->
+            "HOOK_IMPLEMENTATION_STALE: running NFC PID still holds an earlier YNFC Hook implementation. STOP emulation, then use the explicit NFC service Hook reload. No phone reboot is required."
+        else -> "HOOK_READY"
     }
 
     fun boundedLines(text: String, maxLines: Int = 1800): List<String> {

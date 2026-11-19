@@ -3,7 +3,6 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
@@ -40,8 +39,11 @@ public final class EditableRegionOverlay {
                         | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
-        if (host.add(view, lp, "editable_region")) {
+        if (host.addFollowingIconLayer(view, lp, "editable_region")) {
             active = view;
+            DiagnosticLog.i(app, "FL_OVERLAY_LAYER",
+                    "editable_region attached type=" + lp.type
+                    + " a11y=" + host.isAccessibilityHosted(view));
             return;
         }
         Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_98208f885cc7), Toast.LENGTH_LONG).show();
@@ -54,6 +56,7 @@ public final class EditableRegionOverlay {
         private static final int A_NONE = 0, A_AUTO = 1, A_OCR = 2, A_VIEW = 3, A_CANCEL = 4;
 
         private final Context context;
+        private final FloatSettings settings;
         private final FlOverlayWindowHost host;
         private final Bitmap screenshot;
         private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -76,21 +79,23 @@ public final class EditableRegionOverlay {
         EditorView(Context c, FlOverlayWindowHost host, Bitmap screenshot) {
             super(c);
             this.context = c;
+            settings = new FloatSettings(c);
             this.host = host;
             this.screenshot = screenshot;
             setFocusable(true);
             setClickable(true);
-            shadePaint.setColor(0x99000000);
+            shadePaint.setColor(YFloatOverlayStyle.scrim(c, 0x99));
             shadePaint.setStyle(Paint.Style.FILL);
-            borderPaint.setColor(Color.WHITE);
+            borderPaint.setColor(YFloatOverlayStyle.selectionColor(c));
             borderPaint.setStyle(Paint.Style.STROKE);
-            borderPaint.setStrokeWidth(dp(2.5f));
-            handlePaint.setColor(Color.WHITE);
+            borderPaint.setStrokeWidth(YFloatOverlayStyle.selectionStroke(c));
+            handlePaint.setColor(YFloatOverlayStyle.accent(c));
             handlePaint.setStyle(Paint.Style.FILL);
-            textPaint.setColor(Color.WHITE);
-            textPaint.setTextSize(dp(14));
+            textPaint.setColor(YFloatOverlayStyle.primaryText(c));
+            textPaint.setTextSize(YFloatOverlayStyle.textSize(c, 14f));
             textPaint.setTextAlign(Paint.Align.CENTER);
-            textPaint.setShadowLayer(dp(3), 0, dp(1), Color.BLACK);
+            textPaint.setShadowLayer(YFloatOverlayStyle.selectionStroke(c), 0f,
+                    YFloatOverlayStyle.selectionStroke(c) / 3f, YFloatOverlayStyle.scrim(c, 0xFF));
             buttonPaint.setStyle(Paint.Style.FILL);
         }
 
@@ -121,12 +126,15 @@ public final class EditableRegionOverlay {
         private void drawTopTip(Canvas c, String tip) {
             Paint p = new Paint(textPaint);
             p.setTextAlign(Paint.Align.LEFT);
-            p.setTextSize(dp(15));
-            c.drawText(tip, dp(16), dp(34), p);
+            p.setTextSize(YFloatOverlayStyle.textSize(context, 15f));
+            float inset = YFloatOverlayStyle.controlGap(context);
+            float baseline = Math.max(inset - p.ascent(), YFloatOverlayStyle.controlGap(context) - p.ascent());
+            SelectionVisuals.drawFittedText(c, tip, inset, baseline,
+                    Math.max(0f, getWidth() - inset * 2), p);
         }
 
         private void drawHandles(Canvas c, RectF r) {
-            float radius = dp(5.5f);
+            float radius = YFloatOverlayStyle.handleRadius(context);
             float cx = r.centerX(), cy = r.centerY();
             float[][] pts = {
                     {r.left, r.top}, {cx, r.top}, {r.right, r.top},
@@ -137,18 +145,21 @@ public final class EditableRegionOverlay {
         }
 
         private void drawActions(Canvas c) {
-            float margin = dp(10), gap = dp(7), h = dp(48);
+            float margin = YFloatOverlayStyle.controlGap(context), gap = YFloatOverlayStyle.controlGap(context), h = YFloatOverlayStyle.buttonHeight(context);
             float totalW = getWidth() - margin * 2 - gap * 3;
             float w = totalW / 4f;
-            float top = getHeight() - h - dp(16);
+            float top = getHeight() - h - YFloatOverlayStyle.controlGap(context);
             String[] labels = {com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_a6e1a6b89308), "OCR", com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_c597f44da8a0), com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_bd576c86d82c)};
             int[] actions = {A_AUTO, A_OCR, A_VIEW, A_CANCEL};
             for (int i = 0; i < 4; i++) {
                 float left = margin + i * (w + gap);
                 buttons[i].set(left, top, left + w, top + h);
-                buttonPaint.setColor(pressedAction == actions[i] ? 0xEE4C86F7 : 0xDD202124);
-                c.drawRoundRect(buttons[i], dp(10), dp(10), buttonPaint);
-                c.drawText(labels[i], buttons[i].centerX(), buttons[i].centerY() + dp(5), textPaint);
+                buttonPaint.setColor(YFloatOverlayStyle.actionSurface(context, pressedAction == actions[i]));
+                c.drawRoundRect(buttons[i], YFloatOverlayStyle.buttonRadius(context), YFloatOverlayStyle.buttonRadius(context), buttonPaint);
+                float baseline = buttons[i].centerY()
+                        - (textPaint.ascent() + textPaint.descent()) / 2f;
+                SelectionVisuals.drawFittedText(c, labels[i], buttons[i].centerX(), baseline,
+                        Math.max(0f, w - YFloatOverlayStyle.controlGap(context)), textPaint);
             }
         }
 
@@ -196,7 +207,7 @@ public final class EditableRegionOverlay {
                     }
                     updateSelection(x, y);
                     normalizeAndClamp();
-                    float min = dp(24);
+                    float min = dp(settings.cropMinDp());
                     if (selection.width() < min || selection.height() < min) {
                         hasSelection = false;
                         selection.setEmpty();
@@ -223,7 +234,7 @@ public final class EditableRegionOverlay {
         }
 
         private int hitHandle(float x, float y) {
-            float slop = dp(24);
+            float slop = dp(settings.cropDragSlopDp());
             boolean nearL = Math.abs(x - selection.left) <= slop;
             boolean nearR = Math.abs(x - selection.right) <= slop;
             boolean nearT = Math.abs(y - selection.top) <= slop;

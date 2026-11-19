@@ -3,20 +3,18 @@ package com.yagay.yui
 import android.app.Activity
 import android.app.Application
 import android.content.Context
-import android.content.res.Configuration
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.startup.Initializer
-import com.google.android.material.card.MaterialCardView
 import java.util.WeakHashMap
 
 class YUiInitializer : Initializer<Unit> {
@@ -37,24 +35,61 @@ object YUiRuntime {
     )
 
     private val originalPadding = WeakHashMap<View, BasePadding>()
+    private val lastViewAppearance = WeakHashMap<Activity, YAppearance>()
+    private val foregroundActivities = WeakHashMap<Activity, Boolean>()
+    private val pendingActivities = WeakHashMap<Activity, Boolean>()
+    private var appearanceListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var installed = false
 
     @JvmStatic
     fun install(application: Application) {
         if (installed) return
         installed = true
-        YAppearanceSettings.applySavedMode(application)
-        // Fixed Material 3 semantic palette is shared with Compose and Android Views.
-        // Automatic wallpaper recoloring made the same component differ between modules.
+        // Keep one observer of the shared appearance file for all View and Compose hosts.
+        val appearance = YAppearanceStore(application)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null) return@OnSharedPreferenceChangeListener
+            val changedKey = key.substringAfterLast('.')
+            if (changedKey.startsWith("float_") ||
+                changedKey.startsWith("overlay_") ||
+                changedKey == "home_swipe_pin" || changedKey == "home_status") {
+                // Overlay rendering has its own listener, not Activity chrome.
+                return@OnSharedPreferenceChangeListener
+            }
+            val moduleScope = if (key.startsWith("module.")) {
+                key.removePrefix("module.").substringBefore('.')
+            } else null
+            val foreground = synchronized(foregroundActivities) {
+                foregroundActivities.keys.toList()
+            }
+            foreground.forEach { activity ->
+                if (moduleScope == null || moduleScope == YAppearanceStore.moduleIdFor(activity)) {
+                    schedule(activity)
+                }
+            }
+        }
+        appearanceListener = listener
+        appearance.registerPreferenceListener(listener)
+        // Do not auto-apply system dynamic colors to only the View side of a mixed UI.
+        // The shared Material 3 scheme is applied by theme resources and YTheme.
         application.registerActivityLifecycleCallbacks(
             object : Application.ActivityLifecycleCallbacks {
                 override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = schedule(activity)
-                override fun onActivityResumed(activity: Activity) = schedule(activity)
+                override fun onActivityResumed(activity: Activity) {
+                    synchronized(foregroundActivities) { foregroundActivities[activity] = true }
+                    schedule(activity)
+                }
                 override fun onActivityStarted(activity: Activity) = Unit
-                override fun onActivityPaused(activity: Activity) = Unit
+                override fun onActivityPaused(activity: Activity) {
+                    synchronized(foregroundActivities) { foregroundActivities.remove(activity) }
+                }
                 override fun onActivityStopped(activity: Activity) = Unit
                 override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
-                override fun onActivityDestroyed(activity: Activity) = Unit
+                override fun onActivityDestroyed(activity: Activity) {
+                    synchronized(foregroundActivities) { foregroundActivities.remove(activity) }
+                    synchronized(lastViewAppearance) { lastViewAppearance.remove(activity) }
+                    synchronized(pendingActivities) { pendingActivities.remove(activity) }
+                }
             },
         )
     }
@@ -63,7 +98,18 @@ object YUiRuntime {
 
     private fun schedule(activity: Activity) {
         if (excluded(activity)) return
-        activity.window.decorView.post { apply(activity) }
+        val enqueue = synchronized(pendingActivities) {
+            if (pendingActivities.containsKey(activity)) false
+            else {
+                pendingActivities[activity] = true
+                true
+            }
+        }
+        if (!enqueue) return
+        activity.window.decorView.post {
+            synchronized(pendingActivities) { pendingActivities.remove(activity) }
+            apply(activity)
+        }
     }
 
     private fun apply(activity: Activity) {
@@ -80,19 +126,34 @@ object YUiRuntime {
             window.isNavigationBarContrastEnforced = false
         }
 
-        val dark = YAppearanceSettings.isDark(activity)
+        val dark = YView.isDark(activity)
         WindowCompat.getInsetsController(window, decor).apply {
             isAppearanceLightStatusBars = !dark
             isAppearanceLightNavigationBars = !dark
         }
 
         val content = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
+        val compose = containsComposeView(content)
+        if (!compose) {
+            // Existing XML/View trees retain inflated text and theme values. Rebuild them only
+            // after a real visual preference change; Compose reacts via rememberYAppearance.
+            val current = YAppearanceStore(activity)
+                .appearance(YAppearanceStore.moduleIdFor(activity))
+                .copy(homeSwipePin = true, homeStatusVisible = true)
+            val previous = synchronized(lastViewAppearance) {
+                lastViewAppearance.put(activity, current)
+            }
+            if (previous != null && previous != current) {
+                activity.recreate()
+                return
+            }
+        }
         YView.applyRoot(content)
-        normalizeTree(content)
+        // Never mutate component sizes/backgrounds after inflation. Material 3 owns widgets.
 
         // Compose owns its insets through YScaffold/Scaffold. Traditional View Activities receive
         // exactly one system-bar padding layer here so every standalone app and YSuite behave alike.
-        if (containsComposeView(content)) {
+        if (compose) {
             ViewCompat.setOnApplyWindowInsetsListener(content, null)
             return
         }
@@ -125,16 +186,4 @@ object YUiRuntime {
         return false
     }
 
-    private fun normalizeTree(view: View) {
-        when (view) {
-            is MaterialCardView -> {
-                view.radius = YView.dimen(view.context, R.dimen.yui_card_radius).toFloat()
-                view.setCardBackgroundColor(YView.surfaceContainer(view.context))
-            }
-            is Button -> YView.stylePrimaryButton(view)
-        }
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) normalizeTree(view.getChildAt(i))
-        }
-    }
 }

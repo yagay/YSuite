@@ -35,6 +35,27 @@ YENTRY_PRIORITY = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEn
 YENTRY_ROWS = ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/AppListRows.kt"
 
 
+def verify_suite_setting_rows_use_live_yui() -> None:
+    home = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt")
+    if "Modifier.size(18.dp)" in home or "Modifier.size(16.dp)" in home:
+        fail("suite home icons must use YUI visual sizes")
+    for filename in ("SuiteCommonSettingsScreen.kt", "SuiteSettingsScreen.kt"):
+        src = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite" / filename)
+        if "heightIn(min = 48.dp)" in src or "Arrangement.spacedBy(8.dp)" in src:
+            fail(f"{filename} must use YUI row height and gap")
+
+def verify_yentry_uses_shared_controls() -> None:
+    """Reject reintroduction of local control geometry in normal feature UI."""
+    controls = text(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainControls.kt")
+    if "BasicTextField(" in controls or "OutlinedTextField(" not in controls:
+        fail("YEntryCleaner search must use the shared YUI outlined input")
+    if "YFilterBar(" not in controls or "LazyRow(contentPadding = PaddingValues(horizontal = 12.dp))" in controls:
+        fail("YEntryCleaner filter tabs must use YUI FilterBar")
+    host = text(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/BrowserHostFilterRow.kt")
+    for banned in ("Modifier.width(24.dp)", "Modifier.size(16.dp)", "horizontal = 8.dp", "vertical = 4.dp"):
+        if banned in host:
+            fail(f"browser host normal UI must use live YUI appearance instead of {banned}")
+
 def fail(message: str) -> None:
     print(f"ui-framework: ERROR: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -57,7 +78,98 @@ def reject_hardcoded_normal_screen_colors(source: str, label: str) -> None:
         fail(f"{label} reintroduced hard-coded ARGB colors: {matches[:8]}")
 
 
+
+def verify_runtime_appearance() -> None:
+    """A token facade is insufficient unless real host and feature screens consume it."""
+    targets = {
+        "theme": "libs/yui/src/main/java/com/yagay/yui/YTheme.kt",
+        "view": "libs/yui/src/main/java/com/yagay/yui/YView.kt",
+        "view_layout": "libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt",
+        "runtime": "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt",
+        "application": "next/core/ui/src/main/java/com/yagay/ysuite/ui/YSuiteApplication.kt",
+        "float_result": "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ResultUi.java",
+        "float_menu": "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatingMenuUi.java",
+        "notify_apps": "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/AppAdapter.java",
+        "notify_events": "apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/EventAdapter.java",
+        "entry_controls": "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/MainControls.kt",
+        "entry_components": "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/RootComponentsScreen.kt",
+        "entry_priority": "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/PriorityDialog.kt",
+        "download_dialog": "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadComponents.kt",
+        "file_rows": "next/core/productui/src/main/java/com/yagay/ysuite/productui/filemanager/YFileManagerComponents.kt",
+        "host_home": "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt",
+        "home_shared": "libs/yui/src/main/java/com/yagay/yui/YHomePresentation.kt",
+    }
+    sources = {key: text(ROOT / path) for key, path in targets.items()}
+    assertions = {
+        "theme": ("val actualDynamic = appearance.dynamicColor", "appearance.cardRadiusDp.dp", "appearance.dialogRadiusDp.dp"),
+        "view": ("dynamicDarkColorScheme(context)", "yAccentColorScheme(base, setting.accent, dark)",
+                 "displayRules(context).fieldRadiusDp", "applyFontScale(view)", "fun rowHeight(context",
+                 "button.backgroundTintList = ColorStateList.valueOf("),
+        "view_layout": ("private fun sectionGap(context: Context): Int = YView.sectionGap(context)",
+                        "private fun controlGap(context: Context): Int = YView.controlGap(context)"),
+        "runtime": ("val dark = YView.isDark(activity)", "activity.recreate()"),
+        "application": ("YSuiteRoot {",),
+        "float_result": ("YViewLayout.secondaryButton(YOverlayUi.scopedContext(", "YOverlayUi.panelBackground(", "YOverlayUi.cornerRadiusPx("),
+        "float_menu": ("YView.styleBody(tv)", "YOverlayUi.menuBackground(", "YOverlayUi.contentPaddingPx(", "YView.iconSize(c)"),
+        "notify_apps": ("YView.rowHeight(c)", "YView.styleItemTitle(h.b.appName)"),
+        "notify_events": ("YView.cardRadius(c)", "YView.cardSurface(c)"),
+        "entry_controls": ("YUiOutlinedTextField as OutlinedTextField", "YFilterBar("),
+        "entry_components": ("YUiTextButton as TextButton",),
+        "entry_priority": ("LocalYAppearance.current.rowHeightDp",),
+        "download_dialog": ("LocalYAppearance.current.dialogRadiusDp.dp",),
+        "file_rows": ("LocalYAppearance.current.rowHeightDp.dp",),
+        "host_home": ("appearance.cardRadiusDp.dp", "YHomeModuleRow("),
+        "home_shared": ("heightIn(min = appearance.rowHeightDp.dp)", "detectHorizontalDragGestures(", "YUiText("),
+    }
+    appearance = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YAppearanceStore.kt")
+    require(appearance, "if (current is YAppearanceScopeContext)", "scoped overlay module theme")
+    card = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YTheme.kt")
+    require(card, "border = LocalYAppearance.current.cardOutlineWidthDp", "YUI Card outline appearance")
+    overlay = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YOverlayUi.kt")
+    for marker in ("fun scopedContext(", "fun panelBackground(", "fun menuBackground(", "fun cornerRadiusPx(", "fun scaleScrimAlpha(", "fun YUiOverlayPanel("):
+        require(overlay, marker, "central YUI overlay facade")
+    paddle_settings = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/PaddleStructureSettingsV2.java")
+    require(paddle_settings, "YViewLayout.compactButton(", "Paddle layout settings must use shared YUI widgets")
+    initializer = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt")
+    require(initializer, 'changedKey.startsWith("overlay_")', "overlay-only settings must avoid Activity recreation")
+    settings = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt")
+    require(settings, "YUiOverlayPanel(", "YUI overlay live preview")
+    for path, markers in (
+        ("apps/YFloat/feature/src/main/java/com/yagay/YFloat/TextSelectionSurface.java", ("YOverlayUi.styleSelectionText(",)),
+        ("apps/YFloat/feature/src/main/java/com/yagay/YFloat/FlPointerOperationHintOverlay.java", ("YOverlayUi.styleHintText(",)),
+        ("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt", ("YUiLogSurface(", "YUiLogLine(")),
+        ("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/HistoryChart.kt", ("LocalYAppearance.current.rowHeightDp",)),
+        ("apps/YNotify/feature/src/main/java/com/yagay/YNotify/ui/EventAdapter.java", ("YView.cardOutlineWidth(c)",)),
+    ):
+        source = text(ROOT / path)
+        for identifier in markers:
+            require(source, identifier, f"YUI integration {path}")
+    for path, forbidden in (
+        ("apps/YFloat/feature/src/main/java/com/yagay/YFloat/TextSelectionSurface.java", ("textView.setTextSize(16)", "textView.setPadding(dp(8)")),
+        ("apps/YNFC/feature/src/main/java/com/yagay/YNFC/ui/NfcAppScreen.kt", ("Color(0xFF050505)", "fontSize = 9.sp", "logLineColor(")),
+        ("apps/YTaskManager/feature/src/main/java/com/yagay/YTaskManager/ui/HistoryChart.kt", (".height(120.dp)",)),
+    ):
+        source = text(ROOT / path)
+        for token in forbidden:
+            if token in source:
+                fail(f"YUI integration {path} retains fixed normal UI {token}")
+    action_menu = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatActionMenu.java")
+    if "tv.setTextSize(13)" in action_menu or "more.setTextSize(22)" in action_menu:
+        fail("YFloat action popup must use shared typography and icon visual size")
+    for key, markers in assertions.items():
+        for marker in markers:
+            require(sources[key], marker, f"runtime appearance: {key}")
+    if "dynamicColor || appearance.dynamicColor" in sources["theme"]:
+        fail("a deprecated dynamic-color argument is overriding user appearance preferences")
+    if "darkTheme = darkTheme" in sources["application"]:
+        fail("legacy AppSettings must not override the host appearance settings")
+    print("ui-framework: OK unified appearance applied to Compose, View, XML, overlays, and rebuilt product screens")
+
+
 def main() -> None:
+    verify_yentry_uses_shared_controls()
+    verify_suite_setting_rows_use_live_yui()
+    verify_runtime_appearance()
     compose = text(YUI_COMPOSE)
     view = text(YUI_VIEW)
     resources = text(YUI_RES)
@@ -128,7 +240,7 @@ def main() -> None:
     require(ysuite, "YDashboardScaffold(", "YSuite main screen")
     require(ysuite, "YPageList(", "YSuite main screen")
     require(ysuite, "YSection(", "YSuite main screen")
-    require(ypower, "YViewLayout.install(", "YPower main screen")
+    require(ypower, "YViewLayout.installPage(", "YPower main screen")
     require(ypower, "YViewLayout.card(", "YPower main screen")
     require(yminiguard, "YViewLayout.install(", "YMiniGuard main screen")
     require(yminiguard, "YViewLayout.switchRow(", "YMiniGuard main screen")
@@ -150,8 +262,11 @@ def main() -> None:
     require(ytask, "YAppShell(", "YTaskManager main navigation")
     require(ytask, "YSearchField(", "YTaskManager filter section")
     require(ytask, "YStatusStrip(", "YTaskManager status section")
-    require(ytask, "YToggleFilterBar(", "YTaskManager type filters")
-    require(ytask, "YFilterBar(", "YTaskManager sort filter")
+    require(ytask, "DropdownMenu(", "YTaskManager separate filter and sort dropdowns")
+    require(ytask, "DropdownMenuItem(", "YTaskManager dropdown options")
+    require(ytask, "YBottomSheet(", "YTaskManager compact settings sheets")
+    require(ytask, "YRadioGroup(", "YTaskManager single-choice sorting and refresh interval")
+    require(ytask, "YSwitchItem(", "YTaskManager unified settings toggles")
     require(ytask, "YListItem(", "YTaskManager process rows")
     require(ytask, "YPageList(", "YTaskManager resource/network pages")
     require(ytask, "YEmptyMessage(", "YTaskManager empty states")
@@ -238,6 +353,271 @@ def main() -> None:
 
     # Specialized diagnostic text highlighting in YPower Diagnostic and YNFC's log console may
     # keep semantic high-contrast colors. Normal cards/status/chrome remain YUI-owned.
+    # General settings must reach the shared host and preserve language on feature screens.
+    general = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteGeneralSettingsScreen.kt")
+    locale = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteLocaleController.kt")
+    host = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/YSuiteApp.kt")
+    compose_activity = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YComposeActivity.kt")
+    home = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt")
+    general_store = text(ROOT / "libs/ycore/src/main/java/com/yagay/suite/core/SuiteCommonSettings.kt")
+    for source, markers, label in (
+        (general, ("SuiteLocaleController.set(", "HOME_HIDE_DISABLED", "HOME_SHOW_SEARCH",
+                   "HOME_SHOW_DIAGNOSTICS"), "YSuite general settings"),
+        (locale, ("LocaleManager::class.java", "localizedContext(", "AppCompatDelegate"),
+         "YSuite locale controller"),
+        (host, ("YUiLocaleBridge.install(",), "YSuite locale bootstrap"),
+        (compose_activity, ("YUiLocaleBridge.wrap(",), "embedded Compose locale"),
+        (home, ("hideDisabled", "if (showSearch)", "if (showDiagnostics)"),
+         "general home preferences"),
+        (general_store, ("globalOnly", "LANGUAGE(", "HOME_HIDE_DISABLED("),
+         "validated general settings"),
+    ):
+        for required in markers:
+            require(source, required, label)
+    # All numeric visual settings must use one shared validator and reach both renderers.
+    appearance_store = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YAppearanceStore.kt")
+    registry = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiControlRegistry.kt")
+    forms = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YForms.kt")
+    float_settings = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatSettings.java")
+    float_icon = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsIconPage.java")
+    float_gesture = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsGesturePage.java")
+    module_slider = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt")
+    appearance_screen = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/SuiteSettingsScreen.kt")
+    tokens = text(ROOT / "libs/yui/yui_tokens.json")
+    for source, markers, label in (
+        (appearance_store, ('BUTTON_RADIUS("button_radius", "12", 0, 512)',
+                            'BUTTON_HEIGHT("button_height", "48", 16, 320)',
+                            'FONT_PERCENT("font_percent", "100", 25, 400)',
+                            'PAGE_VERTICAL_PADDING(', 'ICON_VISUAL_SIZE(', 'LIST_ICON_SIZE(',
+                            'TOOLBAR_HEIGHT('), "single YUI appearance validator"),
+        (registry, ('require(minimum == key.minimum && maximum == key.maximum)',
+                    'range(YSettingKey.TOOLBAR_HEIGHT', 'range(YSettingKey.LIST_ICON_SIZE'),
+         "appearance registry"),
+        (appearance_screen, ('appearance_toolbar_height', 'appearance_list_icon_size',
+                             'appearance_icon_visual_size', 'appearance_page_vertical_padding',
+                             'appearance_exact_value'), "appearance settings editor"),
+        (forms, ('yui_exact_value', 'yui_apply_value',
+                 'it.roundToInt().coerceIn(range.first, range.last)', 'steps = 0'),
+         "shared integer slider"),
+        (module_slider, ('fun sliderSetting(', 'val precise = AppCompatEditText(context)',
+                         'YView.toolbarHeight(context)', 'YView.listIconSize(context)'),
+         "View slider and controls"),
+        (float_settings, ('YFloatVisualSettings.readInt(context, K_SIZE, 48)',
+                          'YFloatVisualSettings.readInt(context, K_LINE_WIDTH, 6)',
+                          'YFloatVisualSettings.readString(context, K_LINE_COLORS',
+                          'YFloatVisualSettings.writeBoolean(context, key, value)'),
+         "YFloat runtime values"),
+        (float_icon, ('16, 192, fs.sizeDp()',), "YFloat appearance UI"),
+        (float_gesture, ('K_LINE_WIDTH, 0, 64',), "YFloat gesture UI"),
+        (tokens, ('"button_radius": 12', '"button_padding_horizontal": 16',
+                  '"button_padding_vertical": 4'), "generated YUI defaults"),
+    ):
+        for required in markers:
+            require(source, required, label)
+    # Feature appearance settings must have one owner and one observable runtime value.
+    overlay_bridge = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatVisualSettings.java")
+    float_theme = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/ThemeSettings.java")
+    float_service = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatService.java")
+    float_migrator = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsMigrator.java")
+    rebuilt_settings = text(ROOT / "next/core/settings/src/main/java/com/yagay/ysuite/settings/DataStoreAppSettingsRepository.kt")
+    for source, markers, label in (
+        (appearance_store, ("FLOAT_ICON_ALPHA(", "FLOAT_TRAIL_COLORS(",
+                            "FLOAT_MENU_COUNT(", "FLOAT_BORDER_VISIBLE("),
+         "YUI owns feature appearance parameters"),
+        (registry, ("YControlGroup.OVERLAYS", "YControlKind.TEXT",
+                    "YSettingKey.FLOAT_TRAIL_COLORS"), "overlay appearance catalog"),
+        (appearance_screen, ("YControlGroup.OVERLAYS", "YControlKind.TEXT"),
+         "central appearance editor"),
+        (overlay_bridge, ("new YAppearanceStore(context).set(",
+                          "YSettingKey.FLOAT_MENU_COUNT", "YSettingKey.FLOAT_TRAIL_COLORS",
+                          "static void migrate("), "YFloat YUI bridge and migration"),
+        (float_theme, ("new com.yagay.yui.YAppearanceStore(c)",),
+         "YFloat theme facade"),
+        (float_service, ("appearanceStore.registerPreferenceListener(this)",
+                         "appearanceStore.unregisterPreferenceListener(this)",
+                         "refreshAppearance();"), "YFloat runtime appearance updates"),
+        (float_migrator, ("YFloatVisualSettings.migrate(app, p)",),
+         "YFloat migration bootstrap"),
+        (rebuilt_settings, ("YAppearanceStore(context)", "SuiteCommonSettings(context)",
+                            "appearance.set(", "YSettingKey.THEME"), "rebuilt host settings compatibility"),
+    ):
+        for required in markers:
+            require(source, required, label)
+    if 'AppCompatDelegate.setDefaultNightMode' in float_theme:
+        fail("YFloat must not override the host global theme")
+    if 'stringPreferencesKey("theme_mode")' in rebuilt_settings:
+        fail("rebuilt host must not maintain a second theme store")
+
+    # One persistence owner (YUI), but edits remain discoverable both in the
+    # host-wide appearance catalog and in the owning YFloat module page.
+    # Returning to the module must not silently hide icon size / opacity / style.
+    float_appearance_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppearanceSettingsActivity.java")
+    float_capture = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsCapturePage.java")
+    float_main = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MainActivity.java")
+    float_border = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/CircleBorderSettingsUi.java")
+    float_advanced = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsAdvancedSelectionPage.java")
+    for source, markers, label in (
+        (float_appearance_page, (
+            'addThemeSpinner(theme.body)', 'addMainItemCountSlider(textMenu.body)',
+            'MenuPickerActivity.customIntent(this)',
+        ), "YFloat appearance and menu editor"),
+        (float_icon, (
+            'ui.styleSpinner(appearance.body)', 'FloatSettings.K_ALPHA',
+            'FloatSettings.K_SIZE', 'FloatSettings.K_SHOW_PERCENT',
+        ), "YFloat icon visuals"),
+        (float_gesture, (
+            'FloatSettings.K_LINE_ALPHA', 'FloatSettings.K_LINE_WIDTH',
+            'ui.lineStyleSpinner(feedback.body)', 'FloatSettings.K_VIBRATE',
+        ), "YFloat trail controls"),
+        (float_capture, (
+            'CircleBorderSettingsUi.add(activity, fs, circleBorder.body)',
+            'ui.circleFullOcrEngineSpinner(circleOcr.body)',
+        ), "YFloat border and OCR"),
+        (float_border, ('FloatSettings.K_CIRCLE_BORDER_COLOR',
+                        'FloatSettings.K_CIRCLE_BORDER_WIDTH_DP',
+                        'YViewLayout.sliderSetting('), "YFloat border controls"),
+        (float_advanced, ('FloatSettings.K_NODE_IMAGE_MIN_DP',
+                          'settings.resetAdvancedSelectionSettings(true)'), "YFloat local selection controls"),
+        (float_main, ('R.string.yfloat_interface_settings',), "YFloat appearance navigation"),
+    ):
+        for marker in markers:
+            require(source, marker, label)
+    for source, label in (
+        (float_icon, "icon"),
+        (float_gesture, "trail"),
+        (float_capture, "border"),
+        (float_advanced, "local selection"),
+    ):
+        if 'if (!"com.yagay.YSuite".equals(activity.getPackageName()))' in source or 'if (!embeddedInSuite)' in source:
+            fail(f"YFloat {label} appearance is hidden in integrated YSuite")
+    require(overlay_bridge, "new YAppearanceStore(context).set(key, raw, MODULE)",
+            "YUI remains the only appearance preference owner")
+
+    # Rebuilt product layouts and legacy View activities must consume the live unified
+    # appearance rather than static shadow settings or an independent spacing scale.
+    product_spacing = text(ROOT / "next/core/designsystem/src/main/java/com/yagay/ysuite/designsystem/theme/YSuiteTokens.kt")
+    product_layout = text(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/ProductLayoutTokens.kt")
+    yui_geometry = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiGeometry.kt")
+    runtime = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUiInitializer.kt")
+    compact_home = text(ROOT / "suite/YSuite/src/main/java/com/yagay/YSuite/CompactSuiteHome.kt")
+    for source, markers, label in (
+        (appearance_store, ("CONTENT_WIDTH_SCALE(", "PANE_WIDTH_SCALE(",
+                            "contentWidthPercent =", "paneWidthPercent ="),
+         "canonical product layout settings"),
+        (registry, ("YSettingKey.CONTENT_WIDTH_SCALE", "YSettingKey.PANE_WIDTH_SCALE"),
+         "central layout catalog"),
+        (appearance_screen, ("appearance_content_width_scale", "appearance_pane_width_scale"),
+         "central layout editor"),
+        (product_spacing, ("import com.yagay.yui.YDimens",
+                           "YUiGeometry.spacing(YDimens.Spacing", "@Composable get()"),
+         "live YUI workspace spacing"),
+        (product_layout, ("YUiGeometry.contentWidth(base)", "YUiGeometry.paneWidth(base)",
+                          "@Composable get()"), "product pages delegate geometry to YUI"),
+        (yui_geometry, ("LocalYAppearance.current.contentWidthPercent",
+                         "LocalYAppearance.current.paneWidthPercent"),
+         "canonical YUI responsive geometry"),
+        (runtime, ("appearance.registerPreferenceListener(listener)",
+                   "foregroundActivities", "schedule(activity)"), "live View appearance observer"),
+        (compact_home, ("appearance.screenPaddingDp.dp", "appearance.effectiveGapDp"),
+         "live home layout settings"),
+    ):
+        for required in markers:
+            require(source, required, label)
+    # Self-painted YFloat overlays must resolve YUI settings through one bridge;
+    # incoming download links must use the same shared product dialog as manual tasks.
+    overlay_style = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/YFloatOverlayStyle.java")
+    icon_renderer = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FloatIconRenderer.java")
+    region_overlay = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/RegionOverlay.java")
+    editable_region = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/EditableRegionOverlay.java")
+    circle_overlay = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/FLCircleInlineOverlay.java")
+    download_vm = text(ROOT / "next/feature/ydownload/impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadViewModel.kt")
+    download_screen = text(ROOT / "next/feature/ydownload/impl/src/main/java/com/yagay/ysuite/feature/ydownload/YDownloadFeatureScreen.kt")
+    download_ui = text(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadComponents.kt")
+    download_workspace = text(ROOT / "next/core/productui/src/main/java/com/yagay/ysuite/productui/download/QdmDownloadWorkspace.kt")
+    shared_fabs = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YMaterialFloatingActions.kt")
+    for source, required_markers, label in (
+        (overlay_style, ("new YAppearanceStore(c).appearance(\"yfloat\")",
+                         "YOverlayTokens.", "getFloatBorderWidthDp()",
+                         "getButtonRadiusDp()", "getFontPercent()"), "YFloat Canvas YUI bridge"),
+        (icon_renderer, ("YFloatOverlayStyle.iconBackground(", "YFloatOverlayStyle.iconForeground("),
+         "floating icon palette"),
+        (region_overlay, ("YFloatOverlayStyle.scrim(", "YFloatOverlayStyle.selectionStroke("),
+         "region selection Canvas"),
+        (editable_region, ("YFloatOverlayStyle.selectionColor(", "YFloatOverlayStyle.actionSurface(",
+                           "YFloatOverlayStyle.buttonRadius("), "editable selection Canvas"),
+        (circle_overlay, ("YFloatOverlayStyle.scrim(", "YFloatOverlayStyle.accentWithAlpha("),
+         "Circle workspace Canvas"),
+        (download_vm, ("YDownloadIncomingUrlStore", "showAddDialog(url)"), "incoming URL UI routing"),
+        (download_screen, ("QdmDownloadWorkspace(", "QdmAddDownloadDialog("), "download product UI"),
+        (download_workspace, ("YUiFloatingActionButton as FloatingActionButton",
+                              "YUiSmallFloatingActionButton as SmallFloatingActionButton"),
+         "shared download FABs"),
+        (download_ui, ("LocalYAppearance.current.dialogRadiusDp",
+                       "LocalYAppearance.current.iconVisualSizeDp",
+                       "LocalYAppearance.current.effectiveGapDp"), "shared download dialog"),
+        (shared_fabs, ("LocalYAppearance.current.buttonGeometry()",
+                       "appearance.iconTouchDp", "appearance.cornerRadiusDp"),
+         "shared FAB facade"),
+    ):
+        for marker in required_markers:
+            require(source, marker, label)
+
+    # A YUI import alone does not mean the typography/layout are unified.
+    # Enforce the semantic row and footnote factories, not mere file membership.
+    yui_view = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YViewFramework.kt")
+    float_main = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MainActivity.java")
+    float_icon_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/SettingsIconPage.java")
+    float_appearance_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/AppearanceSettingsActivity.java")
+    float_picker_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuPickerActivity.java")
+    float_label_page = text(ROOT / "apps/YFloat/feature/src/main/java/com/yagay/YFloat/MenuLabelEditorActivity.java")
+    for marker in ("fun rowTitle(", "fun rowSubtitle(", "fun sectionNote(",
+                   "copy.addView(rowTitle(context, title))",
+                   "copy.addView(rowSubtitle(context, description))",
+                   "addView(rowSubtitle(context, subtitle), matchWrap())"):
+        require(yui_view, marker, "canonical View text hierarchy")
+    for source, label in ((float_main, "YFloat main and permission rows"),
+                          (float_picker_page, "YFloat menu picker"),
+                          (float_label_page, "YFloat label editor")):
+        for token in ("YViewLayout.caption(", "setEllipsize(", "setMaxLines("):
+            if token in source:
+                fail(f"{label} bypasses the shared YUI text role: {token}")
+        require(source, "YViewLayout.rowSubtitle(", label)
+    for source, label in ((float_icon_page, "YFloat position settings"),
+                          (float_appearance_page, "YFloat appearance settings"),
+                          (float_main, "YFloat main page")):
+        require(source, "YViewLayout.sectionNote(", label)
+
+    # Legacy home and common components must not retain a second static layout scale.
+    compact_dashboard = text(ROOT / "next/core/ui/src/main/java/com/yagay/ysuite/ui/YSuiteCompactDashboard.kt")
+    browser_hosts = text(ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/BrowserHostFilterRow.kt")
+    unified_design = text(ROOT / "libs/yui/src/main/java/com/yagay/yui/YUnifiedDesign.kt")
+    if "YDimens." in compact_dashboard or "LocalYAppearance.current" not in compact_dashboard:
+        fail("YSuiteCompactDashboard must use live YUI appearance instead of static YDimens")
+    if ".heightIn(max = 320.dp)" in browser_hosts:
+        fail("BrowserHostFilterRow must derive its scroll-panel height from YUI")
+    if "Arrangement.spacedBy(8.dp)" in unified_design:
+        fail("shared YUI component spacing must use live appearance rather than fixed 8dp")
+
+    # All regular screens identified in the fixed-dp audit must use live YUI
+    # appearance values. Keep this check as new modules are migrated.
+    runtime_sized_screens = (
+        YDIAG,
+        ROOT / "apps/YEntryCleaner/feature/src/main/java/com/yagay/YEntryCleaner/ui/CustomOpenTypeDialog.kt",
+        YENTRY_PRIORITY,
+        YENTRY_ROOT,
+        YNFC_SCREEN,
+        YNFC_COMPONENTS,
+        YTASK,
+    )
+    for screen in runtime_sized_screens:
+        content = text(screen)
+        local_dp = re.findall(r"(?<![A-Za-z_0-9.])\d+(?:\.\d+)?\.dp\b", content)
+        if local_dp:
+            fail(f"{screen.relative_to(ROOT)} has fixed dp literals: {local_dp}")
+        if "YDimens." in content:
+            fail(f"{screen.relative_to(ROOT)} still depends on build-time dimensions")
+        if "LocalYAppearance.current" not in content:
+            fail(f"{screen.relative_to(ROOT)} must consume the current YUI appearance")
     print(
         "ui-framework: OK compose=YUI-v2 view=YViewPage/YViewLayout page-xml=forbidden "
         "primary=YSuite,YPower,YMiniGuard,YNotify,YEntryCleaner,YParam,YNFC,YTaskManager,YDiag "

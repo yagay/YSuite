@@ -31,3 +31,12 @@ target_link_libraries(
         ${log-lib}
         ${dl-lib}
 )
+
+# NDK r27 does not guarantee 16 KiB ELF LOAD alignment without explicit
+# linker options. Both native tracing libraries must be safe on 16 KiB devices.
+foreach(trace_target IN ITEMS ypower_native_trace ypower_socket_trace)
+    target_link_options(${trace_target} PRIVATE
+        "-Wl,-z,max-page-size=16384"
+        "-Wl,-z,common-page-size=16384"
+    )
+endforeach()

@@ -2,6 +2,9 @@ package com.yagay.ysuite.productui.filemanager
 
 import com.yagay.ysuite.productui.YSuiteProductTopBar
 
+import com.yagay.yui.YDimens
+import com.yagay.yui.YUiGeometry
+import com.yagay.yui.LocalYAppearance
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -45,21 +48,20 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import com.yagay.yui.YUiCheckbox as Checkbox
+import com.yagay.yui.YUiDropdownMenu as DropdownMenu
+import com.yagay.yui.YUiDropdownMenuItem as DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
+import com.yagay.yui.YUiFloatingActionButton as FloatingActionButton
+import com.yagay.yui.YUiHorizontalDivider as HorizontalDivider
+import com.yagay.yui.YUiIcon as Icon
+import com.yagay.yui.YUiIconButton as IconButton
+import com.yagay.yui.YListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
+import com.yagay.yui.YUiModalBottomSheet as ModalBottomSheet
+import com.yagay.yui.YUiSurface as Surface
+import com.yagay.yui.YUiText as Text
+import com.yagay.yui.YUiOutlinedTextField as TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -143,30 +145,30 @@ fun YFileBreadcrumbBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 1.dp,
+        tonalElevation = YUiGeometry.cardElevation(),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(scroll)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = YUiGeometry.gap(), vertical = YUiGeometry.tinyGap()),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Default.Storage,
-                contentDescription = providerLabel,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(20.dp)
-                    .clickable(onClick = onRoot),
-            )
+            IconButton(onClick = onRoot) {
+                Icon(
+                    imageVector = Icons.Default.Storage,
+                    contentDescription = providerLabel,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
+                )
+            }
             Text(
                 text = providerLabel,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .clickable(onClick = onRoot)
-                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                    .padding(horizontal = YUiGeometry.compactGap(), vertical = YUiGeometry.compactGap()),
             )
 
             if (absolutePath) {
@@ -174,7 +176,7 @@ fun YFileBreadcrumbBar(
                     Text(
                         text = "›",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 2.dp),
+                        modifier = Modifier.padding(horizontal = YUiGeometry.tinyGap()),
                     )
                     val last = index == segments.lastIndex
                     Text(
@@ -183,13 +185,11 @@ fun YFileBreadcrumbBar(
                         color =
                             if (last) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .clickable(enabled = !last) {
                                 onNavigatePath(segment.path)
                             }
-                            .padding(horizontal = 6.dp, vertical = 6.dp),
+                            .padding(horizontal = YUiGeometry.compactGap(), vertical = YUiGeometry.compactGap()),
                     )
                 }
             } else {
@@ -197,9 +197,7 @@ fun YFileBreadcrumbBar(
                     text = path,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 8.dp),
+                    modifier = Modifier.padding(horizontal = YUiGeometry.compactGap()),
                 )
             }
 
@@ -230,19 +228,12 @@ fun FileExplorerSearchBar(
         onValueChange = onQueryChange,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = YUiGeometry.gap(), vertical = YUiGeometry.tinyGap()),
         singleLine = true,
         placeholder = { Text(searchLabel) },
         leadingIcon = {
             Icon(Icons.Default.Search, contentDescription = null)
         },
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
     )
 }
 
@@ -390,7 +381,7 @@ fun YFileSourcePane(
         modifier = modifier
             .fillMaxWidth()
             .padding(YSuiteSpacing.Medium),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(YUiGeometry.tinyGap()),
     ) {
         sources.forEach { source ->
             SourceRow(
@@ -403,7 +394,7 @@ fun YFileSourcePane(
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = YUiGeometry.compactGap()))
 
         SourceRow(
             label = browserLabel,
@@ -430,7 +421,7 @@ fun YFileSourcePane(
             onClick = { onSectionSelected("trash") },
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = YUiGeometry.compactGap()))
 
         SourceRow(
             label = toolsLabel,
@@ -466,9 +457,9 @@ private fun SourceRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = YUiGeometry.pagePadding(), vertical = YUiGeometry.sectionGap()),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(YUiGeometry.pagePadding()),
         ) {
             Icon(icon, contentDescription = null)
             Text(
@@ -513,12 +504,15 @@ fun YFileEntryRow(
                     },
                     onLongClick = onToggleSelection,
                 )
-                .heightIn(min = 48.dp)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .heightIn(min = LocalYAppearance.current.rowHeightDp.dp)
+                .padding(
+                    horizontal = LocalYAppearance.current.rowHorizontalPaddingDp.dp,
+                    vertical = LocalYAppearance.current.rowVerticalPaddingDp.dp,
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(LocalYAppearance.current.listIconSizeDp.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 if (selectionMode && selected) {
@@ -526,7 +520,7 @@ fun YFileEntryRow(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                 } else {
                     Icon(
@@ -538,19 +532,20 @@ fun YFileEntryRow(
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(LocalYAppearance.current.iconVisualSizeDp.dp),
                     )
                 }
             }
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 12.dp),
+                    .padding(start = YUiGeometry.gap()),
             ) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
+                    maxLines = LocalYAppearance.current.fileItemTitleMaxLines.takeIf { it > 0 }
+                        ?: Int.MAX_VALUE,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (!subtitle.isNullOrBlank()) {
@@ -558,7 +553,8 @@ fun YFileEntryRow(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = LocalYAppearance.current.fileItemSubtitleMaxLines.takeIf { it > 0 }
+                            ?: Int.MAX_VALUE,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -621,7 +617,7 @@ fun FileExplorerDetailsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
+                .padding(bottom = YUiGeometry.sectionGap()),
             content = content,
         )
     }
@@ -633,15 +629,14 @@ fun FileExplorerDetailRow(
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent =
-            subtitle?.let { value ->
-                { Text(value) }
-            },
-        modifier =
-            if (onClick == null) Modifier
-            else Modifier.clickable(onClick = onClick),
+    YListItem(
+        title = title,
+        subtitle = subtitle,
+        onClick = onClick,
+        titleMaxLines = LocalYAppearance.current.fileDetailTitleMaxLines.takeIf { it > 0 }
+            ?: Int.MAX_VALUE,
+        subtitleMaxLines = LocalYAppearance.current.fileDetailSubtitleMaxLines.takeIf { it > 0 }
+            ?: Int.MAX_VALUE,
     )
 }
 

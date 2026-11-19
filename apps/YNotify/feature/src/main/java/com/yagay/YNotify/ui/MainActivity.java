@@ -32,6 +32,8 @@ import com.yagay.YNotify.data.AppSummary;
 import com.yagay.YNotify.data.EventRecord;
 import com.yagay.YNotify.data.EventStore;
 import com.yagay.YNotify.data.EventTypes;
+import com.yagay.YNotify.data.EventFilters;
+import com.yagay.YNotify.data.NotificationFilterCatalog;
 import com.yagay.YNotify.data.HistoryRepairEngine;
 import com.yagay.YNotify.data.ListenerStateStore;
 import com.yagay.YNotify.data.NotifyDatabase;
@@ -41,6 +43,7 @@ import com.google.android.material.chip.ChipGroup;
 import com.yagay.yui.YView;
 import com.yagay.yui.YViewFilterBar;
 import com.yagay.yui.YViewLayout;
+import com.yagay.yui.YViewDialogs;
 import com.yagay.yui.YViewPage;
 import com.yagay.yui.YViewSection;
 import com.yagay.yui.YViewRadioGroup;
@@ -52,10 +55,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String FILTER_ALL = "all";
-    private static final String FILTER_HEADS_UP = "heads_up";
-    private static final String FILTER_BUBBLE = "bubble";
-    private static final String FILTER_FULL_SCREEN = "full_screen";
+    private static final String FILTER_ALL = EventFilters.ALL;
+    private static final String FILTER_HEADS_UP = EventFilters.HEADS_UP;
+    private static final String FILTER_BUBBLE = EventFilters.BUBBLE;
+    private static final String FILTER_FULL_SCREEN = EventFilters.FULL_SCREEN;
     private static final String PREFS = "ynotify_settings";
     private static final String ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
             "android.settings.ACCESSIBILITY_DETAILS_SETTINGS";
@@ -71,8 +74,9 @@ public class MainActivity extends AppCompatActivity {
     private View searchBox;
     private View filterScroll;
     private ScrollView settingsPanel;
-    private ChipGroup chipGroup;
-    private YViewFilterBar filterBar;
+    private YViewFilterBar groupFilterBar;
+    private NotificationFilterPanel notificationPanel;
+    private YViewFilterBar uiFilterBar;
     private RecyclerView list;
     private BottomNavigationView bottomNav;
     private TextView diagnosticsStatus;
@@ -88,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
     private LiveData<List<EventRecord>> eventSource;
     private LiveData<List<AppSummary>> appSource;
     private String selectedType = FILTER_ALL;
+    private String selectedGroup = EventFilters.ALL;
     private int mode = R.id.nav_timeline;
 
     @Override protected void onCreate(Bundle state) {
@@ -105,9 +110,19 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
-        chipGroup.setOnCheckedStateChangeListener((group, ids) -> {
+        groupFilterBar.group.setOnCheckedStateChangeListener((group, ids) -> {
             if (ids.isEmpty()) return;
-            selectedType = typeForFilterIndex(filterBar.indexForId(ids.get(0)));
+            selectedGroup = EventFilters.groupAt(groupFilterBar.indexForId(ids.get(0)));
+            selectedType = EventFilters.NOTIFICATIONS.equals(selectedGroup)
+                    ? EventFilters.NOTIFICATIONS
+                    : EventFilters.selectedTypeForGroup(selectedGroup, 0,
+                            uiFilterBar.indexForId(uiFilterBar.group.getCheckedChipId()));
+            refreshFilterVisibility();
+            observeTimeline();
+        });
+        uiFilterBar.group.setOnCheckedStateChangeListener((group, ids) -> {
+            if (ids.isEmpty() || !EventFilters.UI_EVENTS.equals(selectedGroup)) return;
+            selectedType = EventFilters.uiAt(uiFilterBar.indexForId(ids.get(0)));
             observeTimeline();
         });
 
@@ -123,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
         setupRetention();
         setupHistoryRepair();
         setupDiagnosticsExport();
-        btnClearAll.setOnClickListener(v -> new AlertDialog.Builder(this)
+        btnClearAll.setOnClickListener(v -> YViewDialogs.builder(this)
                 .setTitle(R.string.ynotify_clear_confirm_title)
                 .setMessage(R.string.ynotify_clear_confirm_message)
                 .setNegativeButton(R.string.ynotify_cancel, null)
@@ -173,24 +188,31 @@ public class MainActivity extends AppCompatActivity {
         searchBox = searchHolder;
         main.addView(searchHolder);
 
-        filterBar = YViewLayout.filterBar(
-                this,
-                List.of(
-                        getString(R.string.ynotify_filter_all),
-                        getString(R.string.ynotify_filter_notification),
-                        getString(R.string.ynotify_filter_heads_up),
-                        getString(R.string.ynotify_filter_bubble),
-                        getString(R.string.ynotify_filter_full_screen),
-                        getString(R.string.ynotify_filter_toast),
-                        getString(R.string.ynotify_filter_dialog),
-                        getString(R.string.ynotify_filter_popup),
-                        getString(R.string.ynotify_filter_snackbar)),
-                0);
-        chipGroup = filterBar.group;
-        filterScroll = filterBar.view;
+        // A content-source selector precedes its type-specific filters.
+        // The same YUI filter component renders both layers.
+        groupFilterBar = YViewLayout.filterBar(this, List.of(
+                getString(R.string.ynotify_filter_all),
+                getString(R.string.ynotify_filter_notification),
+                getString(R.string.ynotify_group_ui_events)), 0);
+        notificationPanel = new NotificationFilterPanel(this,this::observeTimeline);
+        uiFilterBar = YViewLayout.filterBar(this, List.of(
+                getString(R.string.ynotify_filter_all_ui_events),
+                getString(R.string.ynotify_filter_toast),
+                getString(R.string.ynotify_filter_dialog),
+                getString(R.string.ynotify_filter_popup),
+                getString(R.string.ynotify_filter_snackbar),
+                getString(R.string.ynotify_type_system_ui),
+                getString(R.string.ynotify_class_other_ui)), 0);
+        LinearLayout filterColumn = new LinearLayout(this);
+        filterColumn.setOrientation(LinearLayout.VERTICAL);
+        filterColumn.addView(groupFilterBar.view);
+        filterColumn.addView(notificationPanel.view);
+        filterColumn.addView(uiFilterBar.view);
+        filterScroll = filterColumn;
         main.addView(filterScroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
+        refreshFilterVisibility();
 
         list = new RecyclerView(this);
         list.setClipToPadding(false);
@@ -207,7 +229,7 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 getString(R.string.ynotify_runtime_status),
                 null);
-        runtimeStatus = YViewLayout.text(this, "", 14, false);
+        runtimeStatus = YViewLayout.text(this, "");
         runtimeStatus.setTextIsSelectable(true);
         runtime.body.addView(runtimeStatus);
         YViewLayout.addSection(settingsRoot, runtime);
@@ -224,8 +246,7 @@ public class MainActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         diagnosticsStatus = YViewLayout.caption(
                 this,
-                getString(R.string.ynotify_diagnostics_location),
-                13);
+                getString(R.string.ynotify_diagnostics_location));
         diagnostics.body.addView(diagnosticsStatus);
         YViewLayout.addSection(settingsRoot, diagnostics);
 
@@ -241,8 +262,7 @@ public class MainActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         repairStatus = YViewLayout.caption(
                 this,
-                getString(R.string.ynotify_not_scanned),
-                13);
+                getString(R.string.ynotify_not_scanned));
         repair.body.addView(repairStatus);
         YViewLayout.addSection(settingsRoot, repair);
 
@@ -274,9 +294,7 @@ public class MainActivity extends AppCompatActivity {
 
         TextView scope = YViewLayout.text(
                 this,
-                getString(R.string.ynotify_scope_help),
-                14,
-                false);
+                getString(R.string.ynotify_scope_help));
         settingsRoot.addView(scope);
 
         bottomNav = YViewLayout.bottomNavigation(this, R.menu.bottom_nav);
@@ -522,6 +540,11 @@ public class MainActivity extends AppCompatActivity {
                     : NotifyDatabase.get(this).eventFtsDao().search(fts);
         } else if (FILTER_ALL.equals(selectedType)) {
             eventSource = NotifyDatabase.get(this).eventDao().observeAll();
+        } else if (EventFilters.NOTIFICATIONS.equals(selectedType)
+                || EventTypes.NOTIFICATION.equals(selectedType)) {
+            eventSource = NotifyDatabase.get(this).eventDao().observeNotifications();
+        } else if (EventFilters.UI_EVENTS.equals(selectedType)) {
+            eventSource = NotifyDatabase.get(this).eventDao().observeUiEvents();
         } else if (FILTER_HEADS_UP.equals(selectedType)) {
             eventSource = NotifyDatabase.get(this).eventDao().observeHeadsUp();
         } else if (FILTER_BUBBLE.equals(selectedType)) {
@@ -532,32 +555,24 @@ public class MainActivity extends AppCompatActivity {
             eventSource = NotifyDatabase.get(this).eventDao().observeType(selectedType);
         }
 
-        eventSource.observe(this, list -> {
-            if (q.isEmpty() || FILTER_ALL.equals(selectedType)) {
-                eventAdapter.submit(list);
+        // Freeze the filter in this observer. Old asynchronous LiveData queries
+        // must never apply a newer chip's selection to older results.
+        final String requestedFilter = selectedType;
+        final NotificationFilterPanel.Selection requestedNotification = notificationPanel.snapshot();
+        eventSource.observe(this, records -> {
+            if (FILTER_ALL.equals(requestedFilter)) {
+                eventAdapter.submit(records);
                 return;
             }
             List<EventRecord> filtered = new ArrayList<>();
-            if (list != null) {
-                for (EventRecord r : list) if (matchesSelectedFilter(r)) filtered.add(r);
+            if (records != null) for (EventRecord record : records) {
+                boolean include = EventFilters.NOTIFICATIONS.equals(requestedFilter)
+                        ? requestedNotification.matches(record)
+                        : EventFilters.matches(record,requestedFilter);
+                if (include) filtered.add(record);
             }
             eventAdapter.submit(filtered);
         });
-    }
-
-    private boolean matchesSelectedFilter(EventRecord r) {
-        if (r == null) return false;
-        if (FILTER_ALL.equals(selectedType)) return true;
-        if (FILTER_HEADS_UP.equals(selectedType)) {
-            return EventTypes.NOTIFICATION.equals(r.eventType) && r.headsUp;
-        }
-        if (FILTER_BUBBLE.equals(selectedType)) {
-            return EventTypes.NOTIFICATION.equals(r.eventType) && r.bubbleShown;
-        }
-        if (FILTER_FULL_SCREEN.equals(selectedType)) {
-            return EventTypes.NOTIFICATION.equals(r.eventType) && r.fullScreenShown;
-        }
-        return selectedType.equals(r.eventType);
     }
 
     private void observeApps() {
@@ -569,18 +584,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private String typeForFilterIndex(int index) {
-        return switch (index) {
-            case 1 -> EventTypes.NOTIFICATION;
-            case 2 -> FILTER_HEADS_UP;
-            case 3 -> FILTER_BUBBLE;
-            case 4 -> FILTER_FULL_SCREEN;
-            case 5 -> EventTypes.TOAST;
-            case 6 -> EventTypes.DIALOG;
-            case 7 -> EventTypes.POPUP;
-            case 8 -> EventTypes.SNACKBAR;
-            default -> FILTER_ALL;
-        };
+    private void refreshFilterVisibility() {
+        if (notificationPanel == null || uiFilterBar == null) return;
+        notificationPanel.setVisible(EventFilters.NOTIFICATIONS.equals(selectedGroup));
+        uiFilterBar.view.setVisibility(
+                EventFilters.UI_EVENTS.equals(selectedGroup) ? View.VISIBLE : View.GONE);
     }
 
     private SharedPreferences retentionPreferences() {

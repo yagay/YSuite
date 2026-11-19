@@ -81,3 +81,51 @@ Success, warning and information colors are semantic tokens and are not aliases 
 - shared YUI usage by all current modules,
 - no new private UI systems,
 - YFloat remaining a thin compatibility adapter.
+
+## Cross-module row alignment and ARM64 Debug policy
+
+On `rebuild/material3-full-ui`, YFloat's Android View settings are live and
+use the shared `libs/yui/YViewFramework.kt` renderer. Navigation rows,
+permission rows and ordinary settings rows use the **same YUI card inset**
+from `YView.cardPadding`; menu reordering rows do not override it. Native
+row labels wrap instead of enforcing one line.
+
+The rebuilt Compose settings-group header uses
+`LocalYAppearance.current.rowHorizontalPaddingDp`, the same appearance
+parameter as `YListItem`. Existing YUI controls and dynamic color owners
+remain untouched, rather than importing a second design system.
+
+`tools/verify_yui_row_alignment.py` asserts these contracts and checks CI
+workflow ownership. For this branch, only `:suite:assembleDebug` executes as
+an APK build; its artifact is `YSuite-debug-arm64-v8a`. Other workflows may
+still run source-only architecture checks. GitHub Action success is not a
+substitute for large-font, narrow-screen and dark-theme device validation.
+
+## Shared installed-app inventory and other cross-feature data sources
+
+Android's installed-app inventory and label lookup must use
+`com.yagay.suite.api.InstalledAppCatalog` rather than duplicate
+`PackageManager.getInstalledApplications` calls in feature UI/repositories.
+It caches flag-specific immutable snapshots by host package and locale,
+invalidates on package-change broadcasts, and shares bounded icon bitmaps.
+Callers perform their own UI/background dispatching. The source is located
+in `libs/yapi` so both standalone features and the integrated suite use it.
+YFloat's custom-menu app chooser also uses the same inventory and label/icon
+cache; its activity/intent resolver results remain independent so the
+custom actions and component selection are not altered. YEntryCleaner still
+classifies updated system apps with its own policy;
+Root-only component discovery and security-sensitive package queries
+remain feature-owned and are **not** substituted with this ordinary inventory.
+
+`tools/verify_shared_app_catalog.py` enforces source ownership and
+checks consumers. Root, LSPosed, accessibility permission, and runtime state
+use their existing host facade when appropriate, but heterogeneous
+privileged operations are not forced into a single unsafe loader.
+
+The same installed-app data source is also used by MiniGuard's launchable
+target picker, YTaskManager's UID/process mapping, YFiles' installed APK
+view (which retains its additional package/version lookup flags) and YNotify's
+notification-history label/icon helper. Their feature-specific filtering,
+UID joining, historical-uninstalled fallback, and Root/component enumeration
+remain separate. Standard application labels and 64px icon bitmaps are cached
+centrally rather than within each feature.

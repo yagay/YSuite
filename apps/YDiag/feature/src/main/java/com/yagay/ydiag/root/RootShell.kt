@@ -2,16 +2,14 @@ package com.yagay.ydiag.root
 
 import com.yagay.suite.api.FeatureServices
 import com.yagay.suite.api.FeatureRootCommands
+import com.yagay.suite.api.HostRootProbe
 
 data class ShellResult(val code: Int, val stdout: String, val stderr: String)
 
 object RootShell {
     private val services = FeatureServices.of("ydiag", "YDiag")
 
-    fun isAvailable(): Boolean = runCatching {
-        val result = exec("id", 4)
-        result.code == 0 && result.stdout.contains("uid=0")
-    }.getOrDefault(false)
+    fun isAvailable(): Boolean = HostRootProbe.probe(services, 4L).granted
 
     fun exec(command: String, timeoutSeconds: Long = 15): ShellResult {
         val result = FeatureRootCommands.execute(services, "root-shell", command, timeoutSeconds)

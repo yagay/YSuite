@@ -1,5 +1,7 @@
 package com.yagay.YEntryCleaner.ui
 
+import com.yagay.yui.YUiText
+
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -78,7 +80,7 @@ class MainActivity : YComposeActivity() {
                     ),
                 ),
             ) {
-                androidx.compose.material3.Text(stringResource(R.string.restart_required_message))
+                YUiText(stringResource(R.string.restart_required_message))
             }
         }
         val keyboard = LocalSoftwareKeyboardController.current

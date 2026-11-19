@@ -83,6 +83,10 @@ class FeatureStateStore(context: Context) {
      * Enable prepares runtime before Hook replay; disable cuts Hook/Root access before cleanup.
      */
     fun setEnabled(feature: FeatureSpec, enabled: Boolean) {
+        // A previously verified feature Hook/Root capability cannot remain
+        // authoritative after disable/re-enable or a Host replacement.
+        com.yagay.suite.api.FeatureHookEvidence.invalidate(feature.id)
+        com.yagay.suite.api.HostRootProbe.invalidate(feature.id)
         prefs.edit()
             .putBoolean(SuiteContract.FEATURE_STATE_KEY_PREFIX + feature.id, enabled)
             .apply()

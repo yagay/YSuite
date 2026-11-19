@@ -20,6 +20,7 @@ public class SettingsActivity extends AppCompatActivity {
     public static final int SECTION_ENVIRONMENT = 4;
     public static final int SECTION_ACTIONS = 5;
     public static final int SECTION_PRIVILEGE = 6;
+    public static final int SECTION_ADVANCED_SELECTION = 7;
 
     static final int REQUEST_CUSTOM_ICON = 401;
     static final int REQUEST_SLIDE_ICONS = 402;
@@ -42,6 +43,7 @@ public class SettingsActivity extends AppCompatActivity {
             case SECTION_ENVIRONMENT -> root = SettingsEnvironmentPage.build(this, fs);
             case SECTION_ACTIONS -> root = SettingsActionsPage.build(this, fs);
             case SECTION_PRIVILEGE -> root = PrivilegeSettingsPanel.build(this, fs);
+            case SECTION_ADVANCED_SELECTION -> root = SettingsAdvancedSelectionPage.build(this, fs);
             default -> root = buildHomePage();
         }
         setContentView(YViewLayout.scrollPage(this, root));
@@ -62,6 +64,9 @@ public class SettingsActivity extends AppCompatActivity {
         addCategory(categories.body,
                 getString(R.string.yfloat_capture_ocr_settings),
                 getString(R.string.yfloat_settings_capture_desc), SECTION_CAPTURE);
+        addCategory(categories.body,
+                getString(R.string.yfloat_advanced_selection_title),
+                getString(R.string.yfloat_advanced_selection_summary), SECTION_ADVANCED_SELECTION);
         addCategory(categories.body,
                 getString(R.string.yfloat_environment_settings),
                 getString(R.string.yfloat_settings_environment_desc), SECTION_ENVIRONMENT);
