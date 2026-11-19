@@ -1,7 +1,5 @@
 package com.yagay.YFloat;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -241,9 +239,7 @@ public final class FloatActionMenu {
         items.add(more);
 
         copy.setOnClickListener(v -> {
-            ClipboardManager cm = (ClipboardManager) app.getSystemService(Context.CLIPBOARD_SERVICE);
-            if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("YFloat", text));
-            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e84b8e9c556), Toast.LENGTH_SHORT).show();
+            YFloatClipboardWriter.copyText(app, text, "text_action_menu");
             dismiss();
         });
         if (all != null) {
