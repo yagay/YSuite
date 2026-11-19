@@ -120,6 +120,7 @@ public final class ShortcutAppsActivity extends AppCompatActivity {
     private void showPicker() {
         PackageManager pm = getPackageManager();
         List<ResolveInfo> installed = ShortcutAppStore.launchable(this);
+        List<String> draft = new ArrayList<>(selected);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         EditText search = new EditText(this);
@@ -134,7 +135,11 @@ public final class ShortcutAppsActivity extends AppCompatActivity {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.yfloat_shortcuts_add)
                 .setView(layout)
-                .setPositiveButton(android.R.string.ok, (d, which) -> redraw())
+                .setPositiveButton(android.R.string.ok, (d, which) -> {
+                    selected.clear();
+                    selected.addAll(draft);
+                    persist();
+                })
                 .setNegativeButton(android.R.string.cancel, null).create();
         Runnable refresh = () -> {
             choices.removeAllViews();
@@ -153,12 +158,11 @@ public final class ShortcutAppsActivity extends AppCompatActivity {
                     icon.setBounds(0, 0, dp(32), dp(32));
                     box.setCompoundDrawables(icon, null, null, null);
                 } catch (Exception ignored) { }
-                box.setChecked(selected.contains(pkg));
+                box.setChecked(draft.contains(pkg));
                 box.setPadding(dp(10), dp(4), dp(10), dp(4));
                 box.setOnCheckedChangeListener((view, checked) -> {
-                    if (checked && !selected.contains(pkg)) selected.add(pkg);
-                    else if (!checked) selected.remove(pkg);
-                    ShortcutAppStore.save(this, selected);
+                    if (checked && !draft.contains(pkg)) draft.add(pkg);
+                    else if (!checked) draft.remove(pkg);
                 });
                 choices.addView(box);
             }
