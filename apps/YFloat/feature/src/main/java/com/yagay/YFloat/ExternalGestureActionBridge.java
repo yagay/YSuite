@@ -3,8 +3,6 @@ package com.yagay.YFloat;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.util.DisplayMetrics;
-import android.view.WindowManager;
 import android.widget.Toast;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,27 +65,26 @@ final class ExternalGestureActionBridge {
         });
     }
 
-    /** Emulates a long press on the navigation handle; OEM CTS support may vary. */
+    /** Trigger Google Circle to Search through the official MiCTS launcher entry. */
     static void googleCircle(Context context) {
-        IO.execute(() -> {
-            try {
-                WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-                if (wm == null) { unavailable(context); return; }
-                DisplayMetrics dm = context.getResources().getDisplayMetrics();
-                int width = dm.widthPixels;
-                int height = dm.heightPixels;
-                if (width < 100 || height < 100) { unavailable(context); return; }
-                int x = width / 2;
-                int y = height - Math.max(12, (int) (12 * dm.density));
-                RootCommandExecutor.Result result = RootCommandExecutor.runText(
-                        "input swipe " + x + " " + y + " " + x + " " + y + " 750", 5, 1024);
-                if (!result.success()) failed(context, "Google circle gesture", result);
-                else DiagnosticLog.i(context, "EXTERNAL_ACTION", "Google CTS gesture sent");
-            } catch (Exception e) {
-                DiagnosticLog.i(context, "EXTERNAL_ACTION", "Google CTS error=" + e);
+        final String pkg = "com.parallelc.micts";
+        try {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.setClassName(pkg, "com.parallelc.micts.ui.activity.MainActivity");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            if (intent.resolveActivity(context.getPackageManager()) == null) {
+                DiagnosticLog.i(context, "EXTERNAL_ACTION", "MiCTS launcher unavailable");
                 unavailable(context);
+                return;
             }
-        });
+            context.startActivity(intent);
+            DiagnosticLog.i(context, "EXTERNAL_ACTION", "MiCTS Circle to Search requested");
+        } catch (Exception e) {
+            DiagnosticLog.i(context, "EXTERNAL_ACTION",
+                    "MiCTS launch failed=" + e.getClass().getSimpleName());
+            unavailable(context);
+        }
     }
 
     private static boolean installed(Context c, String pkg) {
