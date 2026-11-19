@@ -8,7 +8,6 @@ import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
@@ -27,7 +26,9 @@ final class ShortcutAppOverlay {
     private static View surface;
     private static final String TAG = "app_shortcut_menu";
 
-    static synchronized void toggle(Context context, int anchorX, int anchorY) {
+    static synchronized boolean isShowing() { return surface != null; }
+
+    static synchronized void toggle(Context context, Rect iconBounds) {
         if (surface != null) {
             dismiss();
             return;
@@ -104,19 +105,35 @@ final class ShortcutAppOverlay {
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         scroll.addView(body);
-        scroll.setOnTouchListener((v, e) -> {
-            if (e.getActionMasked() == MotionEvent.ACTION_OUTSIDE) {
-                dismiss();
-                return true;
-            }
-            return false;
-        });
-        int gap = ScreenGeometry.dp(context, 7);
-        // Prefer the side facing the screen centre and never cover the floating handle.
-        int left = anchorX < usable.centerX() ? anchorX + gap : anchorX - width - gap;
-        int x = ScreenGeometry.clamp(left, usable.left + gap,
-                Math.max(usable.left + gap, usable.right - width - gap));
-        int y = ScreenGeometry.clamp(anchorY - height / 2,
+        // Position relative to the entire icon's touch footprint, not its centre.
+        // A centre anchor used to put the transparent list over half of the icon.
+        int gap = ScreenGeometry.dp(context, 10);
+        Rect icon = iconBounds == null ? new Rect() : new Rect(iconBounds);
+        if (icon.isEmpty()) {
+            icon.set(usable.centerX() - gap, usable.centerY() - gap,
+                    usable.centerX() + gap, usable.centerY() + gap);
+        }
+        boolean opensRight = icon.centerX() < usable.centerX();
+        int desiredX = opensRight ? icon.right + gap : icon.left - gap - width;
+        int minX = usable.left + gap;
+        int maxX = Math.max(minX, usable.right - width - gap);
+        int x = ScreenGeometry.clamp(desiredX, minX, maxX);
+        // If the preferred side is cramped, try the other side without overlap.
+        if (opensRight && x < icon.right + gap && icon.left - gap - width >= minX) {
+            x = icon.left - gap - width;
+        } else if (!opensRight && x + width > icon.left - gap
+                && icon.right + gap + width <= usable.right - gap) {
+            x = icon.right + gap;
+        }
+        // Never create an overlay over the icon, including touch-invisible pixels.
+        if (x < icon.right && x + width > icon.left) {
+            DiagnosticLog.i(context, "APP_SHORTCUTS",
+                    "no room beside icon rect=" + icon + " width=" + width);
+            Toast.makeText(context, R.string.yfloat_shortcuts_overlay_failed,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int y = ScreenGeometry.clamp(icon.centerY() - height / 2,
                 usable.top + gap,
                 Math.max(usable.top + gap, usable.bottom - height - gap));
 
@@ -125,7 +142,6 @@ final class ShortcutAppOverlay {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                         | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-                        | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
