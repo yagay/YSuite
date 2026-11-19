@@ -401,10 +401,7 @@ public final class FloatActionMenu {
         items.add(more);
 
         copy.setOnClickListener(v -> {
-            ClipboardManager cm = (ClipboardManager) app.getSystemService(Context.CLIPBOARD_SERVICE);
-            if (cm != null) cm.setPrimaryClip(ClipData.newPlainText(
-                    "YFloat", currentSelectionText(text)));
-            Toast.makeText(app, com.yagay.suite.api.YLocale.text(com.yagay.YFloat.R.string.yfloat_generated_2e84b8e9c556), Toast.LENGTH_SHORT).show();
+            YFloatClipboardWriter.copyText(app, currentSelectionText(text), "text_action_menu");
             finishTextSelectionAction(app, "copy");
         });
         if (all != null) {
