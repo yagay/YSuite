@@ -23,6 +23,10 @@ final class ActionRegistry {
         LABELS.put(ActionId.CLICK_UNDER, R.string.yfloat_action_click_under);
         LABELS.put(ActionId.MOVE_ICON, R.string.yfloat_action_move_icon);
         LABELS.put(ActionId.HIDE, R.string.yfloat_action_hide);
+        LABELS.put(ActionId.OPEN_YSUITE, R.string.yfloat_action_open_ysuite);
+        LABELS.put(ActionId.GOOGLE_CIRCLE, R.string.yfloat_action_google_circle);
+        LABELS.put(ActionId.ATLAS_WINDOW, R.string.yfloat_action_atlas_window);
+        LABELS.put(ActionId.NEXTEP_TOGGLE, R.string.yfloat_action_nextep_toggle);
     }
 
     static String[] availableIds() {
