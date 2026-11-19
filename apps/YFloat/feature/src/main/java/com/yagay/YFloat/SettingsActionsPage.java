@@ -46,6 +46,13 @@ final class SettingsActionsPage {
                 FloatSettings.K_ACTION_SIDE_LONG,
                 ActionRegistry.defaultForPreference(FloatSettings.K_ACTION_SIDE_LONG));
         YViewLayout.addSection(root, swipe);
+        YViewSection shortcuts = YViewLayout.section(activity,
+                activity.getString(R.string.yfloat_shortcuts_title), null);
+        YViewLayout.addRow(shortcuts.body, YViewLayout.navRow(activity,
+                activity.getString(R.string.yfloat_shortcuts_manage),
+                activity.getString(R.string.yfloat_shortcuts_desc),
+                () -> activity.startActivity(new android.content.Intent(activity, ShortcutAppsActivity.class))));
+        YViewLayout.addSection(root, shortcuts);
         return root;
     }
 
