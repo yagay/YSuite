@@ -51,7 +51,7 @@ final class YFloatClipboardWriter {
     }
 
     private static void failure(Context context) {
-        Toast.makeText(context, "复制失败 / Copy failed", Toast.LENGTH_SHORT).show();
+        Toast.makeText(context, R.string.yfloat_clipboard_copy_failed, Toast.LENGTH_SHORT).show();
     }
 
     private YFloatClipboardWriter() {}
