@@ -45,6 +45,9 @@ final class ActionRegistry {
     }
 
     static String defaultForPreference(String key) {
+        // New installs can single-tap the float icon to open/close app shortcuts.
+        // Existing explicit gesture mappings remain unchanged.
+        if (FloatSettings.K_ACTION_CLICK.equals(key)) return ActionId.APP_SHORTCUTS;
         if (FloatSettings.K_ACTION_DOUBLE.equals(key)) return ActionId.SCREENSHOT;
         if (FloatSettings.K_ACTION_RECOGNIZE.equals(key)) return ActionId.OCR;
         if (FloatSettings.K_ACTION_UP.equals(key)) return ActionId.RECENTS;
