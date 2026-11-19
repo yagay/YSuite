@@ -66,4 +66,9 @@
     <string name="yfloat_elevated_icon_overlay">YFloat 所有悬浮窗口优先显示在高层</string>
     <string name="yfloat_elevated_icon_overlay_desc">开启后，浮动图标、十字探针、截图选区与裁剪窗、圈画工作区、选框和操作菜单均优先使用无障碍悬浮层（2032），不可用时回退普通悬浮层（2038）。截图结果对话框属于 Activity 窗口，不受此开关提升；系统安全页面仍可能阻止悬浮显示。</string>
     <string name="yfloat_clipboard_copy_failed">复制失败</string>
+    <string name="yfloat_action_open_ysuite">打开 YSuite</string>
+    <string name="yfloat_action_google_circle">Google 圈画（模拟导航栏长按）</string>
+    <string name="yfloat_action_atlas_window">打开 Atlas 悬浮搜索</string>
+    <string name="yfloat_action_nextep_toggle">切换 NeXtep 工作区</string>
+    <string name="yfloat_external_action_unavailable">无法执行动作，请检查应用、权限和 Root</string>
 </resources>
