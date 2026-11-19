@@ -71,4 +71,17 @@
     <string name="yfloat_action_atlas_window">打开 Atlas 悬浮搜索</string>
     <string name="yfloat_action_nextep_toggle">切换 NeXtep 工作区</string>
     <string name="yfloat_external_action_unavailable">无法执行动作，请检查应用、权限和 Root</string>
+    <string name="yfloat_action_app_shortcuts">显示应用快捷列表</string>
+    <string name="yfloat_shortcuts_title">悬浮应用快捷列表</string>
+    <string name="yfloat_shortcuts_desc">添加已安装应用并调整顺序，通过手势在悬浮图标旁显示纵向应用列表。</string>
+    <string name="yfloat_shortcuts_manage">管理快捷应用</string>
+    <string name="yfloat_shortcuts_add">添加应用</string>
+    <string name="yfloat_shortcuts_search">搜索已安装应用</string>
+    <string name="yfloat_shortcuts_empty">还没有添加应用，请在手势设置中添加。</string>
+    <string name="yfloat_shortcuts_up">上移</string>
+    <string name="yfloat_shortcuts_down">下移</string>
+    <string name="yfloat_shortcuts_remove">移除</string>
+    <string name="yfloat_shortcuts_missing">未安装</string>
+    <string name="yfloat_shortcuts_launch_failed">无法打开应用</string>
+    <string name="yfloat_shortcuts_overlay_failed">无法显示悬浮应用列表</string>
 </resources>
