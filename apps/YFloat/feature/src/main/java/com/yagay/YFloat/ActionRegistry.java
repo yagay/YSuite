@@ -27,6 +27,7 @@ final class ActionRegistry {
         LABELS.put(ActionId.GOOGLE_CIRCLE, R.string.yfloat_action_google_circle);
         LABELS.put(ActionId.ATLAS_WINDOW, R.string.yfloat_action_atlas_window);
         LABELS.put(ActionId.NEXTEP_TOGGLE, R.string.yfloat_action_nextep_toggle);
+        LABELS.put(ActionId.APP_SHORTCUTS, R.string.yfloat_action_app_shortcuts);
     }
 
     static String[] availableIds() {
