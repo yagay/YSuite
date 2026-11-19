@@ -65,26 +65,49 @@ final class ExternalGestureActionBridge {
         });
     }
 
-    /** Trigger Google Circle to Search through the official MiCTS launcher entry. */
+    /**
+     * MiCTS owns the actual Circle to Search trigger: its exported translucent
+     * launcher invokes VoiceInteractionManagerService.showSessionFromSession().
+     * A floating Service cannot reliably launch activities on Android 16 due to
+     * background-activity-launch restrictions. Prefer bounded Root "am start".
+     */
     static void googleCircle(Context context) {
-        final String pkg = "com.parallelc.micts";
-        try {
-            Intent intent = new Intent(Intent.ACTION_MAIN);
-            intent.setClassName(pkg, "com.parallelc.micts.ui.activity.MainActivity");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                    | Intent.FLAG_ACTIVITY_NO_ANIMATION);
-            if (intent.resolveActivity(context.getPackageManager()) == null) {
-                DiagnosticLog.i(context, "EXTERNAL_ACTION", "MiCTS launcher unavailable");
-                unavailable(context);
+        final Context app = context.getApplicationContext();
+        IO.execute(() -> {
+            // Do not call resolveActivity(): Android package visibility could hide
+            // the exported MiCTS launcher even when MiCTS is installed.
+            final String component =
+                    "com.parallelc.micts/com.parallelc.micts.ui.activity.MainActivity";
+            RootCommandExecutor.Result result = RootCommandExecutor.runText(
+                    "am start -n " + component, 6, 4096);
+            if (result.success()
+                    && !result.text().contains("Error:")
+                    && !result.text().contains("Exception")) {
+                DiagnosticLog.i(app, "EXTERNAL_ACTION",
+                        "MiCTS started through root activity manager");
                 return;
             }
-            context.startActivity(intent);
-            DiagnosticLog.i(context, "EXTERNAL_ACTION", "MiCTS Circle to Search requested");
-        } catch (Exception e) {
-            DiagnosticLog.i(context, "EXTERNAL_ACTION",
-                    "MiCTS launch failed=" + e.getClass().getSimpleName());
-            unavailable(context);
-        }
+            DiagnosticLog.i(app, "EXTERNAL_ACTION",
+                    "MiCTS root launch failed: " + result.failureMessage("timeout")
+                            + " output=" + result.text());
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_MAIN);
+                    intent.setClassName("com.parallelc.micts",
+                            "com.parallelc.micts.ui.activity.MainActivity");
+                    intent.addCategory(Intent.CATEGORY_LAUNCHER);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                            | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    app.startActivity(intent);
+                    DiagnosticLog.i(app, "EXTERNAL_ACTION",
+                            "MiCTS direct launcher requested");
+                } catch (Exception e) {
+                    DiagnosticLog.i(app, "EXTERNAL_ACTION",
+                            "MiCTS direct launcher failed=" + e);
+                    unavailable(app);
+                }
+            });
+        });
     }
 
     private static boolean installed(Context c, String pkg) {
