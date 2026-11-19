@@ -9,7 +9,8 @@ public final class ActionId {
             HIDE="hide", NOTIFICATIONS="notifications", CLICK_UNDER="click_under",
             AI_SCREEN="ai_screen", MOVE_ICON="move_icon",
             OPEN_YSUITE="open_ysuite", GOOGLE_CIRCLE="google_circle",
-            ATLAS_WINDOW="atlas_window", NEXTEP_TOGGLE="nextep_toggle";
+            ATLAS_WINDOW="atlas_window", NEXTEP_TOGGLE="nextep_toggle",
+            APP_SHORTCUTS="app_shortcuts";
 
     public static String label(Context context, String id) { return ActionRegistry.label(context, id); }
     public static int labelRes(String id) { return ActionRegistry.labelRes(id); }
