@@ -1,4 +1,5 @@
 name: Build YSuite Debug
+# Triggered for YFloat clipboard fix verification (ARM64 Debug).
 
 on:
   push:
