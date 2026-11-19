@@ -36,6 +36,10 @@ public final class ActionExecutor {
             case ActionId.GOOGLE_CIRCLE -> ExternalGestureActionBridge.googleCircle(c);
             case ActionId.ATLAS_WINDOW -> ExternalGestureActionBridge.openAtlasPanel(c);
             case ActionId.NEXTEP_TOGGLE -> ExternalGestureActionBridge.toggleNeXtep(c);
+            case ActionId.APP_SHORTCUTS -> {
+                FloatService f = FloatService.get();
+                if (f != null) f.toggleAppShortcuts();
+            }
             case ActionId.MOVE_ICON -> {
                 FloatService f = FloatService.get();
                 if (f != null) f.armPositionMove();
