@@ -66,4 +66,9 @@
     <string name="yfloat_elevated_icon_overlay">Prefer high layer for YFloat windows</string>
     <string name="yfloat_elevated_icon_overlay_desc">Place YFloat floating icon, crosshair, screenshot selection/crop windows, Circle workspaces, selection frames and action menus in accessibility overlay (2032) when available. Falls back to normal overlay (2038). Result dialogs are Android Activity windows and cannot be moved by this switch; protected system screens may still hide overlays.</string>
     <string name="yfloat_clipboard_copy_failed">Copy failed</string>
+    <string name="yfloat_action_open_ysuite">Open YSuite</string>
+    <string name="yfloat_action_google_circle">Google Circle to Search (navigation gesture)</string>
+    <string name="yfloat_action_atlas_window">Open Atlas floating search</string>
+    <string name="yfloat_action_nextep_toggle">Toggle NeXtep workspace</string>
+    <string name="yfloat_external_action_unavailable">Action unavailable. Check app, permissions and Root.</string>
 </resources>
