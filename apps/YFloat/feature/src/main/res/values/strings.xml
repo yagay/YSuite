@@ -71,4 +71,17 @@
     <string name="yfloat_action_atlas_window">Open Atlas floating search</string>
     <string name="yfloat_action_nextep_toggle">Toggle NeXtep workspace</string>
     <string name="yfloat_external_action_unavailable">Action unavailable. Check app, permissions and Root.</string>
+    <string name="yfloat_action_app_shortcuts">Show app shortcuts</string>
+    <string name="yfloat_shortcuts_title">Floating app shortcuts</string>
+    <string name="yfloat_shortcuts_desc">Choose installed apps, arrange their order, and open a vertical list beside the floating icon using a gesture.</string>
+    <string name="yfloat_shortcuts_manage">Manage shortcut apps</string>
+    <string name="yfloat_shortcuts_add">Add apps</string>
+    <string name="yfloat_shortcuts_search">Search installed apps</string>
+    <string name="yfloat_shortcuts_empty">No apps selected. Add apps in gesture settings.</string>
+    <string name="yfloat_shortcuts_up">Move up</string>
+    <string name="yfloat_shortcuts_down">Move down</string>
+    <string name="yfloat_shortcuts_remove">Remove</string>
+    <string name="yfloat_shortcuts_missing">Not installed</string>
+    <string name="yfloat_shortcuts_launch_failed">Could not open this app</string>
+    <string name="yfloat_shortcuts_overlay_failed">Unable to show shortcuts overlay</string>
 </resources>
