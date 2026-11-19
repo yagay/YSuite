@@ -41,6 +41,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
     private boolean positionMoveArmed;
     private Integer imeRestoreY;
     private float lastActionX, lastActionY;
+    private final android.graphics.Rect lastActionIconBounds = new android.graphics.Rect();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Runnable rebuildIconsRunnable = () -> {
         if (primary == null) show();
@@ -271,6 +272,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
                 lastActionX = lp.x + lp.width / 2f;
                 lastActionY = lp.y + lp.height / 2f;
+                lastActionIconBounds.set(lp.x, lp.y, lp.x + lp.width, lp.y + lp.height);
                 dispatchGesture(decision);
             }
 
@@ -278,6 +280,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
                 if (!isCurrentIconCallback(generation, mirrored, lp)) return;
                 lastActionX = lp.x + lp.width / 2f;
                 lastActionY = lp.y + lp.height / 2f;
+                lastActionIconBounds.set(lp.x, lp.y, lp.x + lp.width, lp.y + lp.height);
                 DiagnosticLog.i(FloatService.this, "ACTION_LAYER", "direct action=" + action);
                 ActionExecutor.execute(FloatService.this, action);
             }
@@ -337,11 +340,22 @@ public class FloatService extends Service implements android.content.SharedPrefe
         DiagnosticLog.i(this, "GESTURE_LAYER", "code=" + decision.code()
                 + " label=" + GestureCode.label(decision.code())
                 + " longTier=" + decision.longTier() + " -> action=" + action);
+        // The second single tap always dismisses the shortcut list, even if the
+        // user changes their single-tap mapping while it is open.
+        if (decision.code() == GestureCode.TAP && ShortcutAppOverlay.isShowing()) {
+            ShortcutAppOverlay.dismiss();
+            return;
+        }
         if (!ActionId.NONE.equals(action)) ActionExecutor.execute(this, action);
     }
 
     public void toggleAppShortcuts() {
-        ShortcutAppOverlay.toggle(this, Math.round(lastActionX), Math.round(lastActionY));
+        android.graphics.Rect icon = new android.graphics.Rect(lastActionIconBounds);
+        if (icon.isEmpty() && primaryLp != null) {
+            icon.set(primaryLp.x, primaryLp.y,
+                    primaryLp.x + primaryLp.width, primaryLp.y + primaryLp.height);
+        }
+        ShortcutAppOverlay.toggle(this, icon);
     }
 
     public void armPositionMove() {
@@ -605,6 +619,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
 
     public void setManualHidden(boolean hidden) {
         visibility.setManualHidden(hidden);
+        if (hidden) ShortcutAppOverlay.dismiss();
         DiagnosticLog.i(this, "VISIBILITY", "manualHidden=" + hidden);
         recomputeVisibility();
     }
