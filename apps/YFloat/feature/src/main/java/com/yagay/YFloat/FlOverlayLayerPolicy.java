@@ -10,22 +10,16 @@ final class FlOverlayLayerPolicy {
     }
 
     /**
-     * On the logged OnePlus CPH2747 / Android 17 build, a small 2032
-     * accessibility icon can be assigned a touchable region near screen
-     * centre even while getLocationOnScreen() reports the requested right
-     * edge (e.g. raw 719,1520 vs icon 1222,668).
-     *
-     * Keep persistent touchable controls in the stable 2038 host on this
-     * combination. Screenshot/crop/crosshair/menus still honor 2032.
-     * Do not generalize this OEM-specific runtime bug to all Android phones.
+     * High layer is a user choice, not a device-model blacklist. If a real
+     * misrouted touch is observed, prefer the stable application host until
+     * the user explicitly retries the accessibility window.
      */
-    static boolean requiresStableIconHost(String manufacturer, String model,
-                                          String device, int sdkInt) {
-        if (sdkInt < 35 || manufacturer == null) return false;
-        String vendor = manufacturer.toLowerCase(java.util.Locale.ROOT);
-        if (!vendor.contains("oneplus")) return false;
-        return "CPH2747".equalsIgnoreCase(model)
-                || "CPH2747".equalsIgnoreCase(device);
+    static boolean preferAccessibilityIconHost(boolean accessibilityAvailable,
+                                               boolean applicationOverlayAllowed,
+                                               boolean highLayerRequested,
+                                               boolean runtimeTouchMismatch) {
+        return accessibilityAvailable && (!applicationOverlayAllowed
+                || (highLayerRequested && !runtimeTouchMismatch));
     }
 
     /**

@@ -27,6 +27,10 @@ final class FloatIconTouchHandle extends View {
 
     @Override public boolean onTouchEvent(MotionEvent event) {
         if (target == null || event == null) return false;
+        // Rehosting can detach before UP/CANCEL; never block the next gesture.
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            blockedMismatchedGesture = false;
+        }
         if (blockedMismatchedGesture) {
             if (event.getActionMasked() == MotionEvent.ACTION_UP
                     || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {

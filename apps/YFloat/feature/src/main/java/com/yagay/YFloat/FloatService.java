@@ -409,14 +409,6 @@ public class FloatService extends Service implements android.content.SharedPrefe
         safeUpdate(view, lp);
     }
 
-    private boolean unstableHighIconHost() {
-        return FlOverlayLayerPolicy.requiresStableIconHost(
-                android.os.Build.MANUFACTURER,
-                android.os.Build.MODEL,
-                android.os.Build.DEVICE,
-                android.os.Build.VERSION.SDK_INT);
-    }
-
     private boolean forceApplicationIconHost;
 
     private boolean addIconWindow(View view, WindowManager.LayoutParams lp) {
@@ -426,8 +418,7 @@ public class FloatService extends Service implements android.content.SharedPrefe
         if (!useAccessibility && fs.elevatedIconOverlay()) {
             DiagnosticLog.i(this, "FL_ICON_LAYER",
                     "persistent icon stable 2038 compatibility reason="
-                    + (unstableHighIconHost() ? "oneplus_cph2747_mismatched_input_bounds"
-                       : forceApplicationIconHost ? "runtime_touch_origin_mismatch"
+                    + (forceApplicationIconHost ? "runtime_touch_origin_mismatch"
                        : "accessibility_unavailable"));
         }
         return useAccessibility
@@ -537,13 +528,9 @@ public class FloatService extends Service implements android.content.SharedPrefe
     }
 
     private boolean preferAccessibilityIconHost(boolean accessibilityAvailable) {
-        // 2038 keeps the real touchable icon at the saved physical edge on
-        // affected OEM builds. 2032 remains available for non-interactive
-        // screenshot/selection/menus and as the only host when 2038 is denied.
-        boolean ordinaryAllowed = Settings.canDrawOverlays(this);
-        return accessibilityAvailable && (!ordinaryAllowed
-                || (fs.elevatedIconOverlay() && !forceApplicationIconHost
-                    && !unstableHighIconHost()));
+        return FlOverlayLayerPolicy.preferAccessibilityIconHost(
+                accessibilityAvailable, Settings.canDrawOverlays(this),
+                fs.elevatedIconOverlay(), forceApplicationIconHost);
     }
 
     boolean isAccessibilityIconHosted(FloatIconView icon) {
@@ -846,7 +833,17 @@ public class FloatService extends Service implements android.content.SharedPrefe
         switch (impact) {
             case APPEARANCE_LAYOUT -> refreshAppearance();
             case VISIBILITY -> refreshVisibilitySettings();
-            case ICON_WINDOW_HOST -> mainHandler.post(this::refreshIconWindowHost);
+            case ICON_WINDOW_HOST -> mainHandler.post(() -> {
+                if (instance != this) return;
+                // User-initiated high-layer toggle can explicitly retry after
+                // an observed bad 2032 input region. No automatic oscillation.
+                if (fs.elevatedIconOverlay() && forceApplicationIconHost) {
+                    forceApplicationIconHost = false;
+                    DiagnosticLog.i(this, "FL_ICON_LAYER",
+                            "user requested high-layer retry; clearing runtime touch fallback");
+                }
+                refreshIconWindowHost();
+            });
             case WAKE_REGION -> mainHandler.post(() -> {
                 if (instance != this) return;
                 removeWakeViews();

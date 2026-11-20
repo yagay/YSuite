@@ -21,13 +21,14 @@ public class FlOverlayLayerPolicyTest {
         }
     }
 
-    @Test public void onePlusCph2747KeepsTheIconAtThePhysicalEdge() {
-        assertTrue(FlOverlayLayerPolicy.requiresStableIconHost(
-                "OnePlus", "CPH2747", "CPH2747", 37));
-        assertFalse(FlOverlayLayerPolicy.requiresStableIconHost(
-                "OnePlus", "CPH9999", "CPH9999", 37));
-        assertFalse(FlOverlayLayerPolicy.requiresStableIconHost(
-                "Google", "CPH2747", "CPH2747", 37));
+    @Test public void highLayerPreferenceDoesNotBlackListDeviceModels() {
+        assertTrue(FlOverlayLayerPolicy.preferAccessibilityIconHost(true, true, true, false));
+        assertFalse(FlOverlayLayerPolicy.preferAccessibilityIconHost(true, true, true, true));
+        assertFalse(FlOverlayLayerPolicy.preferAccessibilityIconHost(true, true, false, false));
+        assertFalse(FlOverlayLayerPolicy.preferAccessibilityIconHost(false, true, true, false));
+        // If 2038 is not permitted, 2032 is still the only viable host.
+        assertTrue(FlOverlayLayerPolicy.preferAccessibilityIconHost(true, false, true, true));
+        assertTrue(FlOverlayLayerPolicy.preferAccessibilityIconHost(true, false, false, false));
     }
 
     @Test public void offset2032TouchFrameCausesAutomaticFallback() {

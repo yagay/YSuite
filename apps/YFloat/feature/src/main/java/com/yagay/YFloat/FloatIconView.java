@@ -61,6 +61,7 @@ public class FloatIconView extends View {
     private boolean directTimerArmed;
     private boolean targetPrewarmTriggered;
     private boolean positionMoveMode;
+    private boolean rejectedHighLayerGesture;
     private int touchMoveLogCounter;
     private int dragPerfSamples, dragPerfOver16;
     private long dragPerfDelaySum, dragPerfDelayMax;
@@ -174,6 +175,30 @@ public class FloatIconView extends View {
         final int action = e.getActionMasked();
         final float rx = e.getRawX(), ry = e.getRawY();
         final long now = SystemClock.uptimeMillis();
+
+        // OEM 2032 input can reach the icon at a location far from its visible
+        // window. Reject this phantom stream before OCR/drag and rehost the
+        // SAME icon at 2038. The edge handle checks separately.
+        if (action == MotionEvent.ACTION_DOWN) {
+            rejectedHighLayerGesture = false;
+            FloatService owner = FloatService.get();
+            if (owner != null && owner.isAccessibilityIconHosted(this)) {
+                int[] origin = new int[2];
+                getLocationOnScreen(origin);
+                if (FlOverlayLayerPolicy.touchOutsideIconBounds(
+                        rx, ry, origin[0], origin[1], getWidth(), getHeight())) {
+                    rejectedHighLayerGesture = true;
+                    owner.onIconTouchOriginMismatch(this, rx, ry, origin[0], origin[1]);
+                    return true;
+                }
+            }
+        } else if (rejectedHighLayerGesture) {
+            // A rehost can detach mid-gesture; the next DOWN starts fresh.
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                rejectedHighLayerGesture = false;
+            }
+            return true;
+        }
         // Do not build verbose strings on every 120 Hz MOVE when diagnostics are off.
         // Use an independent counter: Direct mode no longer stores history samples.
         if ((action != MotionEvent.ACTION_MOVE || (++touchMoveLogCounter & 31) == 0)
