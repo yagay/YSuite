@@ -80,8 +80,9 @@ internal class PowerOffRouteProbe(
         require(!prefs.getString("snapshot_$before", null).isNullOrBlank()) {
             "Capture the matching before-shutdown snapshot first"
         }
-        val value = PowerOffRouteEvidence.normalizedUid(observed)
-            ?: error("External reader UID must be 4, 7 or 10 bytes of hexadecimal")
+        val value = if (observed == "NO_RESPONSE") "NO_RESPONSE" else
+            PowerOffRouteEvidence.normalizedUid(observed)
+                ?: error("External reader UID must be 4, 7 or 10 bytes of hexadecimal")
         val capturedAt = System.currentTimeMillis()
         check(prefs.edit().putString("reader_uid_$cardSource", value)
             .putLong("reader_uid_at_$cardSource", capturedAt).commit()) {
@@ -111,9 +112,18 @@ internal class PowerOffRouteProbe(
             PowerOffRouteEvidence.compareFields(officialFields, ynfcFields))
         appendLine("ynfc_vs_after_boot_route=" +
             PowerOffRouteEvidence.compareFields(ynfcFields, afterFields))
-        appendLine("official_reader_uid_reported=${if (officialUid.isEmpty()) "NO" else "YES"}")
-        appendLine("ynfc_reader_uid_reported=${if (ynfcUid.isEmpty()) "NO" else "YES"}")
+        appendLine("official_reader_result=" + when (officialUid) {
+            "" -> "NOT_RECORDED"
+            "NO_RESPONSE" -> "USER_REPORTED_NO_RESPONSE"
+            else -> "USER_REPORTED_UID"
+        })
+        appendLine("ynfc_reader_result=" + when (ynfcUid) {
+            "" -> "NOT_RECORDED"
+            "NO_RESPONSE" -> "USER_REPORTED_NO_RESPONSE"
+            else -> "USER_REPORTED_UID"
+        })
         appendLine("ynfc_reader_uid_match=" + when {
+            ynfcUid == "NO_RESPONSE" -> "USER_REPORTED_NO_RESPONSE"
             ynfcUid.isEmpty() || expected.isEmpty() -> "NOT_REPORTED"
             ynfcUid.equals(expected, ignoreCase = true) -> "USER_REPORTED_MATCH"
             else -> "USER_REPORTED_DIFFERENCE"
