@@ -27,7 +27,9 @@ internal class SimulationCoordinator(
             if (!hookReady(ready)) ready = waitForHookOnly(2_000)
             if (!hookReady(ready)) {
                 AppLogger.i("SIMULATION: APPLY not published; NFC Hook mismatch or missing. " +
-                    "hook=${ready.hookBuild} expected=$expectedHookBuild pid=${ready.currentPid}")
+                    "hook=${ready.hookBuild}/$expectedHookBuild " +
+                    "impl=${ready.hookImplementationRevision}/${BuildConfig.INTERCEPT_IMPL_REVISION} " +
+                    "implPid=${ready.hookImplementationPid} currentPid=${ready.currentPid}")
                 onDone(ready, YLocale.text(R.string.ynfc_sim_hook_not_ready))
                 return@execute
             }
