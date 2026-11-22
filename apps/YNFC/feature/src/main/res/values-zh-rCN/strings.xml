@@ -180,4 +180,6 @@
     <string name="ynfc_poweroff_instruction">必须在手机完全关机时用另一台读卡器读取，开机后再手动录入结果。录入值仅代表用户提供的读卡结果，并非系统自动验证。关机路由状态位不等于支持自定义 UID；本测试不会修改 NFC 配置。</string>
     <string name="ynfc_poweroff_saved">关机对比证据已保存：%1$s</string>
     <string name="ynfc_poweroff_failed">关机对比失败：%1$s</string>
+    <string name="ynfc_poweroff_no_response_official">官方卡：关机后读卡器无响应</string>
+    <string name="ynfc_poweroff_no_response_ynfc">YNFC：关机后读卡器无响应</string>
 </resources>
