@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.YNFC.AppLogger
 import com.yagay.YNFC.BuildConfig
 import com.yagay.YNFC.ConfigProvider
+import com.yagay.YNFC.PowerOffRouteProbe
 import com.yagay.YNFC.CardModel
 import com.yagay.YNFC.DiagnosticsCollector
 import com.yagay.YNFC.LogSource
@@ -77,6 +79,8 @@ fun NfcAppScreen(
     onDeleteCard: (CardModel, Boolean) -> Unit,
     onReloadNfcHook: ((String) -> Unit) -> Unit,
     onExportLogs: (() -> Unit) -> Unit,
+    onPowerOffCapture: (String, (String) -> Unit) -> Unit,
+    onPowerOffRecordUid: (String, String, (String) -> Unit) -> Unit,
 ) {
     val runtimeViewModel: RuntimeStatusViewModel = viewModel()
     val status by runtimeViewModel.status.collectAsState()
@@ -88,6 +92,9 @@ fun NfcAppScreen(
     var backendMessage by remember { mutableStateOf<String?>(null) }
     var expandedUid by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
+    var powerOffBusy by remember { mutableStateOf(false) }
+    var powerOffMessage by remember { mutableStateOf<String?>(null) }
+    var externalReaderUid by remember { mutableStateOf("") }
     // One UI action at a time; backend serialization remains the authority.
     var commandPending by remember { mutableStateOf(false) }
     val logListState = rememberLazyListState()
@@ -156,6 +163,82 @@ fun NfcAppScreen(
                     )
                     Text(stringResource(R.string.ynfc_backend_warning), fontSize = 11.sp)
                     backendMessage?.let { Text(it, fontSize = 11.sp) }
+                }
+            }
+            item {
+                YSection(
+                    title = stringResource(R.string.ynfc_poweroff_title),
+                    subtitle = stringResource(R.string.ynfc_poweroff_desc),
+                ) {
+                    YStatusLine(
+                        label = stringResource(R.string.ynfc_poweroff_capability),
+                        value = stringResource(R.string.ynfc_poweroff_unverified),
+                        tone = YStatusTone.Warning,
+                    )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_poweroff_capture_official),
+                        onClick = {
+                            powerOffBusy = true
+                            onPowerOffCapture(PowerOffRouteProbe.OFFICIAL) {
+                                powerOffMessage = it
+                                powerOffBusy = false
+                            }
+                        },
+                        enabled = !powerOffBusy && !commandPending && !status.simulationEnabled,
+                    )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_poweroff_capture_ynfc),
+                        onClick = {
+                            powerOffBusy = true
+                            onPowerOffCapture(PowerOffRouteProbe.YNFC) {
+                                powerOffMessage = it
+                                powerOffBusy = false
+                            }
+                        },
+                        enabled = !powerOffBusy && !commandPending && status.simulationEnabled,
+                    )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_poweroff_capture_after),
+                        onClick = {
+                            powerOffBusy = true
+                            onPowerOffCapture(PowerOffRouteProbe.AFTER_BOOT) {
+                                powerOffMessage = it
+                                powerOffBusy = false
+                            }
+                        },
+                        enabled = !powerOffBusy && !commandPending,
+                    )
+                    OutlinedTextField(
+                        value = externalReaderUid,
+                        onValueChange = { externalReaderUid = it.take(32) },
+                        label = { Text(stringResource(R.string.ynfc_poweroff_external_uid)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_poweroff_reader_official),
+                        onClick = {
+                            powerOffBusy = true
+                            onPowerOffRecordUid("OFFICIAL", externalReaderUid) {
+                                powerOffMessage = it
+                                powerOffBusy = false
+                            }
+                        },
+                        enabled = !powerOffBusy && externalReaderUid.isNotBlank(),
+                    )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_poweroff_reader_ynfc),
+                        onClick = {
+                            powerOffBusy = true
+                            onPowerOffRecordUid("YNFC", externalReaderUid) {
+                                powerOffMessage = it
+                                powerOffBusy = false
+                            }
+                        },
+                        enabled = !powerOffBusy && externalReaderUid.isNotBlank(),
+                    )
+                    Text(stringResource(R.string.ynfc_poweroff_instruction), fontSize = 11.sp)
+                    powerOffMessage?.let { Text(it, fontSize = 11.sp) }
                 }
             }
             if (status.simulationEnabled) {
