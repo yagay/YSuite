@@ -157,4 +157,13 @@
     <string name="ynfc_native_preview_action">生成 SN220 配置</string>
     <string name="ynfc_native_preview_preparing">正在生成并校验 SN220 配置快照（仅预览，不会启动 NFC 模拟）…</string>
     <string name="ynfc_native_preview_preparing_short">正在生成…</string>
+    <string name="ynfc_backend_title">模拟方式</string>
+    <string name="ynfc_backend_desc">保留原 RF Hook，同时提供 ColorOS 原生 NFC-A 接口。先停止当前模拟才能切换。</string>
+    <string name="ynfc_backend_selected">当前方式</string>
+    <string name="ynfc_backend_rf">原有 RF Hook（默认）</string>
+    <string name="ynfc_backend_vendor">ColorOS 原生 Type-A（实验）</string>
+    <string name="ynfc_backend_warning">原生模式设置 UID、ATQA、SAK，但接口接受不代表实际读卡成功或支持关机模拟。停止后请验证官方钱包是否恢复。</string>
+    <string name="ynfc_backend_save_failed">切换被拒绝。请先停止模拟并完成原厂配置恢复。</string>
+    <string name="ynfc_vendor_api_unverified">ColorOS 已接受 UID/ATQA/SAK 请求，仍需外部 NFC 读卡器验证，关机效果未知。</string>
+    <string name="ynfc_vendor_stop_failed">ColorOS Type-A 停止失败：%1$s。暂勿切换模式，请查看日志并重试。</string>
 </resources>
