@@ -12,7 +12,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.yagay.yui.YUiText as Text
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.OutlinedTextField
+import com.yagay.yui.YTextField
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -208,10 +208,10 @@ fun NfcAppScreen(
                         },
                         enabled = !powerOffBusy && !commandPending,
                     )
-                    OutlinedTextField(
+                    YTextField(
                         value = externalReaderUid,
                         onValueChange = { externalReaderUid = it.take(32) },
-                        label = { Text(stringResource(R.string.ynfc_poweroff_external_uid)) },
+                        label = stringResource(R.string.ynfc_poweroff_external_uid),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
