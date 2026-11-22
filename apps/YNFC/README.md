@@ -29,6 +29,17 @@
 - Vendor STOP 先请求 OEM 禁用，然后走已有安全恢复和必要时的 NFC 服务重载；接口拒绝时显示失败，不擅自宣称官方钱包恢复。
 - 无权限时报告 `TYPE_A_PERMISSION_DENIED`，不绕过签名/安全元件权限，也不触碰 eSE 卡片应用和交通卡密钥。
 
+## 关机固定 UID 实验：只读路由证据
+
+- **目的**：验证 OnePlus 15 / SN220T 上官方钱包普通门禁卡与 YNFC 测试卡的关机前硬件路由是否存在可解释的差异。不要把 `DEFAULT_MIFARE_CLT_PWR_STATE=0x3B`（含 Switch-Off 路由状态位）当成自定义 UID 关机刷卡成功的证据。
+- **第一步**：停止 YNFC，选择官方钱包门禁卡，在 YNFC 页面点击「记录官方钱包路由」。
+- **第二步**：选择 YNFC 仅用于你有权使用的测试卡，点击「记录 YNFC 路由」。
+- **第三步**：手机真实关机，用独立 NFC 读卡器测 UID。重新开机后录入读到的 UID，或明确选择「读卡器无响应」。
+- **第四步**：点击「重新开机后采样并对比」。快照持久保存在应用私有配置，比较结果随 YNFC 诊断报告写入 Download。
+- 关机时 Android/LSPosed 已停止运行；读卡结果必须来自独立设备。手动录入记为 `USER_REPORTED`，不冒充自动硬件验证。
+- 测试只读：不调用 `setPoweroffTask`、`setNciConfig`、`setHceTypeAConfig`，不修改 eSE/NFCEE 路由，也不重启 NFC 服务。UID 的开机模拟仍由已有 RF/VENDOR 后端执行。
+- 若普通门禁卡的关机响应依赖 eSE 上的卡片应用，则第三方 NCI UID 配置不能替代官方的授权应用与密钥。
+
 ## 运行状态
 
 - `APPLYING`：命令已发布，等待与本次请求严格对应的 RF 写入结果。
