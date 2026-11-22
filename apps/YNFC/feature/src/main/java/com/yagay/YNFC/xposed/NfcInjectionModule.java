@@ -2142,8 +2142,12 @@ public class NfcInjectionModule extends XposedModule {
         Log.i(TAG, "COMMAND " + action + " reason=" + reason + " generation=" + cfg.generation + " uid=" + cfg.uid + " pid=" + pid +
                 " restoreMode=" + restoreMode);
 
-        // Legacy STOP paths remain for safe recovery of already-running sessions.
-        // Provider rejects new non-RF APPLY commands.
+        // Keep historical backend STOP support, but allow a new Vendor APPLY only
+        // after the user explicitly selects it. The RF writer must not run in this mode.
+        if (cfg.active && cfg.useVendorTypeA()) {
+            runVendorTypeACommand(cfg, reason);
+            return;
+        }
         if (!cfg.active && cfg.useNativeNci()) {
             runNativeNciCommand(cfg);
             return;
@@ -2490,7 +2494,8 @@ public class NfcInjectionModule extends XposedModule {
         ContentValues v = baseHookState();
         v.put("state_generation", cfg.generation);
         v.put("command_consumed_generation", cfg.generation);
-        v.put("command_status", "VENDOR_API_ACCEPTED");
+        v.put("command_handled_generation", cfg.generation);
+        v.put("command_status", "UNVERIFIED");
         v.put("command_detail", "OEM accepted Type-A configuration; external reader verification required");
         v.put("command_action", "APPLY");
         v.put("command_pid", Process.myPid());
@@ -2501,11 +2506,18 @@ public class NfcInjectionModule extends XposedModule {
         v.put("rf_accepted", false);
         v.put("rf_uid", "");
         v.put("rf_source", "vendor-type-a");
+        v.put("rf_pid", Process.myPid());
         v.put("rf_generation", cfg.generation);
+        v.put("rf_controller_epoch", cfg.controllerEpoch);
+        v.put("rf_native_result_type", "oem-binder-boolean");
         v.put("rf_verification", "EXTERNAL_READER_REQUIRED");
         v.put("full_diag_stage", "VENDOR_API_ACCEPTED");
         v.put("full_diag_summary", "Vendor method accepted; NFC controller/reader not verified");
         writeValuesWithRetry(v, 20, 100L);
+        completedGeneration = cfg.generation;
+        completedPid = Process.myPid();
+        Log.i(TAG, "VENDOR_TYPE_A command UNVERIFIED generation=" + cfg.generation
+                + " pid=" + completedPid + "; external RF reader required");
     }
 
     private void failVendorTypeACommand(SimConfig cfg, String stage, String detail) {
