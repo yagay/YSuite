@@ -71,7 +71,6 @@
     <string name="ynfc_sim_stop_lifecycle_restored">Emulation stopped · stock RF restored by the NFC process</string>
     <string name="ynfc_sim_stop_superseded">Stop request was replaced by a newer command</string>
     <string name="ynfc_sim_stop_restored">Emulation stopped · stock RF restored</string>
-    <string name="ynfc_sim_stop_recovery_unconfirmed">NFC recovery could not be confirmed</string>
     <string name="ynfc_sim_stop_restart_unconfirmed">Emulation stopped · NFC restarted, but state confirmation is incomplete</string>
 
     <string name="ynfc_read_card">Read-card mode</string>

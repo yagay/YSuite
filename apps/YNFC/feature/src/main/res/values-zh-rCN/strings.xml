@@ -71,7 +71,6 @@
     <string name="ynfc_sim_stop_lifecycle_restored">模拟已停止 · 原厂 RF 已由 NFC 进程恢复</string>
     <string name="ynfc_sim_stop_superseded">停止请求已被更新的命令替代</string>
     <string name="ynfc_sim_stop_restored">模拟已停止 · 已恢复原厂 RF</string>
-    <string name="ynfc_sim_stop_recovery_unconfirmed">无法确认 NFC 已恢复</string>
     <string name="ynfc_sim_stop_restart_unconfirmed">模拟已停止 · NFC 已重启，但状态确认未完成</string>
 
     <string name="ynfc_read_card">读卡模式</string>

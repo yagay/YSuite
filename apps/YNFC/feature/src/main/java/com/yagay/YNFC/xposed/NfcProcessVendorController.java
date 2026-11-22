@@ -66,7 +66,7 @@ final class NfcProcessVendorController {
                 if (hasTypeAApi(local) || hasTypeAApi(proxy)) {
                     if (Boolean.FALSE.equals(oplusPermission)) {
                         return new Result(false, "TYPE_A_PERMISSION_DENIED",
-                                "ColorOS Type-A AIDL method found; local permission preflight denied "
+                                "ColorOS Type-A AIDL method exists, but NFC process lacks "
                                         + OPLUS_NFC_ACCESS_PERMISSION + "; " + trace,
                                 OPLUS_DESCRIPTOR);
                     }
@@ -150,8 +150,8 @@ final class NfcProcessVendorController {
                 Boolean oplusPermission = checkOplusNfcAccessPermission(trace);
                 if (Boolean.FALSE.equals(oplusPermission)) {
                     return new Result(false, "TYPE_A_PERMISSION_DENIED",
-                            "Local permission preflight denied " + OPLUS_NFC_ACCESS_PERMISSION
-                                    + "; Type-A configuration call was not attempted; " + trace,
+                            "ColorOS enforces " + OPLUS_NFC_ACCESS_PERMISSION
+                                    + " before Type-A config; NFC process has no grant; " + trace,
                             OPLUS_DESCRIPTOR);
                 }
                 Object local = oplus.queryLocalInterface(OPLUS_DESCRIPTOR);
