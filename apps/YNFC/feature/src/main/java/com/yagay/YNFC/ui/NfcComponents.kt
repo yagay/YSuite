@@ -71,6 +71,9 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
             status.commandGeneration,
             status.commandPid,
         )
+        status.commandStatus == "UNVERIFIED" &&
+            status.rfSource == "vendor-type-a" ->
+            stringResource(R.string.ynfc_vendor_api_unverified)
         status.commandStatus == "INTERCEPT_CALL_ACCEPTED" ->
             stringResource(R.string.ynfc_intercept_call_accepted)
         status.commandStatus == "INTERCEPT_ARMED_NO_CALL" ->
@@ -88,6 +91,10 @@ fun RuntimeStatusPanel(status: RuntimeStatus, operationMessage: String?, readMod
     val simulationDetail: String
     if (status.simulationEnabled) {
         when {
+            status.commandStatus == "UNVERIFIED" && status.rfSource == "vendor-type-a" -> {
+                simulationTone = StatusTone.WARNING
+                simulationDetail = stringResource(R.string.ynfc_vendor_api_unverified)
+            }
             applyVerified -> {
                 simulationTone = StatusTone.OK
                 simulationDetail = stringResource(R.string.ynfc_sim_active, status.selectedUid ?: "-")
