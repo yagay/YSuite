@@ -167,4 +167,17 @@
     <string name="ynfc_backend_save_failed">切换被拒绝。请先停止模拟并完成原厂配置恢复。</string>
     <string name="ynfc_vendor_api_unverified">ColorOS 已接受 UID/ATQA/SAK 请求，仍需外部 NFC 读卡器验证，关机效果未知。</string>
     <string name="ynfc_vendor_stop_failed">ColorOS Type-A 停止失败：%1$s。暂勿切换模式，请查看日志并重试。</string>
+    <string name="ynfc_poweroff_title">关机固定 UID 研究（只读）</string>
+    <string name="ynfc_poweroff_desc">分别记录官方钱包和 YNFC 的关机前路由，真实关机后用外部读卡器测 UID，重新开机再对比。</string>
+    <string name="ynfc_poweroff_capability">关机后自定义 UID</string>
+    <string name="ynfc_poweroff_unverified">尚未验证</string>
+    <string name="ynfc_poweroff_capture_official">记录官方钱包路由（先停止 YNFC）</string>
+    <string name="ynfc_poweroff_capture_ynfc">记录 YNFC 路由（先启用模拟）</string>
+    <string name="ynfc_poweroff_capture_after">重新开机后采样并对比</string>
+    <string name="ynfc_poweroff_external_uid">外部读卡器读到的 UID</string>
+    <string name="ynfc_poweroff_reader_official">记录官方卡关机读卡 UID</string>
+    <string name="ynfc_poweroff_reader_ynfc">记录 YNFC 关机读卡 UID</string>
+    <string name="ynfc_poweroff_instruction">必须在手机完全关机时用另一台读卡器读取，开机后再手动录入结果。录入值仅代表用户提供的读卡结果，并非系统自动验证。关机路由状态位不等于支持自定义 UID；本测试不会修改 NFC 配置。</string>
+    <string name="ynfc_poweroff_saved">关机对比证据已保存：%1$s</string>
+    <string name="ynfc_poweroff_failed">关机对比失败：%1$s</string>
 </resources>
