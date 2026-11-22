@@ -85,7 +85,8 @@ internal class SimulationCoordinator(
                     YLocale.text(R.string.ynfc_sim_command_superseded))
                 return@execute
             }
-            AppLogger.i("SIMULATION: serial COMMAND STOP generation=$generation")
+            val backend = runtimeRepository.readProviderMap()[ConfigProvider.KEY_BACKEND] ?: "RF"
+            AppLogger.i("SIMULATION: serial COMMAND STOP generation=$generation backend=$backend")
             var state = waitForCommandCompletion(generation, null, apply = false, timeoutMs = 6_000)
 
             // STOP_NO_OVERRIDE is an explicit terminal acknowledgement from
@@ -112,6 +113,13 @@ internal class SimulationCoordinator(
                 state = runtimeRepository.read(includeRootPid = true)
                 AppLogger.i("SIMULATION: STOP fallback cancelled, a newer command owns NFC")
                 onDone(state, YLocale.text(R.string.ynfc_sim_stop_superseded))
+                return@execute
+            }
+
+            if (state.commandStatus != "RESTART_REQUIRED" || state.commandPid != state.currentPid ||
+                state.currentPid <= 0 || state.consumedGeneration != generation
+            ) {
+                onDone(state, YLocale.text(R.string.ynfc_sim_stop_recovery_unconfirmed))
                 return@execute
             }
 
