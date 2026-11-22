@@ -33,6 +33,19 @@ class PowerOffRouteEvidenceTest {
         assertNull(PowerOffRouteEvidence.switchOffPowerBit(null))
     }
 
+    @Test fun distinguishesRuntimeDhModeFromUnchangingOdmConfig() {
+        val before = PowerOffRouteEvidence.comparisonFields(
+            "DEFAULT_MIFARE_CLT_PWR_STATE=0x3B\nGLOBAL_hce_access_card_mode=1\nisUsingDH=yes"
+        )
+        val after = PowerOffRouteEvidence.comparisonFields(
+            "DEFAULT_MIFARE_CLT_PWR_STATE=0x3B\nGLOBAL_hce_access_card_mode=0\nisUsingDH=no"
+        )
+        assertEquals("0x3B", before["DEFAULT_MIFARE_CLT_PWR_STATE"])
+        assertEquals("yes", before["RUNTIME_LAST_DH_MODE"])
+        assertTrue(PowerOffRouteEvidence.compareFields(before, after)
+            .contains("RUNTIME_LAST_DH_MODE:yes->no"))
+    }
+
     @Test fun reportsMissingCaptureWithoutPretendingRoutesAreSame() {
         val baseline = PowerOffRouteEvidence.routeFields("DEFAULT_MIFARE_CLT_PWR_STATE=0x3B")
         val changed = PowerOffRouteEvidence.routeFields("DEFAULT_MIFARE_CLT_PWR_STATE=0x39")
