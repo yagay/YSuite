@@ -23,6 +23,24 @@ internal object PowerOffRouteEvidence {
         match.groupValues[1] to match.groupValues[2]
     }.toMap()
 
+    /** Distinguish static ODM defaults from observable runtime hints when comparing. */
+    fun comparisonFields(raw: String): Map<String, String> {
+        val fields = routeFields(raw).toMutableMap()
+        val keys = setOf(
+            "GLOBAL_hce_access_card_mode",
+            "GLOBAL_hce_access_card_sak",
+            "GLOBAL_hce_access_card_atqa"
+        )
+        raw.lineSequence().forEach { line ->
+            val key = line.substringBefore('=', "")
+            if (key in keys) fields[key] = line.substringAfter('=').trim()
+        }
+        val lastDh = Regex("isUsingDH[=:](yes|no|true|false)", RegexOption.IGNORE_CASE)
+            .findAll(raw).lastOrNull()?.groupValues?.get(1)
+        if (lastDh != null) fields["RUNTIME_LAST_DH_MODE"] = lastDh.lowercase()
+        return fields
+    }
+
     fun switchOffPowerBit(value: String?): Boolean? {
         if (value.isNullOrBlank()) return null
         val number = if (value.startsWith("0x", ignoreCase = true)) {
