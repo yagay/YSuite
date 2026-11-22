@@ -98,6 +98,11 @@ internal class PowerOffRouteProbe(
         val officialFields = PowerOffRouteEvidence.comparisonFields(official)
         val ynfcFields = PowerOffRouteEvidence.comparisonFields(ynfc)
         val afterFields = PowerOffRouteEvidence.comparisonFields(after)
+        fun bootId(report: String) = report.lineSequence().firstOrNull {
+            it.startsWith("BOOT_ID=")
+        }?.substringAfter('=').orEmpty()
+        val beforeBootId = bootId(ynfc).ifEmpty { bootId(official) }
+        val afterBootId = bootId(after)
         val officialUid = prefs.getString("reader_uid_OFFICIAL", "").orEmpty()
         val ynfcUid = prefs.getString("reader_uid_YNFC", "").orEmpty()
         val expected = ynfc.lineSequence().firstOrNull {
@@ -108,6 +113,11 @@ internal class PowerOffRouteProbe(
         appendLine("official_snapshot=${if (official.isEmpty()) "MISSING" else "CAPTURED"}")
         appendLine("ynfc_snapshot=${if (ynfc.isEmpty()) "MISSING" else "CAPTURED"}")
         appendLine("after_boot_snapshot=${if (after.isEmpty()) "MISSING" else "CAPTURED"}")
+        appendLine("boot_identity_comparison=" + when {
+            beforeBootId.isEmpty() || afterBootId.isEmpty() -> "NOT_COMPARABLE"
+            beforeBootId == afterBootId -> "SAME_BOOT_NO_RESTART_OBSERVED"
+            else -> "DIFFERENT_BOOT_IDS_RESTART_OBSERVED_POWER_OFF_NOT_PROVEN"
+        })
         appendLine("official_vs_ynfc_route=" +
             PowerOffRouteEvidence.compareFields(officialFields, ynfcFields))
         appendLine("ynfc_vs_after_boot_route=" +
@@ -145,6 +155,7 @@ internal class PowerOffRouteProbe(
     private fun readOnlyScript(): String = """
         echo "ROOT_UID=__D__(id -u 2>/dev/null)"
         echo "NFC_PID=__D__(pidof com.android.nfc 2>/dev/null)"
+        echo "BOOT_ID=__D__(cat /proc/sys/kernel/random/boot_id 2>/dev/null)"
         echo "NFC_CHIP=__D__(getprop persist.sys.nfc.chip_name)"
         echo "NFC_IMPL=__D__(getprop ro.boot.nfc)"
         for src in /odm/etc/nfc/pnscr/libnfc-nxp-pnscr.conf /vendor/etc/libnfc-nxp.conf /odm/etc/libnfc-nxp.conf; do
