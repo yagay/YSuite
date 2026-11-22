@@ -19,6 +19,16 @@ class DiagnosticsCollector(
     private val cardRepository: CardRepository
 ) {
     private val appContext = context.applicationContext
+    private val powerOffRouteProbe = PowerOffRouteProbe(context, rootShell, runtimeRepository)
+
+    /** Explicit read-only capture. Never runs on the Compose UI thread. */
+    fun capturePowerOffRouteEvidence(phase: String): String = powerOffRouteProbe.capture(phase)
+
+    /** User-reported external reader result; not an OS/reader proof. */
+    fun recordPowerOffReaderUid(source: String, uid: String): String =
+        powerOffRouteProbe.recordReaderUid(source, uid)
+
+    fun powerOffRouteEvidenceReport(): String = powerOffRouteProbe.report()
     private val packageName = context.packageName
     private val packageManager = context.applicationContext.packageManager
     private val nciTracePreferences = context.applicationContext.getSharedPreferences(
@@ -206,6 +216,8 @@ class DiagnosticsCollector(
         appendLine(runCatching { statusSummary(state) }.getOrElse {
             "Status unavailable: ${it.javaClass.simpleName}: ${it.message}"
         })
+        appendLine("--- POWER-OFF ROUTE STUDY (READ ONLY) ---")
+        appendLine(powerOffRouteEvidenceReport())
         appendLine("--- PROVIDER SNAPSHOT ---")
         snapshot.toSortedMap().forEach { (key, value) -> appendLine("$key=$value") }
         val configSnapshot = NfcSharedConfigManager.diagnostics(appContext)
@@ -593,6 +605,8 @@ class DiagnosticsCollector(
         appendLine(runRoot("id; su -v 2>/dev/null || true"))
         appendLine("--- NFC PROCESS / HAL ---")
         appendLine(runRoot("pm path com.android.nfc; pidof com.android.nfc; ps -A | grep -E 'android.hardware.nfc|vendor.oplus.hardware.nfc|com.android.nfc|$packageName'"))
+        appendLine("--- POWER-OFF ROUTE STUDY (READ ONLY) ---")
+        appendLine(powerOffRouteEvidenceReport())
         appendLine("--- NFC CONFIG SNAPSHOT ---")
         appendLine(nfcSystemService.collectNfcConfigSnapshot())
         appendLine("--- NFC SERVICE FULL ---")
