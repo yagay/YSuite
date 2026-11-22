@@ -24,6 +24,9 @@ open class ConfigProvider : ContentProvider() {
         val APP_BUILD: Int = BuildConfig.VERSION_CODE
 
         const val METHOD_PUBLISH_COMMAND = "publish_command"
+        const val METHOD_SET_BACKEND = "set_simulation_backend"
+        const val BACKEND_RF = "RF"
+        const val BACKEND_VENDOR = "VENDOR"
         const val METHOD_SET_DIAGNOSTIC_LOGGING = "set_diagnostic_logging"
         const val METHOD_SET_POLLING_DISABLED = "set_polling_disabled"
         const val METHOD_CONFIRM_STOCK_RESTART = "confirm_stock_restart"
@@ -254,15 +257,33 @@ open class ConfigProvider : ContentProvider() {
             return Bundle().apply { putBoolean(RESULT_SUCCESS, false) }
         }
         return when (method) {
+            METHOD_SET_BACKEND -> {
+                val backend = extras?.getString(EXTRA_BACKEND)
+                val lastStatus = prefs().getString(KEY_COMMAND_STATUS, "") ?: ""
+                val busy = lastStatus in setOf("PENDING", "RUNNING", "TRIGGERED", "RESTART_REQUIRED")
+                val failedVendorStop = prefs().getString(KEY_BACKEND, "RF") == BACKEND_VENDOR &&
+                    prefs().getString(KEY_COMMAND_ACTION, "") == "STOP" &&
+                    lastStatus == "FAILED"
+                val allowed = backend in setOf(BACKEND_RF, BACKEND_VENDOR) &&
+                    !prefs().getBoolean(KEY_SIMULATION_ENABLED, false) && !busy && !failedVendorStop
+                if (allowed) {
+                    prefs().edit().putString(KEY_BACKEND, backend).commit()
+                    context?.contentResolver?.notifyChange(URI, null)
+                }
+                Bundle().apply { putBoolean(RESULT_SUCCESS, allowed) }
+            }
             METHOD_PUBLISH_COMMAND -> {
                 val enabled = extras?.getBoolean(EXTRA_ENABLED, false) == true
                 val uid = extras?.getString(EXTRA_UID)
                 val sak = extras?.getString(EXTRA_SAK)
                 val atqa = extras?.getString(EXTRA_ATQA)
-                // New APPLY commands always use the main RF_CONFIG_WRITE Hook.
-                // Require STOP before migrating an already-active legacy session.
-                val backend = "RF"
-                val previousBackend = prefs().getString(KEY_BACKEND, "RF") ?: "RF"
+                // Preserve the user's explicit backend selection. Default remains RF.
+                // A legacy backend is only available for STOP/recovery, not new APPLY.
+                val selected = prefs().getString(KEY_BACKEND, BACKEND_RF) ?: BACKEND_RF
+                val backend = if (enabled) {
+                    if (selected == BACKEND_VENDOR) BACKEND_VENDOR else BACKEND_RF
+                } else selected
+                val previousBackend = selected
                 if (enabled && prefs().getBoolean(KEY_SIMULATION_ENABLED, false) && backend != previousBackend) {
                     Log.w("NfcConfigProvider", "Backend switch rejected while simulation active; STOP first")
                     return Bundle().apply { putBoolean(RESULT_SUCCESS, false) }
