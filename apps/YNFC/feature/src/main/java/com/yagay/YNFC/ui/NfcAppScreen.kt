@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yagay.YNFC.AppLogger
 import com.yagay.YNFC.BuildConfig
+import com.yagay.YNFC.ConfigProvider
 import com.yagay.YNFC.CardModel
 import com.yagay.YNFC.DiagnosticsCollector
 import com.yagay.YNFC.LogSource
@@ -60,6 +61,8 @@ fun NfcAppScreen(
     readModeEnabled: Boolean,
     pollingDisabled: Boolean,
     initialLogsEnabled: Boolean,
+    initialBackend: String,
+    onBackendChanged: (String) -> Boolean,
     diagnosticsCollector: DiagnosticsCollector,
     readRuntimeStatus: () -> RuntimeStatus,
     buildStatusSummary: (RuntimeStatus) -> String,
@@ -81,6 +84,8 @@ fun NfcAppScreen(
     var selectedSource by remember { mutableStateOf(LogSource.STATUS) }
     var diagnosticRunning by remember { mutableStateOf(false) }
     var logsEnabled by remember { mutableStateOf(initialLogsEnabled) }
+    var backend by remember(initialBackend) { mutableStateOf(initialBackend) }
+    var backendMessage by remember { mutableStateOf<String?>(null) }
     var expandedUid by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
     // One UI action at a time; backend serialization remains the authority.
@@ -89,6 +94,7 @@ fun NfcAppScreen(
     val applyUidText = stringResource(R.string.ynfc_apply_uid, "%s")
     val restoreRfText = stringResource(R.string.ynfc_restore_stock_rf)
     val walletWarningText = stringResource(R.string.ynfc_wallet_payment_warning)
+    val stringResourceBackendFailure = stringResource(R.string.ynfc_backend_save_failed)
 
     LaunchedEffect(selectedSource, logsEnabled) {
         logLines.clear()
@@ -113,6 +119,45 @@ fun NfcAppScreen(
     ) { padding ->
         YPageList(padding = padding) {
             item { RuntimeStatusPanel(status, operationMessage, readModeEnabled) }
+            item {
+                YSection(
+                    title = stringResource(R.string.ynfc_backend_title),
+                    subtitle = stringResource(R.string.ynfc_backend_desc),
+                ) {
+                    val canSwitch = !status.simulationEnabled && !commandPending &&
+                        !readModeEnabled && status.commandStatus !in
+                            setOf("PENDING", "RUNNING", "TRIGGERED", "RESTART_REQUIRED")
+                    YStatusLine(
+                        label = stringResource(R.string.ynfc_backend_selected),
+                        value = if (backend == ConfigProvider.BACKEND_VENDOR)
+                            stringResource(R.string.ynfc_backend_vendor)
+                        else stringResource(R.string.ynfc_backend_rf),
+                        tone = YStatusTone.Neutral,
+                    )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_backend_rf),
+                        onClick = {
+                            if (onBackendChanged(ConfigProvider.BACKEND_RF)) {
+                                backend = ConfigProvider.BACKEND_RF
+                                backendMessage = null
+                            } else backendMessage = stringResourceBackendFailure
+                        },
+                        enabled = canSwitch && backend != ConfigProvider.BACKEND_RF,
+                    )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_backend_vendor),
+                        onClick = {
+                            if (onBackendChanged(ConfigProvider.BACKEND_VENDOR)) {
+                                backend = ConfigProvider.BACKEND_VENDOR
+                                backendMessage = null
+                            } else backendMessage = stringResourceBackendFailure
+                        },
+                        enabled = canSwitch && backend != ConfigProvider.BACKEND_VENDOR,
+                    )
+                    Text(stringResource(R.string.ynfc_backend_warning), fontSize = 11.sp)
+                    backendMessage?.let { Text(it, fontSize = 11.sp) }
+                }
+            }
             if (status.simulationEnabled) {
                 item {
                     YSection(

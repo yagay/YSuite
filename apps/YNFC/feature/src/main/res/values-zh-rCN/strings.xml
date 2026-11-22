@@ -71,6 +71,7 @@
     <string name="ynfc_sim_stop_lifecycle_restored">模拟已停止 · 原厂 RF 已由 NFC 进程恢复</string>
     <string name="ynfc_sim_stop_superseded">停止请求已被更新的命令替代</string>
     <string name="ynfc_sim_stop_restored">模拟已停止 · 已恢复原厂 RF</string>
+    <string name="ynfc_sim_stop_recovery_unconfirmed">无法确认 NFC 已恢复</string>
     <string name="ynfc_sim_stop_restart_unconfirmed">模拟已停止 · NFC 已重启，但状态确认未完成</string>
 
     <string name="ynfc_read_card">读卡模式</string>
@@ -157,4 +158,13 @@
     <string name="ynfc_native_preview_action">生成 SN220 配置</string>
     <string name="ynfc_native_preview_preparing">正在生成并校验 SN220 配置快照（仅预览，不会启动 NFC 模拟）…</string>
     <string name="ynfc_native_preview_preparing_short">正在生成…</string>
+    <string name="ynfc_backend_title">模拟方式</string>
+    <string name="ynfc_backend_desc">保留原 RF Hook，同时提供 ColorOS 原生 NFC-A 接口。先停止当前模拟才能切换。</string>
+    <string name="ynfc_backend_selected">当前方式</string>
+    <string name="ynfc_backend_rf">原有 RF Hook（默认）</string>
+    <string name="ynfc_backend_vendor">ColorOS 原生 Type-A（实验）</string>
+    <string name="ynfc_backend_warning">原生模式设置 UID、ATQA、SAK，但接口接受不代表实际读卡成功或支持关机模拟。停止后请验证官方钱包是否恢复。</string>
+    <string name="ynfc_backend_save_failed">切换被拒绝。请先停止模拟并完成原厂配置恢复。</string>
+    <string name="ynfc_vendor_api_unverified">ColorOS 已接受 UID/ATQA/SAK 请求，仍需外部 NFC 读卡器验证，关机效果未知。</string>
+    <string name="ynfc_vendor_stop_failed">ColorOS Type-A 停止失败：%1$s。暂勿切换模式，请查看日志并重试。</string>
 </resources>

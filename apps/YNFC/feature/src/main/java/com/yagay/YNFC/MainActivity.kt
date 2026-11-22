@@ -130,6 +130,8 @@ class MainActivity : YComposeActivity() {
             readModeEnabled = readModeEnabled,
             pollingDisabled = pollingDisabled,
             initialLogsEnabled = initialLogsEnabled,
+            initialBackend = remember { readProviderMap()[ConfigProvider.KEY_BACKEND] ?: ConfigProvider.BACKEND_RF },
+            onBackendChanged = configClient::setBackend,
             diagnosticsCollector = diagnosticsCollector,
             readRuntimeStatus = { readRuntimeStatus(includeRootPid = false) },
             buildStatusSummary = ::buildStatusSummary,

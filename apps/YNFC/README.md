@@ -10,9 +10,9 @@
 
 ## 主要能力
 
-- **唯一模拟路径：main 的 RF_CONFIG_WRITE Hook。** 不提供 VENDOR / INTERCEPT / NATIVE 模拟模式，卡片模拟时始终发送 RF 命令。
+- **两种手动可选的模拟路径：** 默认保留原 RF_CONFIG_WRITE Hook；另提供 ColorOS 原生 NFC-A 接口（VENDOR）实验模式。模式之间互斥，启用中禁止直接切换。
 - 通过已发现的 Java RF 刷新触发器，必要时使用 main 原有的 `enableNfcShareMode` 回退。刷新调用不代表 UID 已成功写入，只有匹配的原生 RF 结果才可判定成功。
-- 旧安装已激活其他后端时，先执行 STOP，再启动新的 RF 模拟；保留旧会话的停止恢复入口。NFC 进程的 Hook 更新需要显式重新加载 NFC 服务，不要求整机重启。
+- 旧安装若存在历史后端会话，需先执行 STOP 完成恢复，才能重新选择 RF 或 VENDOR。保留原有停止恢复入口。NFC 进程的 Hook 更新需要显式重新加载 NFC 服务，不要求整机重启。
 
 - 读取并保存 4/7/10 字节 NFC UID。
 - APPLY、STOP 和恢复流程均绑定命令 generation、控制器 epoch 与 NFC 进程 PID。
@@ -20,6 +20,14 @@
 - 自动发现、学习并缓存与当前系统指纹和 NFC APK 版本匹配的 Hook profile。
 - 支持导出 Provider 状态、运行日志和 Hook 诊断信息。
 - 界面黑暗模式跟随系统；保留原有系统栏颜色策略，并处理状态栏与按键导航栏安全区域。
+
+## ColorOS 原生 NFC-A 模式（实验）
+
+- 使用已有的 `NfcProcessVendorController.probeTypeA()` 和 `setTypeAConfig()`，在 `com.android.nfc` 内受系统权限约束地调用 OEM Type-A 接口；**不修改默认 RF Hook 的实现与验证标准**。
+- 向厂商接口提交已保存卡片的 UID（4/7/10 字节）、SAK（1 字节）和 ATQA（2 字节），不猜测缺失数据。
+- OEM API 接受请求只记录 `UNVERIFIED`，不假称读卡器成功或关机可刷；需要设备实测。
+- Vendor STOP 先请求 OEM 禁用，然后走已有安全恢复和必要时的 NFC 服务重载；接口拒绝时显示失败，不擅自宣称官方钱包恢复。
+- 无权限时报告 `TYPE_A_PERMISSION_DENIED`，不绕过签名/安全元件权限，也不触碰 eSE 卡片应用和交通卡密钥。
 
 ## 运行状态
 

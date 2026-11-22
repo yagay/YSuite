@@ -71,6 +71,7 @@
     <string name="ynfc_sim_stop_lifecycle_restored">Emulation stopped · stock RF restored by the NFC process</string>
     <string name="ynfc_sim_stop_superseded">Stop request was replaced by a newer command</string>
     <string name="ynfc_sim_stop_restored">Emulation stopped · stock RF restored</string>
+    <string name="ynfc_sim_stop_recovery_unconfirmed">NFC recovery could not be confirmed</string>
     <string name="ynfc_sim_stop_restart_unconfirmed">Emulation stopped · NFC restarted, but state confirmation is incomplete</string>
 
     <string name="ynfc_read_card">Read-card mode</string>
@@ -157,4 +158,13 @@
     <string name="ynfc_native_preview_action">Generate SN220 config</string>
     <string name="ynfc_native_preview_preparing">Generating a verified SN220 snapshot (preview only; no NFC emulation)…</string>
     <string name="ynfc_native_preview_preparing_short">Generating…</string>
+    <string name="ynfc_backend_title">Emulation method</string>
+    <string name="ynfc_backend_desc">Choose the original RF Hook or the ColorOS native Type-A API. Stop the current card before switching.</string>
+    <string name="ynfc_backend_selected">Selected method</string>
+    <string name="ynfc_backend_rf">Original RF Hook (default)</string>
+    <string name="ynfc_backend_vendor">ColorOS native Type-A (experimental)</string>
+    <string name="ynfc_backend_warning">The native method sets UID, ATQA and SAK. API acceptance does not verify card-reader response or powered-off operation. Your official wallet may be affected; verify restoration after stopping.</string>
+    <string name="ynfc_backend_save_failed">Switch rejected. Stop emulation and finish recovery first.</string>
+    <string name="ynfc_vendor_api_unverified">ColorOS accepted the UID/ATQA/SAK request; external NFC reader verification required. Powered-off behavior is unknown.</string>
+    <string name="ynfc_vendor_stop_failed">ColorOS Type-A stop failed: %1$s. Do not switch modes; check diagnostics and retry.</string>
 </resources>
