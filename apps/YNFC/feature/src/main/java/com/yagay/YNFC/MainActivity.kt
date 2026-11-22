@@ -130,6 +130,8 @@ class MainActivity : YComposeActivity() {
             readModeEnabled = readModeEnabled,
             pollingDisabled = pollingDisabled,
             initialLogsEnabled = initialLogsEnabled,
+            initialBackend = remember { readProviderMap()[ConfigProvider.KEY_BACKEND] ?: ConfigProvider.BACKEND_RF },
+            onBackendChanged = configClient::setBackend,
             diagnosticsCollector = diagnosticsCollector,
             readRuntimeStatus = { readRuntimeStatus(includeRootPid = false) },
             buildStatusSummary = ::buildStatusSummary,
@@ -163,6 +165,32 @@ class MainActivity : YComposeActivity() {
             onReloadNfcHook = { onMessage ->
                 simulationCoordinator.reloadNfcHook { _, message ->
                     runOnUiThread { onMessage(message) }
+                }
+            },
+            onPowerOffCapture = { phase, onMessage ->
+                diagnosticExporter.exportPowerOffCapture(phase) { result ->
+                    runOnUiThread {
+                        onMessage(result.fold(
+                            onSuccess = { file -> getString(R.string.ynfc_poweroff_saved, file) },
+                            onFailure = { error -> getString(
+                                R.string.ynfc_poweroff_failed,
+                                error.message ?: error.javaClass.simpleName
+                            ) }
+                        ))
+                    }
+                }
+            },
+            onPowerOffRecordUid = { source, uid, onMessage ->
+                diagnosticExporter.exportPowerOffReaderResult(source, uid) { result ->
+                    runOnUiThread {
+                        onMessage(result.fold(
+                            onSuccess = { file -> getString(R.string.ynfc_poweroff_saved, file) },
+                            onFailure = { error -> getString(
+                                R.string.ynfc_poweroff_failed,
+                                error.message ?: error.javaClass.simpleName
+                            ) }
+                        ))
+                    }
                 }
             },
             onExportLogs = ::saveDiagnosticWithoutSharing,

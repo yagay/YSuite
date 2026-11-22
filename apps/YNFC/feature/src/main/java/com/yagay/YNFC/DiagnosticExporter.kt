@@ -69,6 +69,43 @@ internal class DiagnosticExporter(
         }
     }
 
+    /** Read-only BEFORE_OFF / AFTER_BOOT power-state snapshot, saved with current evidence. */
+    fun exportPowerOffCapture(phase: String, onDone: (Result<String>) -> Unit) {
+        executor.execute {
+            val result = runCatching {
+                val report = collector.capturePowerOffRouteEvidence(phase)
+                writePowerOffEvidence("capture", report)
+            }
+            runCatching { onDone(result) }.onFailure {
+                AppLogger.i("Power-off capture callback failed: " + it.message)
+            }
+        }
+    }
+
+    /** Stores manual external reader observation; never claims verified hardware behavior. */
+    fun exportPowerOffReaderResult(source: String, uid: String, onDone: (Result<String>) -> Unit) {
+        executor.execute {
+            val result = runCatching {
+                val report = collector.recordPowerOffReaderUid(source, uid)
+                writePowerOffEvidence("reader", report)
+            }
+            runCatching { onDone(result) }.onFailure {
+                AppLogger.i("Power-off reader callback failed: " + it.message)
+            }
+        }
+    }
+
+    private fun writePowerOffEvidence(kind: String, report: String): String {
+        val fileName = "YNFC-poweroff-${kind}_${System.currentTimeMillis()}.txt"
+        return runCatching {
+            NfcPublicDownloads.write(
+                appContext, fileName, report.toByteArray(Charsets.UTF_8), "text/plain"
+            )
+        }.getOrElse {
+            saveToAppFolder(fileName, report).absolutePath
+        }
+    }
+
     private fun saveToAppFolder(fileName: String, report: String): File {
         val directory = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
             ?: appContext.filesDir

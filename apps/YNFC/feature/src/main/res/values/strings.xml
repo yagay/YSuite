@@ -71,6 +71,7 @@
     <string name="ynfc_sim_stop_lifecycle_restored">Emulation stopped · stock RF restored by the NFC process</string>
     <string name="ynfc_sim_stop_superseded">Stop request was replaced by a newer command</string>
     <string name="ynfc_sim_stop_restored">Emulation stopped · stock RF restored</string>
+    <string name="ynfc_sim_stop_recovery_unconfirmed">NFC recovery could not be confirmed</string>
     <string name="ynfc_sim_stop_restart_unconfirmed">Emulation stopped · NFC restarted, but state confirmation is incomplete</string>
 
     <string name="ynfc_read_card">Read-card mode</string>
@@ -157,4 +158,28 @@
     <string name="ynfc_native_preview_action">Generate SN220 config</string>
     <string name="ynfc_native_preview_preparing">Generating a verified SN220 snapshot (preview only; no NFC emulation)…</string>
     <string name="ynfc_native_preview_preparing_short">Generating…</string>
+    <string name="ynfc_backend_title">Emulation method</string>
+    <string name="ynfc_backend_desc">Choose the original RF Hook or the ColorOS native Type-A API. Stop the current card before switching.</string>
+    <string name="ynfc_backend_selected">Selected method</string>
+    <string name="ynfc_backend_rf">Original RF Hook (default)</string>
+    <string name="ynfc_backend_vendor">ColorOS native Type-A (experimental)</string>
+    <string name="ynfc_backend_warning">The native method sets UID, ATQA and SAK. API acceptance does not verify card-reader response or powered-off operation. Your official wallet may be affected; verify restoration after stopping.</string>
+    <string name="ynfc_backend_save_failed">Switch rejected. Stop emulation and finish recovery first.</string>
+    <string name="ynfc_vendor_api_unverified">ColorOS accepted the UID/ATQA/SAK request; external NFC reader verification required. Powered-off behavior is unknown.</string>
+    <string name="ynfc_vendor_stop_failed">ColorOS Type-A stop failed: %1$s. Do not switch modes; check diagnostics and retry.</string>
+    <string name="ynfc_poweroff_title">Power-off UID research (read only)</string>
+    <string name="ynfc_poweroff_desc">Capture the official wallet and YNFC before shutdown. Record an external reader result after a real shutdown, then compare routing after reboot.</string>
+    <string name="ynfc_poweroff_capability">Custom UID after shutdown</string>
+    <string name="ynfc_poweroff_unverified">NOT VERIFIED</string>
+    <string name="ynfc_poweroff_capture_official">Capture official wallet (YNFC stopped)</string>
+    <string name="ynfc_poweroff_capture_ynfc">Capture YNFC route (simulation active)</string>
+    <string name="ynfc_poweroff_capture_after">Capture after reboot and compare</string>
+    <string name="ynfc_poweroff_external_uid">UID seen by external NFC reader</string>
+    <string name="ynfc_poweroff_reader_official">Record official card shutdown UID</string>
+    <string name="ynfc_poweroff_reader_ynfc">Record YNFC shutdown UID</string>
+    <string name="ynfc_poweroff_instruction">Use another NFC reader while the phone is really powered off. Enter its measured UID after restarting. These are user-reported observations, not automatic hardware proof. Power-state routing bits alone cannot make a custom UID work when off. No NFC configuration is changed by this test.</string>
+    <string name="ynfc_poweroff_saved">Power-off evidence saved: %1$s</string>
+    <string name="ynfc_poweroff_failed">Power-off evidence failed: %1$s</string>
+    <string name="ynfc_poweroff_no_response_official">Official card: reader did not respond while off</string>
+    <string name="ynfc_poweroff_no_response_ynfc">YNFC card: reader did not respond while off</string>
 </resources>

@@ -27,7 +27,9 @@ internal class SimulationCoordinator(
             if (!hookReady(ready)) ready = waitForHookOnly(2_000)
             if (!hookReady(ready)) {
                 AppLogger.i("SIMULATION: APPLY not published; NFC Hook mismatch or missing. " +
-                    "hook=${ready.hookBuild} expected=$expectedHookBuild pid=${ready.currentPid}")
+                    "hook=${ready.hookBuild}/$expectedHookBuild " +
+                    "impl=${ready.hookImplementationRevision}/${BuildConfig.INTERCEPT_IMPL_REVISION} " +
+                    "implPid=${ready.hookImplementationPid} currentPid=${ready.currentPid}")
                 onDone(ready, YLocale.text(R.string.ynfc_sim_hook_not_ready))
                 return@execute
             }
@@ -37,7 +39,8 @@ internal class SimulationCoordinator(
                     YLocale.text(R.string.ynfc_sim_command_superseded))
                 return@execute
             }
-            AppLogger.i("SIMULATION: serial COMMAND APPLY generation=$generation uid=${card.uid} backend=RF")
+            AppLogger.i("SIMULATION: serial COMMAND APPLY generation=$generation uid=${card.uid} backend=" +
+                (runtimeRepository.readProviderMap()[ConfigProvider.KEY_BACKEND] ?: ConfigProvider.BACKEND_RF))
             var state = runtimeRepository.read(includeRootPid = true)
             if (!hookReady(state)) {
                 // APK installation must never restart NFC implicitly. An already
@@ -58,6 +61,9 @@ internal class SimulationCoordinator(
                 !hookReady(state) -> YLocale.text(R.string.ynfc_sim_hook_not_ready)
                 SimulationResultPolicy.isApplySuccess(state, generation, card.uid) ->
                     YLocale.text(R.string.ynfc_sim_apply_success, card.uid)
+                state.commandStatus == "UNVERIFIED" &&
+                    state.rfSource == "vendor-type-a" ->
+                    YLocale.text(R.string.ynfc_vendor_api_unverified)
                 state.commandStatus == "UNVERIFIED" &&
                     state.verificationConfidence == "NCI_WRITE_UNVERIFIED" ->
                     YLocale.text(R.string.ynfc_own_nci_unverified)
@@ -85,8 +91,18 @@ internal class SimulationCoordinator(
                     YLocale.text(R.string.ynfc_sim_command_superseded))
                 return@execute
             }
-            AppLogger.i("SIMULATION: serial COMMAND STOP generation=$generation")
+            val backend = runtimeRepository.readProviderMap()[ConfigProvider.KEY_BACKEND] ?: ConfigProvider.BACKEND_RF
+            AppLogger.i("SIMULATION: serial COMMAND STOP generation=$generation backend=$backend")
             var state = waitForCommandCompletion(generation, null, apply = false, timeoutMs = 6_000)
+            val vendorStop = backend == ConfigProvider.BACKEND_VENDOR
+            // Never claim vendor-stop failure was restored by an unconditional NFC process
+            // restart. The OEM configuration can persist outside the Android service.
+            if (vendorStop && state.commandGeneration == generation &&
+                state.handledGeneration == generation && state.commandStatus == "FAILED") {
+                onDone(state, YLocale.text(R.string.ynfc_vendor_stop_failed,
+                    state.commandDetail ?: "unknown"))
+                return@execute
+            }
 
             // STOP_NO_OVERRIDE is an explicit terminal acknowledgement from
             // the injected Hook: nothing was written to the controller. This
@@ -112,6 +128,13 @@ internal class SimulationCoordinator(
                 state = runtimeRepository.read(includeRootPid = true)
                 AppLogger.i("SIMULATION: STOP fallback cancelled, a newer command owns NFC")
                 onDone(state, YLocale.text(R.string.ynfc_sim_stop_superseded))
+                return@execute
+            }
+
+            if (state.commandStatus != "RESTART_REQUIRED" || state.commandPid != state.currentPid ||
+                state.currentPid <= 0 || state.consumedGeneration != generation
+            ) {
+                onDone(state, YLocale.text(R.string.ynfc_sim_stop_recovery_unconfirmed))
                 return@execute
             }
 
