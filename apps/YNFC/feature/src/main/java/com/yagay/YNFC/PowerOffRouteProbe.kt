@@ -95,9 +95,9 @@ internal class PowerOffRouteProbe(
         val official = prefs.getString("snapshot_$OFFICIAL", "").orEmpty()
         val ynfc = prefs.getString("snapshot_$YNFC", "").orEmpty()
         val after = prefs.getString("snapshot_$AFTER_BOOT", "").orEmpty()
-        val officialFields = PowerOffRouteEvidence.routeFields(official)
-        val ynfcFields = PowerOffRouteEvidence.routeFields(ynfc)
-        val afterFields = PowerOffRouteEvidence.routeFields(after)
+        val officialFields = PowerOffRouteEvidence.comparisonFields(official)
+        val ynfcFields = PowerOffRouteEvidence.comparisonFields(ynfc)
+        val afterFields = PowerOffRouteEvidence.comparisonFields(after)
         val officialUid = prefs.getString("reader_uid_OFFICIAL", "").orEmpty()
         val ynfcUid = prefs.getString("reader_uid_YNFC", "").orEmpty()
         val expected = ynfc.lineSequence().firstOrNull {
