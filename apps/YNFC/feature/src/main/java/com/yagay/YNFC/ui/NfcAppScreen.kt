@@ -237,6 +237,28 @@ fun NfcAppScreen(
                         },
                         enabled = !powerOffBusy && externalReaderUid.isNotBlank(),
                     )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_poweroff_no_response_official),
+                        onClick = {
+                            powerOffBusy = true
+                            onPowerOffRecordUid("OFFICIAL", "NO_RESPONSE") {
+                                powerOffMessage = it
+                                powerOffBusy = false
+                            }
+                        },
+                        enabled = !powerOffBusy,
+                    )
+                    YSecondaryButton(
+                        text = stringResource(R.string.ynfc_poweroff_no_response_ynfc),
+                        onClick = {
+                            powerOffBusy = true
+                            onPowerOffRecordUid("YNFC", "NO_RESPONSE") {
+                                powerOffMessage = it
+                                powerOffBusy = false
+                            }
+                        },
+                        enabled = !powerOffBusy,
+                    )
                     Text(stringResource(R.string.ynfc_poweroff_instruction), fontSize = 11.sp)
                     powerOffMessage?.let { Text(it, fontSize = 11.sp) }
                 }
