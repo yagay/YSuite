@@ -180,4 +180,6 @@
     <string name="ynfc_poweroff_instruction">Use another NFC reader while the phone is really powered off. Enter its measured UID after restarting. These are user-reported observations, not automatic hardware proof. Power-state routing bits alone cannot make a custom UID work when off. No NFC configuration is changed by this test.</string>
     <string name="ynfc_poweroff_saved">Power-off evidence saved: %1$s</string>
     <string name="ynfc_poweroff_failed">Power-off evidence failed: %1$s</string>
+    <string name="ynfc_poweroff_no_response_official">Official card: reader did not respond while off</string>
+    <string name="ynfc_poweroff_no_response_ynfc">YNFC card: reader did not respond while off</string>
 </resources>
