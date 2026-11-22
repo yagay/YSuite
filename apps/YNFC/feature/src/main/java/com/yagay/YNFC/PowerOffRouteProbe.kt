@@ -63,8 +63,12 @@ internal class PowerOffRouteProbe(
             appendLine("--- READ-ONLY DEVICE OUTPUT ---")
             appendLine(raw)
         }
-        check(prefs.edit().putString("snapshot_$phase", phaseSnapshot)
-            .putLong("timestamp_$phase", capturedAt).commit()) {
+        val editor = prefs.edit().putString("snapshot_$phase", phaseSnapshot)
+            .putLong("timestamp_$phase", capturedAt)
+        // A new trial must not inherit a reader observation from a previous card.
+        if (phase == OFFICIAL) editor.remove("reader_uid_OFFICIAL").remove("reader_uid_at_OFFICIAL")
+        if (phase == YNFC) editor.remove("reader_uid_YNFC").remove("reader_uid_at_YNFC")
+        check(editor.commit()) {
             "Failed to persist power-off evidence"
         }
         return report()
@@ -153,6 +157,9 @@ internal class PowerOffRouteProbe(
         echo "ROUTING_DUMPSYS_HINTS_BEGIN"
         dumpsys nfc 2>/dev/null | grep -Ei 'routing|mDefaultRoute|eSE|uicc|off.?host' | head -n 24
         echo "ROUTING_DUMPSYS_HINTS_END"
+        echo "DH_MODE_LAST_LOG_HINT_BEGIN"
+        logcat -b all -d -t 2500 -v brief 2>/dev/null | grep -i -E 'isUsingDH[=:](yes|no|true|false)' | grep -o -i -E 'isUsingDH[=:](yes|no|true|false)' | tail -n 1
+        echo "DH_MODE_LAST_LOG_HINT_END"
         echo "PROBE_FINISHED"
     """.trimIndent().replace("__D__", 36.toChar().toString())
 }
