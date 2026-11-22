@@ -129,23 +129,23 @@ internal class PowerOffRouteProbe(
     }
 
     private fun readOnlyScript(): String = """
-        echo "ROOT_UID=\$(id -u 2>/dev/null)"
-        echo "NFC_PID=\$(pidof com.android.nfc 2>/dev/null)"
-        echo "NFC_CHIP=\$(getprop persist.sys.nfc.chip_name)"
-        echo "NFC_IMPL=\$(getprop ro.boot.nfc)"
+        echo "ROOT_UID=__D__(id -u 2>/dev/null)"
+        echo "NFC_PID=__D__(pidof com.android.nfc 2>/dev/null)"
+        echo "NFC_CHIP=__D__(getprop persist.sys.nfc.chip_name)"
+        echo "NFC_IMPL=__D__(getprop ro.boot.nfc)"
         for src in /odm/etc/nfc/pnscr/libnfc-nxp-pnscr.conf /vendor/etc/libnfc-nxp.conf /odm/etc/libnfc-nxp.conf; do
-          if [ -f "\$src" ]; then
-            echo "ROUTE_CONFIG_SOURCE=\$src"
-            grep -E '^[[:space:]]*DEFAULT_(AID|DESFIRE|MIFARE_CLT|FELICA_CLT)_(ROUTE|PWR_STATE)[[:space:]]*=' "\$src" | head -n 16
+          if [ -f "__D__src" ]; then
+            echo "ROUTE_CONFIG_SOURCE=__D__src"
+            grep -E '^[[:space:]]*DEFAULT_(AID|DESFIRE|MIFARE_CLT|FELICA_CLT)_(ROUTE|PWR_STATE)[[:space:]]*=' "__D__src" | head -n 16
             break
           fi
         done
         for key in hce_access_card_mode hce_access_card_sak hce_access_card_atqa; do
-          value=\$(settings get global "\$key" 2>/dev/null)
-          echo "GLOBAL_\$key=\$value"
+          value=__D__(settings get global "__D__key" 2>/dev/null)
+          echo "GLOBAL___D__key=__D__value"
         done
-        uid_value=\$(settings get global hce_access_card_uid 2>/dev/null)
-        if [ -n "\$uid_value" ] && [ "\$uid_value" != "null" ]; then
+        uid_value=__D__(settings get global hce_access_card_uid 2>/dev/null)
+        if [ -n "__D__uid_value" ] && [ "__D__uid_value" != "null" ]; then
           echo "GLOBAL_hce_access_card_uid=PRESENT_REDACTED"
         else
           echo "GLOBAL_hce_access_card_uid=ABSENT"
@@ -154,5 +154,5 @@ internal class PowerOffRouteProbe(
         dumpsys nfc 2>/dev/null | grep -Ei 'routing|mDefaultRoute|eSE|uicc|off.?host' | head -n 24
         echo "ROUTING_DUMPSYS_HINTS_END"
         echo "PROBE_FINISHED"
-    """.trimIndent()
+    """.trimIndent().replace("__D__", 36.toChar().toString())
 }
